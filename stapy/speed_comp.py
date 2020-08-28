@@ -5,11 +5,11 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 #
-from network_data import load_pickle
+from stapy.network_data import load_pickle
 import networkx as nx
-from assignment import StaticAssignment
-from od_matrix_generator import generate_od_fixed
-from algorithms.graph_utils import __shortest_path
+from stapy.assignment import StaticAssignment
+from stapy.od_matrix_generator import generate_od_fixed
+from stapy.algorithms.graph_utils import __shortest_path
 import numpy as np
 import igraph as ig
 import timeit

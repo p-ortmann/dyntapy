@@ -7,7 +7,7 @@
 #
 import numpy as np
 from scipy.sparse import lil_matrix
-from setup import int_dtype
+from stapy.setup import int_dtype
 
 
 def generate_od(number_of_nodes, origins_to_nodes_ratio, origins_to_destinations_connection_ratio=0.15, seed=0):

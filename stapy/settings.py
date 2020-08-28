@@ -40,6 +40,6 @@ gap_method = "relative"
 log_to_file = True
 log_folder = 'logs'
 log_level = 20
-log_filename = 'StaPy'
+log_filename = 'stapy'
 # visum setup
 data_folder = 'data'

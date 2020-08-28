@@ -8,8 +8,8 @@ import os
 import networkx as nx
 import numpy as np
 import osmnx as ox
-from settings import config_dict, data_folder, speed_mapping, cap_mapping, default_capacity, default_speed
-from utilities import log
+from stapy.settings import config_dict, data_folder, speed_mapping, cap_mapping, default_capacity, default_speed
+from stapy.utilities import log
 
 #ox.settings.useful_tags_node.append(['osmid'])
 #ox.settings.useful_tags_way.append(['osmid'])

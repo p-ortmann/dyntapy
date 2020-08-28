@@ -11,11 +11,10 @@ from scipy.sparse import csr_matrix
 from numba.typed import Dict, List
 from itertools import count
 import networkx as nx
-from algorithms.graph_utils import make_forward_stars, make_backward_stars
-from utilities import np_to_py_type_conversion
-from utilities import log
+from stapy.algorithms.graph_utils import make_forward_stars, make_backward_stars
+from stapy.utilities import log
 from scipy.sparse import lil_matrix
-from demand import build_demand_structs
+from stapy.demand import build_demand_structs
 
 
 class StaticAssignment:

@@ -5,11 +5,11 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 #
-from assignment import StaticAssignment
-from algorithms.frank_wolfe import frank_wolfe
-from algorithms.msa import msa_flow_averaging
-from algorithms.dial_algorithm_B.bush_manager import dial_b
-from settings import assignment_method_defaults
+from stapy.assignment import StaticAssignment
+from stapy.algorithms.frank_wolfe import frank_wolfe
+from stapy.algorithms.msa import msa_flow_averaging
+from stapy.algorithms.dial_algorithm_B.bush_manager import dial_b
+from stapy.settings import assignment_method_defaults
 
 
 def DUN(g, od_matrix):

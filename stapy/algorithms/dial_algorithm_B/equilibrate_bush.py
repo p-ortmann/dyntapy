@@ -7,9 +7,9 @@
 #
 
 import numpy as np
-from algorithms.helper_funcs import __bpr_cost_single, __bpr_derivate_single
+from stapy.algorithms.helper_funcs import __bpr_cost_single, __bpr_derivate_single
 from numba.typed import Dict
-from settings import assignment_parameters
+from stapy.settings import assignment_parameters
 from numba import njit
 
 epsilon = assignment_parameters['dial_b_cost_differences']

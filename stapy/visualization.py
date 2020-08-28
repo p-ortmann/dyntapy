@@ -13,9 +13,9 @@ from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models.glyphs import MultiLine, Circle, X, Asterisk, Patches
 from shapely.geometry import LineString
-from settings import visualization_keys_edges, visualization_keys_nodes
-from utilities import log, __create_green_to_red_cm
-from assignment import StaticAssignment
+from stapy.settings import visualization_keys_edges, visualization_keys_nodes
+from stapy.utilities import log, __create_green_to_red_cm
+from stapy.assignment import StaticAssignment
 import osmnx as ox
 from pyproj import CRS
 

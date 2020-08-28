@@ -8,7 +8,7 @@
 import numpy as np
 from numba import njit
 from numba.typed import List
-from setup import int_dtype
+from stapy.setup import int_dtype
 
 
 @njit

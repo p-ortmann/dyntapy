@@ -9,7 +9,7 @@ from heapq import heappop, heappush
 import numpy as np
 from numba import njit
 from numba.typed import Dict, List
-from setup import int_dtype
+from stapy.setup import int_dtype
 
 
 @njit

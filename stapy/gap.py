@@ -7,7 +7,7 @@
 #
 import numpy as np
 from numba import njit
-from settings import gap_method
+from stapy.settings import gap_method
 
 
 def gap(flows, travel_times, demand, sp_costs, method=gap_method):

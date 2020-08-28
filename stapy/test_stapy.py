@@ -8,11 +8,11 @@
 #
 #
 #
-from network_data import get_from_ox_and_save, load_pickle
-from assignment_methods import DUE
+from stapy.network_data import get_from_ox_and_save, load_pickle
+from stapy.assignment_methods import DUE
 from networkx import DiGraph
-from od_matrix_generator import generate_od, generate_od_fixed
-from visualization import plot_network, show_desire_lines, show_convergence
+from stapy.od_matrix_generator import generate_od, generate_od_fixed
+from stapy.visualization import plot_network, show_desire_lines, show_convergence
 import osmnx as ox
 #(g,deleted)= get_from_ox_and_save('Gent', reload=False)
 g = load_pickle('Gent')

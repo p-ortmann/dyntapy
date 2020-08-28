@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.colors import to_hex
 import matplotlib.cm as cm
 import logging
-import settings
+import stapy.settings
 import inspect
 import os
 import datetime

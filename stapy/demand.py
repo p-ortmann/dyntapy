@@ -6,7 +6,7 @@
 #
 #
 
-from setup import float_dtype, int_dtype
+from stapy.setup import float_dtype, int_dtype
 from numba.typed import List, Dict
 import numpy as np
 

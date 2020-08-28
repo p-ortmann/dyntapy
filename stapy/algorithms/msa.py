@@ -6,11 +6,11 @@
 #
 #
 import numpy as np
-from algorithms.helper_funcs import calculate_costs, aon
-from settings import assignment_parameters
-from assignment import StaticAssignment
-from gap import gap
-from utilities import log
+from stapy.algorithms.helper_funcs import calculate_costs, aon
+from stapy.settings import assignment_parameters
+from stapy.assignment import StaticAssignment
+from stapy.gap import gap
+from stapy.utilities import log
 
 
 def msa_flow_averaging(obj: StaticAssignment):

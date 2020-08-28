@@ -9,10 +9,10 @@ import math
 
 import numpy as np
 
-from algorithms.helper_funcs import calculate_costs, aon
-from assignment import StaticAssignment as __StaticAssignment
-from settings import assignment_parameters
-from utilities import log
+from stapy.algorithms.helper_funcs import calculate_costs, aon
+from stapy.assignment import StaticAssignment as __StaticAssignment
+from stapy.settings import assignment_parameters
+from stapy.utilities import log
 
 
 def frank_wolfe(obj: __StaticAssignment):
