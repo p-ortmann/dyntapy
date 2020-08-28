@@ -7,11 +7,7 @@
 #
 from private import key
 import googlemaps
-from googlemaps.distance_matrix import distance_matrix
 import pyproj
-import numpy as np
-
-
 
 # x and y coordinates of all zone centroids in the Leuven network
 x = [173416.624537, 173652.842475, 173126.000000, 173058.287657, 173604.000000, 173960.000000, 173872.000000,

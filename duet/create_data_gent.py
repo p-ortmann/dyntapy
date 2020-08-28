@@ -7,11 +7,13 @@
 #
 #
 #
-from network_data import get_from_ox_and_save
-from od_matrix_generator import generate_od_fixed
-from assignment_methods import DUE
+#
+#
+from stapy.network_data import get_from_ox_and_save
+from stapy.od_matrix_generator import generate_od_fixed
+from stapy.assignment_methods import DUE
 from duet.io import nx_to_geojson
-from visualization import plot_network
+from stapy.visualization import plot_network
 
 g, _ = get_from_ox_and_save('gent')
 rand_od = generate_od_fixed(g.number_of_nodes(), 30)
