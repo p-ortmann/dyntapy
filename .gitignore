@@ -1,6 +1,6 @@
 private.py
-.idea
-calibration tools
-data
-duet
-logs
+.idea/
+calibration tools/
+data/
+duet/
+logs/
