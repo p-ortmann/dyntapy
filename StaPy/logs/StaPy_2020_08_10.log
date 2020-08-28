@@ -1,0 +1,299 @@
+2020-08-10 09:49:52,251 INFO @assignment.py: Assignment object initialized!
+2020-08-10 09:49:53,180 INFO @algorithms.msa.py: starting msa
+2020-08-10 09:50:08,312 INFO @algorithms.msa.py: first aon run
+2020-08-10 09:50:08,714 INFO @algorithms.msa.py: current gap is1.1960157878192632
+2020-08-10 09:50:08,780 INFO @algorithms.msa.py: current gap is0.739316103710187
+2020-08-10 09:50:08,851 INFO @algorithms.msa.py: current gap is0.13755300855666697
+2020-08-10 09:50:08,925 INFO @algorithms.msa.py: current gap is0.08119757676833239
+2020-08-10 09:50:09,006 INFO @algorithms.msa.py: current gap is0.03245432684766558
+2020-08-10 09:50:09,088 INFO @algorithms.msa.py: current gap is0.025860702933058644
+2020-08-10 09:50:09,169 INFO @algorithms.msa.py: current gap is0.026824478528449935
+2020-08-10 09:50:09,247 INFO @algorithms.msa.py: current gap is0.026279753862297417
+2020-08-10 09:50:09,326 INFO @algorithms.msa.py: current gap is0.010259271587270025
+2020-08-10 09:50:09,407 INFO @algorithms.msa.py: current gap is0.024387907790404784
+2020-08-10 10:07:12,910 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:07:13,686 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:07:29,213 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:07:29,667 INFO @algorithms.msa.py: current gap is1.1960157878192632
+2020-08-10 10:07:29,764 INFO @algorithms.msa.py: current gap is0.739316103710187
+2020-08-10 10:07:29,849 INFO @algorithms.msa.py: current gap is0.13755300855666697
+2020-08-10 10:07:29,943 INFO @algorithms.msa.py: current gap is0.08119757676833239
+2020-08-10 10:07:30,054 INFO @algorithms.msa.py: current gap is0.03245432684766558
+2020-08-10 10:07:30,174 INFO @algorithms.msa.py: current gap is0.025860702933058644
+2020-08-10 10:07:30,281 INFO @algorithms.msa.py: current gap is0.026824478528449935
+2020-08-10 10:07:30,387 INFO @algorithms.msa.py: current gap is0.026279753862297417
+2020-08-10 10:07:30,486 INFO @algorithms.msa.py: current gap is0.010259271587270025
+2020-08-10 10:07:30,604 INFO @algorithms.msa.py: current gap is0.024387907790404784
+2020-08-10 10:08:28,658 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:08:29,135 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:09:08,256 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:09:08,730 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:09:20,615 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:09:20,995 INFO @algorithms.msa.py: current gap is1.1960157878192632
+2020-08-10 10:09:21,073 INFO @algorithms.msa.py: current gap is0.739316103710187
+2020-08-10 10:09:21,151 INFO @algorithms.msa.py: current gap is0.13755300855666697
+2020-08-10 10:09:21,233 INFO @algorithms.msa.py: current gap is0.08119757676833239
+2020-08-10 10:09:21,318 INFO @algorithms.msa.py: current gap is0.03245432684766558
+2020-08-10 10:09:21,408 INFO @algorithms.msa.py: current gap is0.025860702933058644
+2020-08-10 10:09:21,505 INFO @algorithms.msa.py: current gap is0.026824478528449935
+2020-08-10 10:09:21,596 INFO @algorithms.msa.py: current gap is0.026279753862297417
+2020-08-10 10:09:21,694 INFO @algorithms.msa.py: current gap is0.010259271587270025
+2020-08-10 10:09:21,792 INFO @algorithms.msa.py: current gap is0.024387907790404784
+2020-08-10 10:10:59,384 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:10:59,864 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:11:12,447 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:11:12,957 INFO @algorithms.msa.py: current gap is1.1960157878192632
+2020-08-10 10:11:13,060 INFO @algorithms.msa.py: current gap is0.739316103710187
+2020-08-10 10:11:13,149 INFO @algorithms.msa.py: current gap is0.13755300855666697
+2020-08-10 10:11:13,231 INFO @algorithms.msa.py: current gap is0.08119757676833239
+2020-08-10 10:11:13,314 INFO @algorithms.msa.py: current gap is0.03245432684766558
+2020-08-10 10:11:13,396 INFO @algorithms.msa.py: current gap is0.025860702933058644
+2020-08-10 10:11:13,482 INFO @algorithms.msa.py: current gap is0.026824478528449935
+2020-08-10 10:11:13,568 INFO @algorithms.msa.py: current gap is0.026279753862297417
+2020-08-10 10:11:13,657 INFO @algorithms.msa.py: current gap is0.010259271587270025
+2020-08-10 10:11:13,740 INFO @algorithms.msa.py: current gap is0.024387907790404784
+2020-08-10 10:15:26,278 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:15:26,565 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:15:33,785 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:15:34,025 INFO @algorithms.msa.py: current gap is1.1960157878192632
+2020-08-10 10:15:34,105 INFO @algorithms.msa.py: current gap is0.739316103710187
+2020-08-10 10:15:34,186 INFO @algorithms.msa.py: current gap is0.13755300855666697
+2020-08-10 10:15:34,270 INFO @algorithms.msa.py: current gap is0.08119757676833239
+2020-08-10 10:15:34,355 INFO @algorithms.msa.py: current gap is0.03245432684766558
+2020-08-10 10:15:34,445 INFO @algorithms.msa.py: current gap is0.025860702933058644
+2020-08-10 10:15:34,535 INFO @algorithms.msa.py: current gap is0.026824478528449935
+2020-08-10 10:15:34,618 INFO @algorithms.msa.py: current gap is0.026279753862297417
+2020-08-10 10:15:34,713 INFO @algorithms.msa.py: current gap is0.010259271587270025
+2020-08-10 10:15:34,802 INFO @algorithms.msa.py: current gap is0.024387907790404784
+2020-08-10 10:16:43,801 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:16:44,275 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:16:56,240 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:16:56,613 INFO @algorithms.msa.py: current gap is1.1960157878192632
+2020-08-10 10:16:56,690 INFO @algorithms.msa.py: current gap is0.739316103710187
+2020-08-10 10:16:56,763 INFO @algorithms.msa.py: current gap is0.13755300855666697
+2020-08-10 10:16:56,842 INFO @algorithms.msa.py: current gap is0.08119757676833239
+2020-08-10 10:16:56,922 INFO @algorithms.msa.py: current gap is0.03245432684766558
+2020-08-10 10:16:57,000 INFO @algorithms.msa.py: current gap is0.025860702933058644
+2020-08-10 10:16:57,081 INFO @algorithms.msa.py: current gap is0.026824478528449935
+2020-08-10 10:16:57,161 INFO @algorithms.msa.py: current gap is0.026279753862297417
+2020-08-10 10:16:57,244 INFO @algorithms.msa.py: current gap is0.010259271587270025
+2020-08-10 10:16:57,326 INFO @algorithms.msa.py: current gap is0.024387907790404784
+2020-08-10 10:23:10,400 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:23:10,687 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:23:18,034 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:23:18,278 INFO @algorithms.msa.py: current gap is1.1960157878192632
+2020-08-10 10:23:18,363 INFO @algorithms.msa.py: current gap is0.739316103710187
+2020-08-10 10:23:18,448 INFO @algorithms.msa.py: current gap is0.13755300855666697
+2020-08-10 10:23:18,537 INFO @algorithms.msa.py: current gap is0.08119757676833239
+2020-08-10 10:23:18,630 INFO @algorithms.msa.py: current gap is0.03245432684766558
+2020-08-10 10:23:18,716 INFO @algorithms.msa.py: current gap is0.025860702933058644
+2020-08-10 10:23:18,804 INFO @algorithms.msa.py: current gap is0.026824478528449935
+2020-08-10 10:23:18,893 INFO @algorithms.msa.py: current gap is0.026279753862297417
+2020-08-10 10:23:18,984 INFO @algorithms.msa.py: current gap is0.010259271587270025
+2020-08-10 10:23:19,079 INFO @algorithms.msa.py: current gap is0.024387907790404784
+2020-08-10 10:28:27,484 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:29:47,354 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:29:47,886 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:30:01,347 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:30:01,768 INFO @algorithms.msa.py: current gap is0.05852981100753918
+2020-08-10 10:30:01,831 INFO @algorithms.msa.py: current gap is0.02023517694412802
+2020-08-10 10:40:11,263 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:40:11,600 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:40:20,559 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:40:20,816 INFO @algorithms.msa.py: current gap is0.05852981100753918
+2020-08-10 10:40:20,860 INFO @algorithms.msa.py: current gap is0.02023517694412802
+2020-08-10 10:42:33,404 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:42:33,677 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:42:41,834 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:42:42,179 INFO @algorithms.msa.py: current gap is0.05852981100753918
+2020-08-10 10:42:42,234 INFO @algorithms.msa.py: current gap is0.02023517694412802
+2020-08-10 10:45:02,763 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:45:03,037 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:45:10,972 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:45:11,242 INFO @algorithms.msa.py: current gap is0.05852981100753918
+2020-08-10 10:45:11,281 INFO @algorithms.msa.py: current gap is0.02023517694412802
+2020-08-10 10:46:37,958 INFO @network_data.py: Starting to load from OSM
+2020-08-10 10:48:30,398 INFO @network_data.py: Starting to load from OSM
+2020-08-10 10:48:53,595 INFO @network_data.py: Finished downloading
+2020-08-10 10:50:48,310 INFO @network_data.py: Starting to load from OSM
+2020-08-10 10:51:24,895 INFO @network_data.py: Finished downloading
+2020-08-10 10:51:36,864 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:51:37,405 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:51:51,307 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:51:51,822 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 10:51:51,835 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 10:55:44,577 INFO @network_data.py: Starting to load from OSM
+2020-08-10 10:56:19,075 INFO @network_data.py: Finished downloading
+2020-08-10 10:56:30,906 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:56:31,402 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:56:43,614 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:56:44,089 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 10:56:44,102 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 10:58:55,662 INFO @network_data.py: Starting to load from OSM
+2020-08-10 10:59:28,522 INFO @network_data.py: Finished downloading
+2020-08-10 10:59:39,916 INFO @assignment.py: Assignment object initialized!
+2020-08-10 10:59:40,397 INFO @algorithms.msa.py: starting msa
+2020-08-10 10:59:52,595 INFO @algorithms.msa.py: first aon run
+2020-08-10 10:59:53,057 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 10:59:53,070 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:05:08,377 INFO @network_data.py: Starting to load from OSM
+2020-08-10 11:05:26,429 INFO @network_data.py: Finished downloading
+2020-08-10 11:05:32,739 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:05:33,009 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:05:40,304 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:05:40,489 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:05:40,502 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:11:15,006 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:11:15,276 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:11:22,800 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:11:23,000 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:11:23,015 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:28:04,678 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:28:05,174 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:28:18,833 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:28:19,152 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:28:19,168 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:31:35,007 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:31:35,373 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:31:45,556 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:31:45,816 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:31:45,831 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:33:57,754 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:33:58,251 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:34:15,415 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:34:16,126 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:34:16,148 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:39:46,797 INFO @network_data.py: Starting to load from OSM
+2020-08-10 11:40:11,023 INFO @network_data.py: Finished downloading
+2020-08-10 11:40:17,489 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:40:17,764 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:40:25,428 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:40:25,611 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:40:25,622 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:41:40,988 INFO @network_data.py: Starting to load from OSM
+2020-08-10 11:42:14,504 INFO @network_data.py: Finished downloading
+2020-08-10 11:42:27,171 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:42:27,661 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:42:39,849 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:42:40,310 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:42:40,323 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:49:43,624 INFO @network_data.py: Starting to load from OSM
+2020-08-10 11:50:05,805 INFO @network_data.py: Finished downloading
+2020-08-10 11:50:12,556 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:50:12,848 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:50:20,489 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:50:20,676 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:50:20,689 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:58:38,798 INFO @network_data.py: Starting to load from OSM
+2020-08-10 11:58:57,635 INFO @network_data.py: Finished downloading
+2020-08-10 11:59:03,969 INFO @assignment.py: Assignment object initialized!
+2020-08-10 11:59:04,242 INFO @algorithms.msa.py: starting msa
+2020-08-10 11:59:12,009 INFO @algorithms.msa.py: first aon run
+2020-08-10 11:59:12,196 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 11:59:12,208 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 11:59:36,706 INFO @network_data.py: Starting to load from OSM
+2020-08-10 11:59:57,599 INFO @network_data.py: Finished downloading
+2020-08-10 12:00:05,763 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:00:06,041 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:00:13,689 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:00:13,876 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:00:13,888 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 12:01:42,699 INFO @network_data.py: Starting to load from OSM
+2020-08-10 12:02:01,351 INFO @network_data.py: Finished downloading
+2020-08-10 12:02:08,622 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:02:08,903 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:02:17,056 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:02:17,287 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:02:17,303 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 12:04:04,336 INFO @network_data.py: Starting to load from OSM
+2020-08-10 12:04:21,194 INFO @network_data.py: Finished downloading
+2020-08-10 12:04:28,079 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:04:28,349 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:04:35,960 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:04:36,150 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:04:36,164 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 12:06:28,166 INFO @network_data.py: Starting to load from OSM
+2020-08-10 12:06:49,448 INFO @network_data.py: Finished downloading
+2020-08-10 12:06:56,016 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:06:56,290 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:07:03,624 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:07:03,807 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:07:03,820 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 12:08:06,095 INFO @network_data.py: Starting to load from OSM
+2020-08-10 12:08:26,948 INFO @network_data.py: Finished downloading
+2020-08-10 12:08:34,513 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:08:34,835 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:08:42,371 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:08:42,555 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:08:42,567 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 12:13:50,522 INFO @network_data.py: Starting to load from OSM
+2020-08-10 12:14:14,507 INFO @network_data.py: Finished downloading
+2020-08-10 12:14:23,481 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:14:23,772 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:14:32,276 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:14:32,480 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:14:32,494 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 12:15:50,056 INFO @network_data.py: Starting to load from OSM
+2020-08-10 12:16:07,623 INFO @network_data.py: Finished downloading
+2020-08-10 12:16:14,834 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:16:15,122 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:16:22,650 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:16:22,836 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:16:22,849 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 12:28:27,956 INFO @network_data.py: Starting to load from OSM
+2020-08-10 12:28:52,542 INFO @assignment.py: Assignment object initialized!
+2020-08-10 12:28:52,820 INFO @algorithms.msa.py: starting msa
+2020-08-10 12:29:00,330 INFO @algorithms.msa.py: first aon run
+2020-08-10 12:29:00,523 INFO @algorithms.msa.py: current gap is0.17810001634272754
+2020-08-10 12:29:00,538 INFO @algorithms.msa.py: current gap is0.015127680454146919
+2020-08-10 15:32:32,790 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:32:32,811 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:33:20,568 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:33:20,583 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:35:39,979 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:35:39,994 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:42:28,210 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:42:28,226 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:44:04,435 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:44:04,450 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:48:31,747 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:48:31,761 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:49:27,760 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:49:27,778 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:51:11,825 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:51:11,844 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:53:34,762 INFO @assignment.py: Assignment object initialized!
+2020-08-10 15:53:34,776 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 15:53:42,680 DEBUG @algorithms.frank_wolfe.py: iteration costs c2 983579.6405888792 and c1 1.0
+2020-08-10 15:53:42,871 DEBUG @algorithms.frank_wolfe.py: iteration costs c2 983579.6405888792 and c1 983579.6405888792
+2020-08-10 15:53:42,872 INFO @algorithms.frank_wolfe.py: convergence reached in 3 iterations
+2020-08-10 16:18:56,665 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:18:56,678 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 16:19:04,072 DEBUG @algorithms.frank_wolfe.py: iteration costs c2 983579.6405888792 and c1 1.0
+2020-08-10 16:19:04,249 DEBUG @algorithms.frank_wolfe.py: iteration costs c2 983579.6405888792 and c1 983579.6405888792
+2020-08-10 16:19:04,250 INFO @algorithms.frank_wolfe.py: convergence reached in 3 iterations
+2020-08-10 16:20:54,025 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:20:54,039 INFO @algorithms.frank_wolfe.py: Frank - Wolfe initiated
+2020-08-10 16:21:01,514 DEBUG @algorithms.frank_wolfe.py: iteration costs c2 983579.6405888792 and c1 1.0
+2020-08-10 16:21:01,698 DEBUG @algorithms.frank_wolfe.py: iteration costs c2 983579.6405888792 and c1 983579.6405888792
+2020-08-10 16:21:01,698 INFO @algorithms.frank_wolfe.py: convergence reached in 3 iterations
+2020-08-10 16:25:42,017 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:30:23,909 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:30:53,874 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:31:37,428 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:32:36,468 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:33:46,110 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:37:11,837 INFO @assignment.py: Assignment object initialized!
+2020-08-10 16:45:46,033 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:04:54,751 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:05:46,613 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:06:56,092 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:20:04,390 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:21:16,933 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:23:18,308 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:45:09,858 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:46:19,501 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:48:25,862 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:52:30,919 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:55:31,835 INFO @assignment.py: Assignment object initialized!
+2020-08-10 17:59:11,024 INFO @assignment.py: Assignment object initialized!

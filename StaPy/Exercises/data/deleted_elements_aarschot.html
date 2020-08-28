@@ -1,0 +1,86 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+  
+  <head>
+    
+      <meta charset="utf-8">
+      <title>Bokeh Plot</title>
+      
+      
+        
+          
+        
+        
+          
+        <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-2.0.1.min.js" integrity="sha384-JpP8FXbgAZLkfur7LiK3j9AGBhHNIvF742meBJrjO2ShJDhCG2I1uVvW+0DUtrmc" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdn.bokeh.org/bokeh/release/bokeh-gl-2.0.1.min.js" integrity="sha384-Dv1SQ87hmDqK6S5OhBf0bCuwAEvL5QYL0PuR/F1SPVhCS/r/abjkbpKDYL2zeM19" crossorigin="anonymous"></script>
+        <script type="text/javascript">
+            Bokeh.set_log_level("info");
+        </script>
+        
+      
+      
+    
+  </head>
+  
+  
+  <body>
+    
+      
+        
+          
+          
+            
+              <div class="bk-root" id="95eda625-a445-4f75-8dcf-96d5a51a78e6" data-root-id="3103"></div>
+            
+          
+        
+      
+      
+        <script type="application/json" id="3292">
+          {"7087d045-17ea-477d-a8f6-260d3f78f37c":{"roots":{"references":[{"attributes":{},"id":"3131","type":"SaveTool"},{"attributes":{},"id":"3167","type":"Selection"},{"attributes":{"axis":{"id":"3120"},"dimension":1,"ticker":null},"id":"3127","type":"Grid"},{"attributes":{"bottom_units":"screen","fill_alpha":0.5,"fill_color":"lightgrey","left_units":"screen","level":"overlay","line_alpha":1.0,"line_color":"black","line_dash":[4,4],"line_width":2,"render_mode":"css","right_units":"screen","top_units":"screen"},"id":"3134","type":"BoxAnnotation"},{"attributes":{"dimension":"lon"},"id":"3113","type":"MercatorTicker"},{"attributes":{},"id":"3166","type":"UnionRenderers"},{"attributes":{"aspect_ratio":1,"below":[{"id":"3112"}],"center":[{"id":"3119"},{"id":"3127"}],"left":[{"id":"3120"}],"output_backend":"webgl","plot_height":1300,"plot_width":1300,"renderers":[{"id":"3143"},{"id":"3147"},{"id":"3153"}],"title":{"id":"3145"},"toolbar":{"id":"3135"},"x_range":{"id":"3104"},"x_scale":{"id":"3108"},"y_range":{"id":"3106"},"y_scale":{"id":"3110"}},"id":"3103","subtype":"Figure","type":"Plot"},{"attributes":{"data":{"destination":[null,null,null,null,null,null,null,null,null,null,null,null],"origin":[null,null,null,null,null,null,null,null,null,null,null,null],"osm_id":[1608047746,260558499,260558500,662034214,471806730,1990879850,1187737837,21091277,1395426290,149190075,339840446,471806719],"x":[537868.8958560714,538289.3607047466,537931.5909932861,538489.8693715634,538496.2813742331,538538.6829682763,538351.3211333222,537117.5004251658,538468.4181056875,538394.8693181204,539249.290937755,538493.6653661994],"y":[6615034.489598618,6618865.846055513,6618848.020995325,6618858.754930702,6618178.72507107,6618263.599736378,6615495.59966605,6614858.215123833,6618655.343053327,6615125.058643558,6614953.872676676,6618265.244191686]},"selected":{"id":"3169"},"selection_policy":{"id":"3168"}},"id":"3151","type":"ColumnDataSource"},{"attributes":{"dimension":"lat"},"id":"3123","type":"MercatorTickFormatter"},{"attributes":{"source":{"id":"3151"}},"id":"3154","type":"CDSView"},{"attributes":{"dimension":"lon"},"id":"3115","type":"MercatorTickFormatter"},{"attributes":{},"id":"3104","type":"DataRange1d"},{"attributes":{"url":"https://www.openstreetmap.org/node/@osm_id/"},"id":"3157","type":"OpenURL"},{"attributes":{"active_drag":"auto","active_inspect":"auto","active_multi":null,"active_scroll":"auto","active_tap":"auto","tools":[{"id":"3128"},{"id":"3129"},{"id":"3130"},{"id":"3131"},{"id":"3132"},{"id":"3133"},{"id":"3149"},{"id":"3155"},{"id":"3156"}]},"id":"3135","type":"Toolbar"},{"attributes":{"callback":null,"renderers":[{"id":"3147"}],"show_arrow":false,"tooltips":[["capacity","@capacity"],["length","@length"],["maxspeed","@maxspeed"],["name","@name"],["highway","@highway"],["travel_time","@travel_time"],["flow","@flow{(0.0)}"]]},"id":"3149","type":"HoverTool"},{"attributes":{},"id":"3169","type":"Selection"},{"attributes":{},"id":"3168","type":"UnionRenderers"},{"attributes":{},"id":"3108","type":"LinearScale"},{"attributes":{"line_alpha":{"value":0.8},"line_color":{"field":"color"},"line_width":{"field":"width"},"xs":{"field":"x"},"ys":{"field":"y"}},"id":"3146","type":"MultiLine"},{"attributes":{"fill_color":{"value":"black"},"line_color":{"value":"red"},"line_width":{"value":1.4625},"size":{"units":"screen","value":11.7},"x":{"field":"x"},"y":{"field":"y"}},"id":"3152","type":"Circle"},{"attributes":{},"id":"3128","type":"PanTool"},{"attributes":{"formatter":{"id":"3115"},"ticker":{"id":"3113"}},"id":"3112","type":"MercatorAxis"},{"attributes":{"tile_source":{"id":"3142"}},"id":"3143","type":"TileRenderer"},{"attributes":{"data_source":{"id":"3151"},"glyph":{"id":"3152"},"hover_glyph":null,"muted_glyph":null,"view":{"id":"3154"}},"id":"3153","type":"GlyphRenderer"},{"attributes":{"overlay":{"id":"3134"}},"id":"3130","type":"BoxZoomTool"},{"attributes":{"source":{"id":"3102"}},"id":"3148","type":"CDSView"},{"attributes":{"data":{"capacity":[null,null,null,null,null,null,null,null,null,null],"color":["#808080","#808080","#808080","#808080","#808080","#808080","#808080","#808080","#808080","#808080"],"flow":[null,null,null,null,null,null,null,null,null,null],"highway":["motorway_link","residential","residential","residential","unclassified","unclassified","tertiary","motorway_link","motorway","unclassified"],"length":[487.862,225.25599999999997,279.373,127.851,54.615,28.334000000000003,133.162,339.422,1354.3049999999998,54.615],"maxspeed":[null,"30","30","30",null,"50","30",null,"120",null],"name":[null,"Amerstraat",["Amerstraat","Pater Raskinkade"],"Amerstraat","Demervallei","Roland Renskade","Theo De Beckerstraat",null,null,"Demervallei"],"travel_time":[null,null,null,null,null,null,null,null,null,null],"width":[1.17,1.17,1.17,1.17,1.17,1.17,1.17,1.17,1.17,1.17],"x":[[537116.7281519755,537150.5692771769,537150.6911140222,537150.8198434502,537150.954101333,537290.014409232,537290.075158898,537484.8286080408,537484.8910713589,537619.6655788623,537619.6980080233,537755.9308008562,537755.9689638242,537868.7022121506],[537931.5485877085,538000.0494458707,538289.2857387087],[538290.7364347833,538295.601096531,538295.6067116293,538295.5995071052,538295.5795498204,538295.5470249894,538295.5022344599,538295.4455939119,538295.3776290001,538295.2989704754,538295.2103483309,538295.1125850276,538295.0065878613,538294.8933405423,538294.7738940666,538294.6493569614,538248.9193101435,538248.813163421,538248.7049938685,538220.6079543923,538220.4857203539,538146.3325929639,538123.9318905624,538123.7744190978,538099.9075202716,538099.8281915245,538057.4043335832,538057.3083243028,538031.4933343878,538031.3552406456,538013.4216706789,538013.4040011964,537979.9190983658,537979.8461972632,537950.3264277342,537932.2837003107,537932.1577795902,537932.0374632054,537931.9239141232,537931.8182298986,537931.7214320654,537931.6344562623,537931.5581431895,537931.4932304819,537931.4403455798,537931.3999996635,537931.3725827131,537931.3583597383,537930.211768983],[538289.2935398647,538371.3916643247,538371.4428309447,538411.1312895378,538440.7527052503,538453.0608789116,538453.1721351824,538453.2829269933,538465.8954253002,538466.039447154,538471.638817541,538471.7458513418,538477.8461594372,538477.9933524693,538478.132922511,538483.4826817344,538490.5801341237],[538495.0328828695,538492.7826144167,538497.6594470282],[538493.6967039689,538524.866161391,538524.9280934394,538538.7762380942],[538491.1605130143,538492.7746456307,538492.7994205485,538503.7421264936,538503.7890407436,538506.9059864858,538506.921475733,538506.9238581284,538506.601031605,538506.5970159887,538503.8028967698,538503.7802933159,538496.1771720946,538496.1448782845,538496.1004931655,538469.6955099493],[537868.6835705207,538034.2713130756,538034.3006537494,538177.4352245064,538328.193666403,538355.6324028701,538355.6401040307,538369.4079790264,538377.1559227455,538380.9529621799,538385.6312077522,538393.7160289036],[537117.1248266079,537260.3150876153,537260.3577771265,537401.2214607764,537401.2890316445,537600.8626147385,537600.9042385855,537681.0320080586,537681.0722930019,537761.0140715628,537841.0671822303,537841.1453311768,537928.3641522134,537928.3757766228,538034.496647196,538034.546236676,538147.513255933,538147.5466772196,538249.2926918047,538249.3250919855,538379.3685211301,538379.3894687656,538456.3668966492,538456.4076966594,538580.9408110098,538580.9695753356,538707.3951210295,538707.425306837,538830.2329690802,538830.2481175072,538971.668398611,538971.6846922564,539122.7563732119,539122.7814097947,539249.4741222664],[538494.903301438,538490.0163757922,538490.0139897004,538490.0269319173,538492.2978495294]],"y":[[6614859.360452045,6614882.178883866,6614882.252208663,6614882.312619565,6614882.359476406,6614922.994470547,6614923.0107309,6614970.415532347,6614970.429213295,6614996.6946312515,6614996.700550444,6615019.890545153,6615019.896493642,6615035.857328352],[6618849.401714109,6618851.505559217,6618867.225389659],[6618865.970752985,6618812.301170094,6618812.16821361,6618812.035333772,6618811.90376378,6618811.774724672,6618811.649413999,6618811.528994713,6618811.4145843685,6618811.307244755,6618811.207972041,6618811.117687532,6618811.037229114,6618810.967343487,6618810.9086792255,6618810.8617807655,6618796.113759154,6618796.084145262,6618796.0630868375,6618791.748322932,6618791.735087521,6618787.031792284,6618785.352458369,6618785.349656704,6618786.286879091,6618786.292284397,6618790.412527475,6618790.425263129,6618794.775393259,6618794.806007549,6618799.757377976,6618799.762383075,6618809.488297976,6618809.511681853,6618819.891139001,6618826.168036885,6618826.218912096,6618826.281906401,6618826.356410903,6618826.4417054495,6618826.53696559,6618826.64127055,6618826.753612126,6618826.872904437,6618826.997994413,6618827.127672946,6618827.260686575,6618827.395749605,6618847.944034848],[6618867.225791529,6618871.2222885145,6618871.223829679,6618871.683510302,6618872.372896133,6618872.726460508,6618872.725173686,6618872.7149370685,6618871.034993104,6618871.007969006,6618869.646330463,6618869.615684914,6618867.599752942,6618867.54156079,6618867.466912825,6618864.198321994,6618859.939413364],[6618265.049048788,6618249.279683585,6618178.820454321],[6618266.625206,6618265.917913352,6618265.915116486,6618264.977953826],[6618859.2459870605,6618855.001925268,6618854.9310435215,6618820.660324931,6618820.465705852,6618801.632786743,6618801.498975095,6618801.364291028,6618790.984099619,6618790.91338913,6618757.067336608,6618756.90778167,6618719.224592694,6618719.09648119,6618718.972040808,6618654.817295831],[6615035.854559218,6615061.607599355,6615061.611840627,6615080.7366585,6615100.8864975,6615104.615822553,6615104.616847205,6615106.4092988605,6615108.359036685,6615110.015358298,6615113.555751836,6615125.818976759],[6614859.544450098,6614900.002580642,6614900.013908755,6614934.992942449,6614935.00793487,6614974.070094037,6614974.077581307,6614987.227960858,6614987.233963835,6614997.944119971,6615009.608665777,6615009.617788502,6615017.288873875,6615017.289846824,6615025.720978873,6615025.724022408,6615030.620092586,6615030.621136012,6615032.565424615,6615032.565663692,6615032.000052413,6615031.999802451,6615030.497397684,6615030.495998014,6615024.380329678,6615024.378616191,6615015.52327792,6615015.520830796,6615004.2086361125,6615004.207156535,6614989.607378308,6614989.605598447,6614972.195485225,6614972.192367977,6614955.241846507],[6618178.629687819,6618249.234738659,6618249.380280207,6618249.525264808,6618265.4393345835]]},"selected":{"id":"3167"},"selection_policy":{"id":"3166"}},"id":"3102","type":"ColumnDataSource"},{"attributes":{"attribution":"&amp;copy; &lt;a href=\"https://www.openstreetmap.org/copyright\"&gt;OpenStreetMap&lt;/a&gt; contributors,&amp;copy; &lt;a href=\"https://cartodb.com/attributions\"&gt;CartoDB&lt;/a&gt;","url":"https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png"},"id":"3142","type":"WMTSTileSource"},{"attributes":{},"id":"3129","type":"WheelZoomTool"},{"attributes":{},"id":"3132","type":"ResetTool"},{"attributes":{"callback":null,"renderers":[{"id":"3153"}],"show_arrow":false,"tooltips":[["osm_id","@osm_id"],["x","@x"],["y","@y"],["origin","@origin"],["destination","@destination"]]},"id":"3155","type":"HoverTool"},{"attributes":{},"id":"3110","type":"LinearScale"},{"attributes":{"axis":{"id":"3112"},"ticker":null},"id":"3119","type":"Grid"},{"attributes":{"callback":{"id":"3157"},"renderers":[{"id":"3153"}]},"id":"3156","type":"TapTool"},{"attributes":{"text":"deleted_elements_aarschot"},"id":"3145","type":"Title"},{"attributes":{"formatter":{"id":"3123"},"ticker":{"id":"3121"}},"id":"3120","type":"MercatorAxis"},{"attributes":{},"id":"3106","type":"DataRange1d"},{"attributes":{"data_source":{"id":"3102"},"glyph":{"id":"3146"},"hover_glyph":null,"muted_glyph":null,"view":{"id":"3148"}},"id":"3147","type":"GlyphRenderer"},{"attributes":{"dimension":"lat"},"id":"3121","type":"MercatorTicker"},{"attributes":{},"id":"3133","type":"HelpTool"}],"root_ids":["3103"]},"title":"Bokeh Application","version":"2.0.1"}}
+        </script>
+        <script type="text/javascript">
+          (function() {
+            var fn = function() {
+              Bokeh.safely(function() {
+                (function(root) {
+                  function embed_document(root) {
+                    
+                  var docs_json = document.getElementById('3292').textContent;
+                  var render_items = [{"docid":"7087d045-17ea-477d-a8f6-260d3f78f37c","root_ids":["3103"],"roots":{"3103":"95eda625-a445-4f75-8dcf-96d5a51a78e6"}}];
+                  root.Bokeh.embed.embed_items(docs_json, render_items);
+                
+                  }
+                  if (root.Bokeh !== undefined) {
+                    embed_document(root);
+                  } else {
+                    var attempts = 0;
+                    var timer = setInterval(function(root) {
+                      if (root.Bokeh !== undefined) {
+                        clearInterval(timer);
+                        embed_document(root);
+                      } else {
+                        attempts++;
+                        if (attempts > 100) {
+                          clearInterval(timer);
+                          console.log("Bokeh: ERROR: Unable to run BokehJS code because BokehJS library is missing");
+                        }
+                      }
+                    }, 10, root)
+                  }
+                })(window);
+              });
+            };
+            if (document.readyState != "loading") fn();
+            else document.addEventListener("DOMContentLoaded", fn);
+          })();
+        </script>
+    
+  </body>
+  
+</html>

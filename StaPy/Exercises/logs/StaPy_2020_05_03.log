@@ -1,0 +1,15 @@
+2020-05-03 11:21:23,328 INFO @assignment.py: Assignment object initialized!
+2020-05-03 11:21:23,498 INFO @algorithms.msa.py: starting msa
+2020-05-03 11:21:28,231 INFO @algorithms.msa.py: first aon run
+2020-05-03 11:21:28,379 INFO @algorithms.msa.py: current gap is1.5577483285918365
+2020-05-03 11:21:28,391 INFO @algorithms.msa.py: current gap is0.053868637363239325
+2020-05-03 11:21:28,403 INFO @algorithms.msa.py: current gap is0.07671508850271613
+2020-05-03 11:21:28,421 INFO @algorithms.msa.py: current gap is0.05255653707797414
+2020-05-03 11:21:28,437 INFO @algorithms.msa.py: current gap is0.023858015363102725
+2020-05-03 11:21:28,460 INFO @algorithms.msa.py: current gap is0.042113800382895805
+2020-05-03 11:21:28,479 INFO @algorithms.msa.py: current gap is0.019397685267607212
+2020-05-03 11:21:28,491 INFO @algorithms.msa.py: current gap is0.023681944124345877
+2020-05-03 11:21:28,502 INFO @algorithms.msa.py: current gap is0.020837573133859477
+2020-05-03 11:21:28,514 INFO @algorithms.msa.py: current gap is0.010891724912957423
+2020-05-03 11:21:28,526 INFO @algorithms.msa.py: current gap is0.022320067419010936
+2020-05-03 11:21:28,538 INFO @algorithms.msa.py: current gap is0.013810277525899917
