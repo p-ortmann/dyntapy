@@ -1,4 +1,6 @@
 image: ruby:2.7
+tags:
+  - pages
 
 workflow:
   rules:
