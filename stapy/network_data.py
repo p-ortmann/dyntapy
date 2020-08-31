@@ -49,13 +49,11 @@ def get_from_ox_and_save(name: str, plot_deleted=True, reload=False):
         except FileNotFoundError:
             log(f'city {name} could not be found in data folder, loading from osm', level=50)
             g = ox.graph_from_place(name, network_type='drive')
-            g.graph['name']=name
             nx.write_gpickle(g, file_path + '_pure_ox')
     else:
         log('Starting to load from OSM')
         g = ox.graph_from_place(name, network_type='drive')
         log('Finished downloading')
-        g.graph['name']=name
         nx.write_gpickle(g, file_path + '_pure_ox')
     # osmnx generates MultiDiGraphs, meaning there can be more than one edge connecting i ->j, a preliminary check on
     # them shows that these edges are mostly tagged with (mildly) conflicting data, e.g. slightly different linestring
@@ -83,6 +81,9 @@ def get_from_ox_and_save(name: str, plot_deleted=True, reload=False):
     __clean_up_data(dir_g)
     set_free_flow_travel_times(dir_g)
     nx.write_gpickle(dir_g, file_path)
+    assert 'crs' in dir_g.graph
+    dir_g.graph['name'] = name
+    deleted.graph['name'] = name
     return dir_g, deleted
 
 
@@ -220,23 +221,3 @@ def __filepath(name: str, check_path_valid=False):
             print(f'{name}.pickle not found in data folder!')
             raise NameError.with_traceback()
     return file_path
-# TODO: add graph importer
-# TODO: OD generation
-# TODO: DIAL Deterministic oFlw_Det = DIALB(odmatrix,nodes,links);
-# TODO: Data Cleaning OSMNX
-# TODO: OSMNX settings in package settings..
-
-# new_edges = {}
-#     for u, v, data in dir_g.edges(data=True):
-#         try:
-#             _ = g[v][u]
-#         except KeyError:
-#             if 'oneway' not in data:
-#                 new_edges[(v, u)] = data
-#             else:
-#                 if not data['oneway']:
-#                     new_edges[(v, u)] = data
-#                 else:
-#                     pass
-#     log(f'{len(new_edges)} new edges added to fix one way confusion')
-#     dir_g.add_edges_from(new_edges)

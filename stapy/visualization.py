@@ -67,7 +67,7 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
             data['flow'] = flow
     if mode in ['assignment', 'desire lines']:
         if max_links_visualized is None:
-            from settings import max_links_visualized
+            from stapy.settings import max_links_visualized
         g = filter_links(g, max_links_visualized, show_unloaded_links)
         max_flow = max([float(f) for _, _, f in g.edges.data('flow') if f is not None])
     else:

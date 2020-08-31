@@ -144,7 +144,9 @@ class StaticAssignment:
         assert self.demand_dict is not None
         demand_graph = nx.DiGraph()
         assert 'name' in self.g.graph
+        assert 'crs' in self.g.graph
         demand_graph.graph['name']=self.g.graph['name']
+        demand_graph.graph['crs']=self.g.graph['crs']
         for centroid in self.demand_dict:
             (destinations, flows) = self.demand_dict[centroid]
             u = self.node_map_to_nx[centroid]
@@ -164,7 +166,4 @@ class StaticAssignment:
 
 class DynamicAssignment:
     pass
-# TODO: make decisions on flow data per link (od based)
-# TODO: setters for config file
-# TODO: either keyword arguments or config file for cost averaging vs flow averaging
-# TODO: routine for storage of intermediate steps, animations..
+

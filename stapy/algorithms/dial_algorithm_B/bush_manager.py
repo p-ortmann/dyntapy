@@ -33,7 +33,7 @@ def dial_b(obj: StaticAssignment):
                                                                          obj.node_order)
     costs = __bpr_cost(capacities=obj.link_capacities, ff_tts=obj.link_ff_times, flows=flows)
     derivatives = __bpr_derivative(flows=flows, capacities=obj.link_capacities, ff_tts=obj.link_ff_times)
-    print('initial loading completed, starting equilibration process')
+    print('Dial equilibration started')
     while True:
         convergence_counter=0
         for bush in obj.demand_dict:
@@ -42,7 +42,7 @@ def dial_b(obj: StaticAssignment):
             bush_backward_star = make_backward_stars(adjacency[bush], number_of_nodes=len(topological_orders[bush]))
             token=0
             while True:
-                print(f'equilibrating bush {bush}')
+                #print(f'equilibrating bush {bush}')
                 flows, bush_flows[bush], adjacency[bush], converged_without_shifts, L,U, bush_forward_star, \
                 bush_backward_star = __equilibrate_bush(costs,
                                                         bush_flows=bush_flows[bush],
@@ -76,12 +76,13 @@ def dial_b(obj: StaticAssignment):
                 if not edges_added:
                     if converged_without_shifts and token==0:
                         convergence_counter +=1
-                    print(f' bush {bush} is converged and no edges were added, moving on')
+                    #print(f' bush {bush} is converged and no edges were added, moving on')
                     break
                 else:
-                    print('edges added')
+                    pass
+                    #print('edges added')
                 token+=1
-        print(f'number of converged bushes {convergence_counter} out of {len(obj.demand_dict)}')
+        #print(f'number of converged bushes {convergence_counter} out of {len(obj.demand_dict)}')
         if convergence_counter==len(obj.demand_dict):
             break
     return costs, flows
