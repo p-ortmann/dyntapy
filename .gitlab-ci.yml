@@ -1,6 +1,7 @@
-image: ruby:2.7
-tags:
-  - pages
+default:
+  image: ruby:2.7
+  tags:
+    - pages
 
 workflow:
   rules:
@@ -16,3 +17,5 @@ pages:
       - public
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
+  tags:
+    -pages
