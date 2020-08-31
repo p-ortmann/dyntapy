@@ -17,5 +17,3 @@ pages:
       - public
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
-  tags:
-    -pages
