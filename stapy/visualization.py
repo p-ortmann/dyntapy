@@ -18,6 +18,7 @@ from stapy.utilities import log, __create_green_to_red_cm
 from stapy.assignment import StaticAssignment
 import osmnx as ox
 from pyproj import CRS
+from stapy.__init__ import data_folder, results_folder
 
 traffic_cm = __create_green_to_red_cm('hex')
 
@@ -139,7 +140,7 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     if notebook:
         output_notebook()
     else:
-        output_file(f"data/{title}.html")
+        output_file(results_folder+f"/{title}.html")
     show(plot)
 
 
@@ -171,10 +172,9 @@ def show_convergence(g: nx.DiGraph, notebook=False):
     if notebook:
         output_notebook()
     else:
-        output_file(f"data/{title}.html")
+        output_file(results_folder+f"/{title}.html")
     gaps = g.graph['gaps']
     iterations = np.arange(len(gaps))
-    output_file("multiple.html")
     p = figure(plot_width=400, plot_height=400, title=title, x_axis_label='Iterations', y_axis_label='Gap')
     p.line(iterations, gaps, line_width=2)
     p.circle(iterations, gaps, fill_color="white", size=8)
