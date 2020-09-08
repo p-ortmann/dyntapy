@@ -1,6 +1,8 @@
 import numpy as np
 
 
+
+
 """simple parameter file to avoid passing parameters repeatedly """
 config_dict = {'bpr_alpha': np.double(0.15),
                'bpr_beta': np.double(4),
@@ -41,5 +43,4 @@ log_to_file = True
 log_folder = 'logs'
 log_level = 20
 log_filename = 'stapy'
-# visum setup
-data_folder = 'data'
+

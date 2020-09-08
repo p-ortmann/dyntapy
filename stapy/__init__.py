@@ -5,3 +5,9 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 #
+import os
+from pathlib import Path
+results_folder='results'
+data_folder='data'
+Path(os.getcwd()+"/"+data_folder).mkdir(parents=True, exist_ok=True)
+Path(os.getcwd()+"/"+results_folder).mkdir(parents=True, exist_ok=True)

@@ -8,11 +8,9 @@ import os
 import networkx as nx
 import numpy as np
 import osmnx as ox
-from stapy.settings import config_dict, data_folder, speed_mapping, cap_mapping, default_capacity, default_speed
+from stapy.settings import config_dict, speed_mapping, cap_mapping, default_capacity, default_speed
+from stapy import data_folder
 from stapy.utilities import log
-
-#ox.settings.useful_tags_node.append(['osmid'])
-#ox.settings.useful_tags_way.append(['osmid'])
 traffic_keys = config_dict['traffic_keys']
 
 
