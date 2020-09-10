@@ -18,12 +18,12 @@ from stapy.algorithms.graph_utils import __shortest_path, __pred_to_epath2, make
 from numba.typed import Dict
 from numba import njit
 from stapy.settings import assignment_parameters
-
+from stapy.algorithms.dial_algorithm_B.warm_start import DialBResults
 
 epsilon = assignment_parameters['dial_b_cost_differences']
 
 
-def dial_b(obj: StaticAssignment):
+def dial_b(obj: StaticAssignment, results: DialBResults = None):
     flows, bush_flows, topological_orders, adjacency = __initial_loading(obj.edge_order,
                                                                          obj.link_capacities,
                                                                          obj.link_ff_times,
@@ -35,15 +35,15 @@ def dial_b(obj: StaticAssignment):
     derivatives = __bpr_derivative(flows=flows, capacities=obj.link_capacities, ff_tts=obj.link_ff_times)
     print('Dial equilibration started')
     while True:
-        convergence_counter=0
+        convergence_counter = 0
         for bush in obj.demand_dict:
             # creating a bush for each origin
             bush_forward_star = make_forward_stars(adjacency[bush], number_of_nodes=len(topological_orders[bush]))
             bush_backward_star = make_backward_stars(adjacency[bush], number_of_nodes=len(topological_orders[bush]))
-            token=0
+            token = 0
             while True:
-                #print(f'equilibrating bush {bush}')
-                flows, bush_flows[bush], adjacency[bush], converged_without_shifts, L,U, bush_forward_star, \
+                # print(f'equilibrating bush {bush}')
+                flows, bush_flows[bush], adjacency[bush], converged_without_shifts, L, U, bush_forward_star, \
                 bush_backward_star = __equilibrate_bush(costs,
                                                         bush_flows=bush_flows[bush],
                                                         origin=bush, flows=flows,
@@ -59,33 +59,40 @@ def dial_b(obj: StaticAssignment):
                                                         bush_backward_star=bush_backward_star,
                                                         epsilon=epsilon, global_forward_star=obj.forward_star)
                 if converged_without_shifts:
-                    if token>=1:
+                    if token >= 1:
                         if token == 1:
                             convergence_counter += 1
-                        #print(f' no shifts after edges added for bush {bush}, moving on')
+                        # print(f' no shifts after edges added for bush {bush}, moving on')
                         break
-
 
                 for k in topological_orders[bush]:
                     assert k in L
-                topological_orders[bush]=__topological_order(L)
+                topological_orders[bush] = __topological_order(L)
                 edges_added = __add_edges(L=L, bush_edges=adjacency[bush], costs=costs,
                                           edge_map=obj.edge_map, bush_forward_star=bush_forward_star,
                                           bush_backward_star=bush_backward_star,
                                           topological_order=topological_orders[bush])
                 if not edges_added:
-                    if converged_without_shifts and token==0:
-                        convergence_counter +=1
-                    #print(f' bush {bush} is converged and no edges were added, moving on')
+                    if converged_without_shifts and token == 0:
+                        convergence_counter += 1
+                    # print(f' bush {bush} is converged and no edges were added, moving on')
                     break
                 else:
                     pass
-                    #print('edges added')
-                token+=1
-        #print(f'number of converged bushes {convergence_counter} out of {len(obj.demand_dict)}')
-        if convergence_counter==len(obj.demand_dict):
+                    # print('edges added')
+                token += 1
+        # print(f'number of converged bushes {convergence_counter} out of {len(obj.demand_dict)}')
+        if convergence_counter == len(obj.demand_dict):
             break
     return costs, flows
+
+
+class DialBResults:
+    def __init__(self, flows, bush_flows, topological_orders, adjacency):
+        self.flows = flows
+        self.bush_flows = bush_flows
+        self.topological_orders = topological_orders
+        self.adjacency = adjacency
 
 
 @njit
@@ -97,10 +104,10 @@ def __add_edges(L, bush_edges, costs, edge_map, bush_forward_star, bush_backward
         i = edge[0]
         j = edge[1]
         if L[i] + costs[edge_map[(i, j)]] < L[j] - epsilon:
-            #pos2 = np.argwhere(topological_order == j)[0][0]
-            #pos1 = np.argwhere(topological_order == i)[0][0]
-            #assert pos2>pos1
-            #if pos1 > pos2:
+            # pos2 = np.argwhere(topological_order == j)[0][0]
+            # pos1 = np.argwhere(topological_order == i)[0][0]
+            # assert pos2>pos1
+            # if pos1 > pos2:
             #    print('something wrong with labels or shifting')
             bush_edges.append((i, j))
             bush_backward_star[j] = np.append(bush_backward_star[j], i)
