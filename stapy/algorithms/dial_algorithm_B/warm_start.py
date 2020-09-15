@@ -21,6 +21,7 @@ class DialBResults:
         return self.flows, self.bush_flows, self.topological_orders, self.adjacency, self.derivatives, self.costs
 
     def update_bushes(self, ff_tts=None, altered_demand_dict=None):
+
         assert ff_tts or altered_demand_dict is not None
         pass
         # for i in self.demand_dict:
