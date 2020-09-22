@@ -48,7 +48,7 @@ class StaticAssignment:
         self.g.graph['gaps'] = []
         # check labelling of the nodes in nx !
         log('Assignment object initialized!')
-
+        print('init passed sucessfully')
     def transform_graph_data(self):
         """
         routine to consolidate existing link_ids and labelling logic
@@ -69,16 +69,16 @@ class StaticAssignment:
             (np.zeros(self.g.number_of_edges()) for _ in range(4))
         counter = count()
         for node_id, u in enumerate(self.g.nodes):
-            self.g.nodes[u]['id'] = node_id
+            self.g.nodes[u]['_id'] = node_id
             self.node_map_to_nx[node_id] = u
             for v in self.g.succ[u]:
                 link_id = next(counter)
-                self.g[u][v]['id'] = link_id
+                self.g[u][v]['_id'] = link_id
                 self.translation_link_ids_nx[link_id] = (u, v)
                 self.link_capacities[link_id] = self.g[u][v]['capacity']
                 self.link_ff_times[link_id] = self.g[u][v]['travel_time']
-        for u, v, link_id in self.g.edges.data('id'):
-            _u, _v = self.g.nodes[u]['id'], self.g.nodes[v]['id']
+        for u, v, link_id in self.g.edges.data('_id'):
+            _u, _v = self.g.nodes[u]['_id'], self.g.nodes[v]['_id']
             self.adj_edge_list[link_id] = _u, _v
             self.edge_map[(_u, _v)] = link_id
             self.inverse_edge_map[link_id] = (_u, _v)
@@ -107,25 +107,13 @@ class StaticAssignment:
         for i, d in enumerate(originating_traffic):
             d = float(d)
             if d > 0:
-                self.node_data[i]['origin'] = float(d)
+                self.node_data[i]['originating_traffic'] = float(d)
         for i, d in enumerate(destination_traffic):
             d = float(d)
             if d > 0:
-                self.node_data[i]['destination'] = float(d)
+                self.node_data[i]['destination_traffic'] = float(d)
 
-    def write_back(self, keyed_data=False):
-        """
-
-        Parameters
-        ----------
-        keyed_data : boolean
-            True if only data in self.edge_data and self.node_data should be written back to the graph
-        flow_by_od : boolean
-            True if OD specific flow information should be written into the nx.DiGraph object
-            will be keyed as 'flow_od'
-
-
-        """
+    def write_back(self):
         t = self.node_map_to_nx
         for u, v in self.g.edges:
             self.g[u][v]['flow'] = 0
@@ -141,26 +129,29 @@ class StaticAssignment:
         self.g.graph['gaps'].append(gap)
 
     def construct_demand_graph(self):
+        # this can surely be made more efficient, multiple writes per od ..
         assert self.demand_dict is not None
         demand_graph = nx.DiGraph()
         assert 'name' in self.g.graph
         assert 'crs' in self.g.graph
         demand_graph.graph['name']=self.g.graph['name']
         demand_graph.graph['crs']=self.g.graph['crs']
-        for centroid in self.demand_dict:
-            (destinations, flows) = self.demand_dict[centroid]
-            u = self.node_map_to_nx[centroid]
+        for origin in self.demand_dict:
+            (destinations, flows) = self.demand_dict[origin]
             for destination, flow in zip(destinations, flows):
                 v = self.node_map_to_nx[destination]
-                demand_graph.add_edge(u,v,flow=flow)
+                u = self.node_map_to_nx[origin]
+                demand_graph.add_edge(u, v, flow=flow)
+                demand_graph.nodes[u]['_id'] = origin
                 demand_graph.nodes[u]['y'] = self.g.nodes[u]['y']
                 demand_graph.nodes[u]['x'] = self.g.nodes[u]['x']
                 demand_graph.nodes[v]['y'] = self.g.nodes[v]['y']
                 demand_graph.nodes[v]['x'] = self.g.nodes[v]['x']
+                demand_graph.nodes[v]['_id'] = destination
                 demand_graph.nodes[u]['osmid'] = int(u)
                 demand_graph.nodes[v]['osmid'] = int(v)
-                demand_graph.nodes[u]['origin'] = self.node_data[centroid]['origin']
-                demand_graph.nodes[v]['destination'] = self.node_data[destination]['destination']
+                demand_graph.nodes[u]['originating_traffic'] = self.node_data[origin]['originating_traffic']
+                demand_graph.nodes[v]['destination_traffic'] = self.node_data[destination]['destination_traffic']
         return demand_graph
 
 

@@ -84,15 +84,10 @@ def dial_b(obj: StaticAssignment, results: DialBResults = None):
         # print(f'number of converged bushes {convergence_counter} out of {len(obj.demand_dict)}')
         if convergence_counter == len(obj.demand_dict):
             break
-    return costs, flows
+    state = DialBResults(obj.demand_dict, flows, bush_flows, topological_orders, adjacency, obj.edge_map)
+    return costs, flows, state
 
 
-class DialBResults:
-    def __init__(self, flows, bush_flows, topological_orders, adjacency):
-        self.flows = flows
-        self.bush_flows = bush_flows
-        self.topological_orders = topological_orders
-        self.adjacency = adjacency
 
 
 @njit

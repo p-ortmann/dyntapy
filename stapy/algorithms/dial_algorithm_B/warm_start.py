@@ -5,7 +5,8 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 import numpy as np
-from numba import njit, List
+from numba import njit
+from numba.typed import List
 from stapy.algorithms.graph_utils import make_forward_stars, make_backward_stars
 
 

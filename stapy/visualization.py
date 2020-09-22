@@ -25,7 +25,7 @@ traffic_cm = __create_green_to_red_cm('hex')
 
 def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
                  title=None, plot_size=1300,
-                 mode='assignment', iteration=None, notebook=False, max_links_visualized=None, show_unloaded_links=False):
+                 mode='assignment', iteration=None, notebook=False, max_links_visualized=None, show_unloaded_links=False, show_internal_ids=True):
     """
 
     Parameters
@@ -47,6 +47,9 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
     tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
     g=nx.DiGraph(tmp)
+    if show_internal_ids:
+        visualization_keys_nodes.append('_id')
+        visualization_keys_edges.append('_id')
     if notebook:
         plot_size = 900
     assert mode in ['assignment', 'desire lines', 'deleted elements']
@@ -144,8 +147,7 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     show(plot)
 
 
-def show_desire_lines(g: nx.DiGraph, od_matrix, plot_size=1300, notebook=False):
-    obj = StaticAssignment(g, od_matrix)
+def show_desire_lines(obj: StaticAssignment, plot_size=1300, notebook=False):
     od_flow_graph = obj.construct_demand_graph()
     plot_network(od_flow_graph, plot_size=plot_size, notebook=notebook, mode='desire lines')
 
@@ -155,7 +157,7 @@ def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links):
         tmp = sorted(((data['flow'] / data['capacity'], u, v) for u, v, data in g.edges.data()),
                      reverse=True)
         if not show_unloaded_links:
-            edges = [(u, v) for val, u, v in tmp[:max_links_visualized] if val>0.01]
+            edges = [(u, v) for val, u, v in tmp[:max_links_visualized] if val>0.00001]
         else:
             edges = [(u, v) for val, u, v in tmp[:max_links_visualized]]
         return g.edge_subgraph(edges)
@@ -185,7 +187,7 @@ def show_convergence(g: nx.DiGraph, notebook=False):
 def _node_cds(g, with_assignment: bool):
     node_dict = dict()
     if with_assignment:
-        nodes = [u for u, data in g.nodes.data() if 'origin' in data or 'destination' in data]
+        nodes = [u for u, data in g.nodes.data() if 'originating_traffic' in data or 'destination_traffic' in data]
         g = g.subgraph(nodes)
     for attr_key in visualization_keys_nodes:
         values = [node_attr[attr_key] if attr_key in node_attr.keys() else None
