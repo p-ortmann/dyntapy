@@ -24,13 +24,16 @@ epsilon = assignment_parameters['dial_b_cost_differences']
 
 
 def dial_b(obj: StaticAssignment, results: DialBResults = None):
-    flows, bush_flows, topological_orders, adjacency = __initial_loading(obj.edge_order,
+    if results is None:
+        flows, bush_flows, topological_orders, adjacency = __initial_loading(obj.edge_order,
                                                                          obj.link_capacities,
                                                                          obj.link_ff_times,
                                                                          obj.edge_map,
                                                                          obj.forward_star,
                                                                          obj.demand_dict,
                                                                          obj.node_order)
+    else:
+        flows, bush_flows, topological_orders, adjacency = results.get_state()
     costs = __bpr_cost(capacities=obj.link_capacities, ff_tts=obj.link_ff_times, flows=flows)
     derivatives = __bpr_derivative(flows=flows, capacities=obj.link_capacities, ff_tts=obj.link_ff_times)
     print('Dial equilibration started')

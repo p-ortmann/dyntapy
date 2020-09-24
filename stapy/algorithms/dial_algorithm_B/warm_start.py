@@ -6,13 +6,19 @@
 #
 import numpy as np
 from numba import njit
-from numba.typed import List
+from numba.typed import List, Dict
 from stapy.algorithms.graph_utils import make_forward_stars, make_backward_stars
 
 
 class DialBResults:
     def __init__(self, demand_dict, flows, bush_flows, topological_orders, adjacency, edge_map):
-        self.demand_dict = demand_dict
+        self.demand_dict = Dict()
+        # there's no deep copy function in numba, so this it how it has to be ..
+        for bush in demand_dict:
+            my_list = List()
+            my_list.append(demand_dict[bush][0])
+            my_list.append(demand_dict[bush][1])
+            self.demand_dict[bush] = my_list
         self.flows = flows
         self.bush_flows = bush_flows
         self.topological_orders = topological_orders
@@ -31,7 +37,7 @@ class DialBResults:
                        self.edge_map)
 
 
-@njit
+#@njit
 def _update_bushes(new_demand_dict, old_demand_dict, adjacency, topological_orders, bush_flows, edge_map):
     for bush in new_demand_dict:
         bush_backward_star = make_backward_stars(adjacency[bush],
@@ -40,16 +46,23 @@ def _update_bushes(new_demand_dict, old_demand_dict, adjacency, topological_orde
         new_destinations = new_demand_dict[bush][0]
         old_demands = old_demand_dict[bush][1]
         old_destinations = old_demand_dict[bush][0]
-        for id1, target in enumerate(new_destinations):
-            if target in old_destinations:
-                id2 = np.argwhere(target, new_destinations)[0][0]
-                delta_demand = new_demands[id1] - old_demands[id2]
+        for new_id, new_destination in enumerate(new_destinations):
+            old_id=-1
+            previous_destination=False
+            for id,old_destination in enumerate(old_destinations):
+                if new_destination == old_destination:
+                    previous_destination = True
+                    old_id=id
+                    break
+            if previous_destination:
+                delta_demand = new_demands[new_id] - old_demands[old_id]
             else:
                 # previously no demand to this destination
-                delta_demand = new_demands[id1]
-            while abs(delta_demand) > 0:
-                edge_path, path_flow = get_max_flow_path(bush_backward_star, bush_flows[bush], edge_map,
-                                                         delta_demand, target)
+                delta_demand = new_demands[new_id]
+            while abs(delta_demand) > 0.00001:
+                print(f'{delta_demand=} ')
+                edge_path, path_flow = get_max_flow_path(bush_backward_star, bush_flows[bush], edge_map, new_destination)
+                print(f'{edge_path=} and {path_flow=}')
                 delta_demand = update_path_flow(edge_path, delta_demand, path_flow, bush_flows[bush])
 
 
@@ -66,10 +79,11 @@ def get_max_flow_path(bush_backward_star, bush_flow, edge_map, target):
                 max_i = i
         path.append(edge_map[(max_i, j)])
         path_flow = min(max_flow, path_flow)
-    return path_flow, path
+        j = max_i
+    return path, path_flow
 
 
-@njit
+#@njit
 def update_path_flow(edge_path, delta_demand, path_flow, bush_flow):
     if delta_demand >= 0:
         shift = delta_demand

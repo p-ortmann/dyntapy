@@ -141,10 +141,11 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     edgetaptool.callback = OpenURL(url=url)
     plot.add_tools(node_hover, edge_hover, edgetaptool, nodetaptool)
     if notebook:
-        output_notebook()
+        output_notebook(hide_banner=True)
+        show(plot)
     else:
         output_file(results_folder+f"/{title}.html")
-    show(plot)
+        show(plot)
 
 
 def show_desire_lines(obj: StaticAssignment, plot_size=1300, notebook=False):
