@@ -12,9 +12,8 @@ from stapy.settings import config_dict, speed_mapping, cap_mapping, default_capa
 from stapy import data_folder
 from stapy.utilities import log
 traffic_keys = config_dict['traffic_keys']
-
-
 def create_cascetta_nw():
+    ox.graph_from_place()
     """creates toy network based on cascetta and returns the corresponding TrafficGraph"""
     g = nx.DiGraph()
     ebunch_of_nodes = [

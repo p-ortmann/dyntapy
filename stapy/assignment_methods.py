@@ -49,12 +49,11 @@ def DUE(g, od_matrix, method=None):
         raise NotImplementedError
     obj = StaticAssignment(g, od_matrix)
     if method == 'bpr,flow_avg':
-        print('caling msa')
         obj.link_travel_times, obj.link_flows = msa_flow_averaging(obj)
     if method == 'frank_wolfe':
         obj.link_travel_times,obj.link_flows = frank_wolfe(obj)
     if method =='dial_b':
-        obj.link_travel_times, obj.link_flows = dial_b(obj)
+        obj.link_travel_times, obj.link_flows, _ = dial_b(obj)
     obj.write_back()
     # add visualization
 
