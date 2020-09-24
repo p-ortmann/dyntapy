@@ -22,3 +22,4 @@ state.update_bushes(obj.demand_dict)
 print('state updated successfully')
 #assert obj.demand_dict != state.demand_dict
 obj.link_travel_times, obj.link_flows, state = dial_b(obj, state)
+print('hello')

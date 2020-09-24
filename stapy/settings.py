@@ -7,8 +7,8 @@ config_dict = {'bpr_alpha': np.double(0.15),
                'traffic_keys': {'capacity', 'length', 'maxspeed', 'flow'}
                }
 visualization_keys_edges = ['capacity', 'length', 'maxspeed', 'flow', 'name', 'travel_time', 'osmid'
-    , 'compressed_osm_ids', 'time']
-visualization_keys_nodes = ['osmid', 'originating_traffic', 'destination_traffic', 'x', 'y']
+    , 'compressed_osm_ids', 'time','_id']
+visualization_keys_nodes = ['osmid', 'originating_traffic', 'destination_traffic', 'x', 'y','_id']
 default_capacity = 1000
 default_speed = 30
 cap_mapping = {'motorway': 2000, 'motorway_link': 1500, 'trunk': 1000, 'trunk_link': 1000, 'primary': 1000,

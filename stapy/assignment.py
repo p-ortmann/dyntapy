@@ -120,6 +120,7 @@ class StaticAssignment:
         for _v, data in self.node_data.items():
             for key, value in data.items():
                 self.g.nodes[t[_v]][f'{key}'] = float(value)
+        self.node_data=Dict()
         for (u, v), travel_time, flow in zip(self.translation_link_ids_nx, np.round_(self.link_travel_times, decimals=2), np.round_(self.link_flows, decimals=2)):
             self.g[u][v]['travel_time'] = float(travel_time)
             self.g[u][v]['flow'] = float(flow)

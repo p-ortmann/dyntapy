@@ -7,7 +7,7 @@
 import numpy as np
 from numba import njit
 from numba.typed import List, Dict
-from stapy.algorithms.graph_utils import make_forward_stars, make_backward_stars
+from stapy.algorithms.graph_utils import make_backward_stars
 
 
 class DialBResults:
@@ -34,11 +34,11 @@ class DialBResults:
         """
 
         _update_bushes(new_demand_dict, self.demand_dict, self.adjacency, self.topological_orders, self.bush_flows,
-                       self.edge_map)
+                       self.edge_map, self.flows)
 
 
 #@njit
-def _update_bushes(new_demand_dict, old_demand_dict, adjacency, topological_orders, bush_flows, edge_map):
+def _update_bushes(new_demand_dict, old_demand_dict, adjacency, topological_orders, bush_flows, edge_map, flows):
     for bush in new_demand_dict:
         bush_backward_star = make_backward_stars(adjacency[bush],
                                                  number_of_nodes=len(topological_orders[bush]))
@@ -63,7 +63,7 @@ def _update_bushes(new_demand_dict, old_demand_dict, adjacency, topological_orde
                 print(f'{delta_demand=} ')
                 edge_path, path_flow = get_max_flow_path(bush_backward_star, bush_flows[bush], edge_map, new_destination)
                 print(f'{edge_path=} and {path_flow=}')
-                delta_demand = update_path_flow(edge_path, delta_demand, path_flow, bush_flows[bush])
+                delta_demand = update_path_flow(edge_path, delta_demand, path_flow, bush_flows[bush], flows)
 
 
 @njit
@@ -84,7 +84,7 @@ def get_max_flow_path(bush_backward_star, bush_flow, edge_map, target):
 
 
 #@njit
-def update_path_flow(edge_path, delta_demand, path_flow, bush_flow):
+def update_path_flow(edge_path, delta_demand, path_flow, bush_flow, flows):
     if delta_demand >= 0:
         shift = delta_demand
         delta_demand = 0
@@ -96,4 +96,5 @@ def update_path_flow(edge_path, delta_demand, path_flow, bush_flow):
         # removes delta_demand from max path if the flow on max path is larger than abs(delta_demand)
     for edge in edge_path:
         bush_flow[edge] += shift
+        flows[edge] +=shift
     return delta_demand
