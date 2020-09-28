@@ -10,10 +10,9 @@
 # explanations and the more technical paper from Dial (Algorithm B: Accurate Traffic Equilibrium (and How to Bobtail
 # Frank-Wolfe) as a reference and for understanding the more nitty-gritty details of implementation.
 from stapy.algorithms.deterministic.dial_algorithm_B.equilibrate_bush import __equilibrate_bush
-from stapy.algorithms.deterministic.dial_algorithm_B.utilities import __valid_edges, __topological_order
 from stapy.assignment import StaticAssignment as StaticAssignment
 import numpy as np
-from stapy.algorithms.deterministic.helper_funcs import __bpr_cost, __bpr_derivative
+from stapy.algorithms.helper_funcs import __bpr_cost, __bpr_derivative, __topological_order, __valid_edges
 from stapy.algorithms.graph_utils import __shortest_path, __pred_to_epath2, make_backward_stars, make_forward_stars
 from numba.typed import Dict
 from numba import njit

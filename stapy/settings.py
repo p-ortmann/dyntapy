@@ -28,7 +28,8 @@ assignment_parameters = {'bpr_alpha': np.double(0.15),
                          'msa_delta': 0.001,
                          'fw_max_iterations': 50,
                          'fw_delta': 0.001,
-                         'dial_b_cost_differences': 0.001
+                         'dial_b_cost_differences': 0.001,
+                         'logit_theta:':1
                          }
 
 

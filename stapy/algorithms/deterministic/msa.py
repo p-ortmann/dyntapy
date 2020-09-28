@@ -8,7 +8,7 @@
 #
 #
 import numpy as np
-from stapy.algorithms.deterministic.helper_funcs import calculate_costs, aon
+from stapy.algorithms.helper_funcs import calculate_costs, aon
 from stapy.settings import assignment_parameters
 from stapy.assignment import StaticAssignment
 from stapy.gap import gap

@@ -8,9 +8,13 @@
 #
 #
 import numpy as np
+from numba.typed import List
+
 from stapy.algorithms.graph_utils import __shortest_path, __pred_to_epath
 from stapy.settings import assignment_parameters
 from numba import njit
+
+from stapy.setup import int_dtype
 
 bpr_b = assignment_parameters['bpr_beta']
 bpr_a = assignment_parameters['bpr_alpha']
@@ -91,3 +95,41 @@ def __demand_loss(forward_star, i, origin_weight, link_flows, edge_map):
         return True
     else:
         return False
+
+
+@njit
+def __topological_order(distances):
+    '''
+
+    Parameters
+    ----------
+    distances : dictionary of distances keyed by node ids
+
+    Returns
+    -------
+
+    '''
+    topological_order = np.empty(len(distances), dtype=int_dtype)
+    for counter, (node, dist) in enumerate(sorted(distances.items(), key=lambda x: x[1])):
+        topological_order[counter] = node
+    return topological_order
+
+
+@njit
+def __valid_edges(edge_map, label):
+    '''
+
+    Parameters
+    ----------
+    edge_map : dictionary keyed by (i,j) with edge index as value
+    distances : dictionary of distances keyed by node ids
+
+    Returns
+    -------
+
+    '''
+    edges = List()
+    for (i, j) in edge_map:
+        if label[j] > label[i]:
+            edges.append((i, j))
+    return edges

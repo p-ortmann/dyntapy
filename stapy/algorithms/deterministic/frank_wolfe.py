@@ -11,7 +11,7 @@ import math
 
 import numpy as np
 
-from stapy.algorithms.deterministic.helper_funcs import calculate_costs, aon
+from stapy.algorithms.helper_funcs import calculate_costs, aon
 from stapy.assignment import StaticAssignment as __StaticAssignment
 from stapy.settings import assignment_parameters
 from stapy.utilities import log
