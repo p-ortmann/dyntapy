@@ -4,7 +4,6 @@
 #  More information at: https://gitlab.mech.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 #
-import numpy as np
 from numba import njit
 from numba.typed import List, Dict
 from stapy.algorithms.graph_utils import make_backward_stars

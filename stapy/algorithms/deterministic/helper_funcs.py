@@ -5,12 +5,12 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 #
+#
+#
 import numpy as np
 from stapy.algorithms.graph_utils import __shortest_path, __pred_to_epath
 from stapy.settings import assignment_parameters
 from numba import njit
-from numba.typed import Dict, List
-from stapy.setup import int_dtype, float_dtype
 
 bpr_b = assignment_parameters['bpr_beta']
 bpr_a = assignment_parameters['bpr_alpha']

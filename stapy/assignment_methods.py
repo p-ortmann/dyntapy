@@ -6,9 +6,9 @@
 #
 #
 from stapy.assignment import StaticAssignment
-from stapy.algorithms.frank_wolfe import frank_wolfe
-from stapy.algorithms.msa import msa_flow_averaging
-from stapy.algorithms.dial_algorithm_B.bush_manager import dial_b
+from stapy.algorithms.deterministic.frank_wolfe import frank_wolfe
+from stapy.algorithms.deterministic.msa import msa_flow_averaging
+from stapy.algorithms.deterministic.dial_algorithm_B.bush_manager import dial_b
 from stapy.settings import assignment_method_defaults
 
 
