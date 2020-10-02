@@ -4,7 +4,7 @@
 #  More information at: https://gitlab.mech.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 # this file tests warm-started dial-b
-from stapy.algorithms.dial_algorithm_B.bush_manager import dial_b
+from stapy.algorithms.deterministic.dial_algorithm_B.bush_manager import dial_b
 from stapy.assignment import StaticAssignment
 from stapy.demand import generate_od_fixed
 from stapy.network_data import get_from_ox_and_save

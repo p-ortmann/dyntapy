@@ -70,15 +70,32 @@ def generate_od(number_of_nodes, origins_to_nodes_ratio, origins_to_destinations
 def generate_od_fixed(number_of_nodes, number_of_od_values, seed=0):
     rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=str(int_dtype))
     np.random.seed(seed)
-    arr=np.arange(number_of_nodes*number_of_nodes)
-    vals= np.random.choice(arr, size=number_of_od_values, replace=True)
-    ids= [np.where(arr.reshape((number_of_nodes, number_of_nodes))==val)for val in vals]
-    for i,j in ids:
-        i,j=int(i), int(j)
-        if isinstance(rand_od.rows[i],list):
+    arr = np.arange(number_of_nodes * number_of_nodes)
+    vals = np.random.choice(arr, size=number_of_od_values, replace=False)
+    ids = [np.where(arr.reshape((number_of_nodes, number_of_nodes)) == val) for val in vals]
+    for i, j in ids:
+        i, j = int(i), int(j)
+        if isinstance(rand_od.rows[i], list):
             rand_od.rows[i].append(j)
             rand_od.data[i].append(int(np.random.random() * 2000))
         else:
-            rand_od.rows[i]=list(j)
-            rand_od.data[i]=list((int(np.random.random() * 2000)))
+            rand_od.rows[i] = list(j)
+            rand_od.data[i] = list((int(np.random.random() * 2000)))
+    return rand_od
+
+
+def generate_random_bush(number_of_nodes, number_of_branches, seed=0):
+    rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=str(int_dtype))
+    np.random.seed(seed)
+    arr = np.arange(number_of_nodes * number_of_nodes)
+    origin = np.random.randint(0, number_of_nodes)
+    destinations = np.random.choice(np.arange(0, number_of_nodes), number_of_branches, replace=False)
+    for destination in destinations:
+        i, j = int(origin), int(destination)
+        if isinstance(rand_od.rows[i], list):
+            rand_od.rows[i].append(j)
+            rand_od.data[i].append(int(np.random.random() * 2000))
+        else:
+            rand_od.rows[i] = list(j)
+            rand_od.data[i] = list((int(np.random.random() * 2000)))
     return rand_od
