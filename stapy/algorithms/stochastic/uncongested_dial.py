@@ -19,15 +19,20 @@ import numpy as np
 
 def uncongested_stochastic_assignment(obj: StaticAssignment):
     theta = assignment_parameters['logit_theta']
-    #print(f'my theta is {theta}')
+    # print(f'my theta is {theta}')
     flows = np.zeros(obj.edge_order)
     topological_orders, edges, L, largest_destination_labels = generate_bushes(obj.link_ff_times, obj.edge_map,
                                                                                obj.forward_star,
                                                                                obj.demand_dict, obj.node_order)
+    return load_all_bushes(obj, topological_orders, edges, L, largest_destination_labels, obj.link_ff_times, theta)
+
+
+def load_all_bushes(obj, topological_orders, edges, L, largest_destination_labels, costs, theta):
+    flows = np.zeros(obj.edge_order)
     for bush in obj.demand_dict:
         destinations = obj.demand_dict[bush][0]
         demands = obj.demand_dict[bush][1]
-        load_bush(bush, obj.edge_map, obj.link_ff_times, destinations, demands,
+        load_bush(bush, obj.edge_map, costs, destinations, demands,
                   topological_orders[bush],
                   edges[bush], L[bush], flows, largest_destination_labels[bush], theta)
     return flows
@@ -58,7 +63,7 @@ def generate_bushes(link_ff_times, edge_map, forward_star, demand_dict, node_ord
 
 @njit()
 def load_bush(origin, edge_map, costs, destinations, demands, topological_order, bush_edges, L, flows,
-              largest_destination,theta):
+              largest_destination, theta):
     forward_star = make_forward_stars(bush_edges, len(L))
     backward_star = make_backward_stars(bush_edges, len(L))
     edge_weights, node_weights = set_labels(origin, forward_star, backward_star, bush_edges, L, topological_order,
@@ -91,7 +96,7 @@ def load_bush(origin, edge_map, costs, destinations, demands, topological_order,
 
 @njit()
 def set_labels(origin, forward_star, backward_star, bush_edges, L, topological_order, largest_destination,
-               edge_map, costs,theta):
+               edge_map, costs, theta):
     edge_likelihood = Dict()
     node_weights = Dict()
     node_weights[origin] = 1.0

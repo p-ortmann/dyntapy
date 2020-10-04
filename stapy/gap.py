@@ -12,6 +12,7 @@ from stapy.settings import gap_method
 
 def gap(flows, travel_times, demand, sp_costs, method=gap_method):
     """
+    gap functions typically used in DUE assignments
 
             Parameters
             ----------
