@@ -10,6 +10,7 @@ from stapy.algorithms.deterministic.frank_wolfe import frank_wolfe
 from stapy.algorithms.deterministic.msa import msa_flow_averaging
 from stapy.algorithms.deterministic.dial_algorithm_B.bush_manager import dial_b
 from stapy.algorithms.stochastic.uncongested_dial import uncongested_stochastic_assignment
+from stapy.algorithms.stochastic.congested_dial import congested_stochastic_assignment
 from stapy.settings import assignment_method_defaults
 
 
@@ -71,4 +72,17 @@ def SUN(g, od_matrix, method=None):
         obj.link_flows = uncongested_stochastic_assignment(obj)
         obj.link_travel_times = obj.link_ff_times
         print('uncongested dial called')
+    obj.write_back()
+
+
+def SUE(g, od_matrix, method=None):
+    methods = ['dial_congested']
+    if method is None:
+        method = assignment_method_defaults['SUE']
+    if method not in methods:
+        raise NotImplementedError
+    obj = StaticAssignment(g, od_matrix)
+    if method == 'dial_congested':
+        obj.link_flows, costs = congested_stochastic_assignment(obj)
+        print('congested dial called')
     obj.write_back()

@@ -12,14 +12,14 @@ from numba.typed import Dict, List
 from stapy.setup import int_dtype
 
 
-@njit
+#@njit
 def make_forward_stars(adj_list, number_of_nodes):
     forward_star = Dict()
-    star_sizes = np.zeros(number_of_nodes, dtype=int_dtype)
-    nodes = np.arange(number_of_nodes, dtype=int_dtype)
+    star_sizes = np.zeros(number_of_nodes, dtype=np.int)
+    nodes = np.arange(number_of_nodes, dtype=np.int)
     for i in nodes:
         forward_star[i] = np.empty(10,
-                                   dtype=int_dtype)  # In traffic networks nodes will never have more than 10 outgoing edges..
+                                   dtype=np.int)  # In traffic networks nodes will never have more than 10 outgoing edges..
     for edge in adj_list:
         i = edge[0]
         j = edge[1]
@@ -30,7 +30,7 @@ def make_forward_stars(adj_list, number_of_nodes):
     return forward_star
 
 
-@njit
+@njit(debug=True)
 def make_backward_stars(adj_list, number_of_nodes):
     backward_star = Dict()
     star_sizes = np.zeros(number_of_nodes, dtype=int_dtype) #, dtype=int_dtype

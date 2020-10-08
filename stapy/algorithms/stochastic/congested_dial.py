@@ -28,20 +28,47 @@ def congested_stochastic_assignment(obj: StaticAssignment):
     gap = 1
     k = 1
     multiphase_counter = 0
-    while gap < assignment_parameters['SUE_gap']:
+    for bush in obj.demand_dict:
+        largest_destination_labels[bush]=obj.node_order
+    while True:
         k = k + 1
         costs = __bpr_cost(new_flows, obj.link_capacities, obj.link_ff_times)
-        topological_orders, edges, L, largest_destination_labels = generate_bushes(costs, obj.edge_map,
-                                                                                   obj.forward_star,
-                                                                                   obj.demand_dict, obj.node_order)
+        new_edges=Dict()
+        for bush in obj.demand_dict:
+            L[bush], _ = __shortest_path(costs=costs, forward_star=make_forward_stars(edges[bush], len(topological_orders[bush])), edge_map=obj.edge_map, source=bush,
+                                         targets=np.empty(0), node_order=obj.node_order)
+            topological_orders[bush] = __topological_order(L[bush])
+            label = Dict()
+            for j in topological_orders[bush]:
+                label[topological_orders[bush][j]] = j
+            bush_edges=List()
+            for edge in edges[bush]:
+                if label[edge[0]] < label[edge[1]]:
+                    bush_edges.append(edge)
+            new_edges[bush]=bush_edges
+            assert bush in edges
+            assert bush in topological_orders
         old_flows = new_flows.copy()
-        new_flows = load_all_bushes(obj, topological_orders, edges, L, largest_destination_labels, costs, theta)
+        new_flows = load_all_bushes(obj, topological_orders, new_edges, L,largest_destination_labels , costs, theta)
+        nconverged=True
+        for new_flow, old_flow in zip(new_flows, old_flows):
+            if np.abs(new_flow - old_flow)/ (
+                old_flow)<0.001:
+                continue
+            else:
+                print(np.abs(new_flow - old_flow) / (
+                    old_flow))
+                nconverged=False
         new_flows = 1 / k * new_flows + (k - 1) / k * old_flows
-        converged = np.sum(np.abs(new_flows - old_flows)) / (
-                    np.sum(new_flows + old_flows) / 2) < msa_delta or k == msa_max_iterations
+        converged = nconverged or k == msa_max_iterations
         multiphase_counter += 1
         if converged:
             break
-        if multiphase_counter == 5:
+        else:
+            print(f'remaining gap is , multiphase stage: {multiphase_counter}')
+        if multiphase_counter == 1000:
             k = 1
-    return new_flows
+            multiphase_counter = 0
+
+
+    return new_flows, __bpr_cost(new_flows, obj.link_capacities, obj.link_ff_times)

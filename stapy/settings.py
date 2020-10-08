@@ -20,7 +20,7 @@ speed_mapping = {'motorway': 100, 'motorway_link': 60, 'trunk': 50, 'trunk_link'
                  'unclassified': 30,
                  'residential': 30, 'living_street': 15}
 max_links_visualized = 6000
-assignment_method_defaults = {'DUE': 'bpr,flow_avg', 'SUN':'dial_uncongested'}
+assignment_method_defaults = {'DUE': 'bpr,flow_avg', 'SUN':'dial_uncongested','SUE':'dial_congested'}
 
 assignment_parameters = {'bpr_alpha': np.double(0.15),
                          'bpr_beta': np.double(4),
@@ -29,7 +29,7 @@ assignment_parameters = {'bpr_alpha': np.double(0.15),
                          'fw_max_iterations': 50,
                          'fw_delta': 0.001,
                          'dial_b_cost_differences': 0.001,
-                         'logit_theta':3
+                         'logit_theta':0.001,
                          }
 
 
