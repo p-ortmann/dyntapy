@@ -59,9 +59,9 @@ def _update_bushes(new_demand_dict, old_demand_dict, adjacency, topological_orde
                 # previously no demand to this destination
                 delta_demand = new_demands[new_id]
             while abs(delta_demand) > 0.00001:
-                print(f'{delta_demand=} ')
+                #print(f'{delta_demand=} ')
                 edge_path, path_flow = get_max_flow_path(bush_backward_star, bush_flows[bush], edge_map, new_destination)
-                print(f'{edge_path=} and {path_flow=}')
+                #print(f'{edge_path=} and {path_flow=}')
                 delta_demand = update_path_flow(edge_path, delta_demand, path_flow, bush_flows[bush], flows)
 
 
