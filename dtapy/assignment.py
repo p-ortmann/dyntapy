@@ -8,16 +8,16 @@
 import numpy as np
 from collections import defaultdict
 from scipy.sparse import csr_matrix
-from numba.typed import Dict, List
 from itertools import count
 import networkx as nx
 from stapy.algorithms.graph_utils import make_forward_stars, make_backward_stars
 from stapy.utilities import log
 from scipy.sparse import lil_matrix
 from stapy.demand import build_demand_structs
+from numba import jitclass  
 
 
-class StaticAssignment:
+class Assignment:
     """This class has no value when instantiated on it's own,
      it merely sets up the state variables/interfaces to networkx"""
 
@@ -30,11 +30,14 @@ class StaticAssignment:
         od_matrix : array like object
             Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment object
         """
+        self.network=Network(g)
+        self.demand=Demand(od_matrix)
         self.adj_edge_list, self.node_map_to_nx, self.link_flows, \
         self.link_ff_times, self.link_travel_times, self.link_capacities, self.sparse_od_matrix, self.destinations, \
         self.demand_dict, self.edge_map, self.od_flow_vector, self.inverse_edge_map, self.number_of_od_pairs = \
             None, None, None, None, None, None, None, None, None, None, None, None, None
         self.g = g
+        self._link_matrix= np.empty(shape=(g.number_of_edges,4+2*number_of_timesteps)
         self.node_order = self.g.number_of_nodes()
         self.edge_order = self.g.number_of_edges()
         self.node_data=defaultdict(dict)
@@ -124,38 +127,27 @@ class StaticAssignment:
         for (u, v), travel_time, flow in zip(self.translation_link_ids_nx, np.round_(self.link_travel_times, decimals=2), np.round_(self.link_flows, decimals=2)):
             self.g[u][v]['travel_time'] = float(travel_time)
             self.g[u][v]['flow'] = float(flow)
+@jitclass
+class Network:
+    __init__(self, g:DiGraph, number_of_timesteps)
+        #each column in this matrix contains different attributes associated with each link
+        #the row index is our link id
+        #each row contains (start_node, end_node, capacity, free_flow_travel_time, flow , travel_time) with flow and travel_time being vectors of length number_of_time_steps
+        self.links=Links(self._link_matrix)
 
-    def store_iteration(self, flow_vector, gap):
-        self.g.graph['iterations'].append(flow_vector)
-        self.g.graph['gaps'].append(gap)
-
-    def construct_demand_graph(self):
-        # this can surely be made more efficient, multiple writes per od ..
-        assert self.demand_dict is not None
-        demand_graph = nx.DiGraph()
-        assert 'name' in self.g.graph
-        assert 'crs' in self.g.graph
-        demand_graph.graph['name']=self.g.graph['name']
-        demand_graph.graph['crs']=self.g.graph['crs']
-        for origin in self.demand_dict:
-            (destinations, flows) = self.demand_dict[origin]
-            for destination, flow in zip(destinations, flows):
-                v = self.node_map_to_nx[destination]
-                u = self.node_map_to_nx[origin]
-                demand_graph.add_edge(u, v, flow=flow)
-                demand_graph.nodes[u]['_id'] = origin
-                demand_graph.nodes[u]['y'] = self.g.nodes[u]['y']
-                demand_graph.nodes[u]['x'] = self.g.nodes[u]['x']
-                demand_graph.nodes[v]['y'] = self.g.nodes[v]['y']
-                demand_graph.nodes[v]['x'] = self.g.nodes[v]['x']
-                demand_graph.nodes[v]['_id'] = destination
-                demand_graph.nodes[u]['osmid'] = int(u)
-                demand_graph.nodes[v]['osmid'] = int(v)
-                demand_graph.nodes[u]['originating_traffic'] = self.node_data[origin]['originating_traffic']
-                demand_graph.nodes[v]['destination_traffic'] = self.node_data[destination]['destination_traffic']
-        return demand_graph
-
-
-class DynamicAssignment:
+class Demand:
+    __init__(self, )
+class Nodes:
     pass
+class Links:
+    #the link object just serves to make access to the different elements in the link row less cumbersome ..
+    #getting the capacity and flow of a given link with id k should work as follows:
+    #assignment.network.links.capacity[k] will given the capacity of link k (possibly time dependent)
+    #assignment.network.links.flow[k] gives a time dependent flow vector
+    __init__(self, link_matrix, number_of_timesteps):
+        self.flow=link_matrix[]
+
+
+
+#to enable syntax like DynamicAssignment.Network.Flows
 
