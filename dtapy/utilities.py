@@ -13,6 +13,8 @@ import stapy.settings
 import inspect
 import os
 import datetime
+from functools import wraps
+import time
 
 
 def __create_green_to_red_cm(color_format: str):
@@ -38,6 +40,20 @@ def __create_green_to_red_cm(color_format: str):
         return [to_hex(color, keep_alpha=False) for color in rgba]
     else:
         return rgba
+
+
+def timeit(my_func):
+    #simple decorators that allows to time functions calls
+    @wraps(my_func)
+    def timed(*args, **kw):
+        tstart = time.time()
+        output = my_func(*args, **kw)
+        tend = time.time()
+
+        print('"{}" took {:.3f} ms to execute\n'.format(my_func.__name__, (tend - tstart) * 1000))
+        return output
+
+    return timed
 
 
 def _name_test(data, key: str, value=None):

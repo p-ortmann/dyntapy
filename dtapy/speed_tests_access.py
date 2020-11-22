@@ -14,7 +14,7 @@ from itertools import count
 import numba as nb
 import timeit
 from dtapy.algorithms.experimental.dict_forward_star import make_forward_stars
-from dtapy.algorithms.experimental.csr_forward_star import construct_sparse_link_matrix
+from dtapy.datastructures.csr import construct_sparse_link_matrix
 
 # this file compares access times forward stars among three different implementation methods:
 # (i) via numba's typed dict, (2) as a custom implementation of CSR (3) as linked list as shown by graphhopper, see
