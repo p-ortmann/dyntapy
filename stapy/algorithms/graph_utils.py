@@ -12,7 +12,7 @@ from numba.typed import Dict, List
 from stapy.setup import int_dtype
 
 
-#@njit
+@njit
 def make_forward_stars(adj_list, number_of_nodes):
     forward_star = Dict()
     star_sizes = np.zeros(number_of_nodes, dtype=np.int)

@@ -21,7 +21,7 @@ from pyproj import CRS
 from stapy.__init__ import data_folder, results_folder
 
 traffic_cm = __create_green_to_red_cm('hex')
-
+#visualization of a single timestep
 
 def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
                  title=None, plot_size=1300,
