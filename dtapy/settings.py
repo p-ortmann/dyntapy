@@ -31,7 +31,8 @@ assignment_parameters = {'bpr_alpha': np.double(0.15),
                          'dial_b_cost_differences': 0.001,
                          'logit_theta':0.001,
                          }
-
+number_of_control_arrays=0
+ramp_metering_control_array_index=1
 
 gap_method = "relative"
 

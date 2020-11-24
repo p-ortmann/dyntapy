@@ -16,7 +16,7 @@ import functools
 
 def csr_sorted(func):
     # decorator that sorts the index array and value array for the sparse matrix creation
-    # handled in this way because np.lexsort is not implemented in numba
+    # np.lexsort is not implemented in numba
     @functools.wraps(func)
     def with_sorted_inputs(index_array=None, values=None, number_of_rows=None):
         seq = np.lexsort((index_array[:, 1], index_array[:, 0]))
@@ -34,7 +34,7 @@ def csr_sorted(func):
 def construct_sparse_link_matrix(index_array, values, number_of_rows):
     # index_array with the position of the elements (i,j), i being the row and j the column
     # sorted by rows with ties settled by column. Values sorted accordingly, see csr_sorted decorator
-    # example:
+    # example for valid index_array:
     # array([[0, 1],
     #        [1, 480640],
     #        [2, 3],
@@ -61,7 +61,6 @@ def construct_sparse_link_matrix(index_array, values, number_of_rows):
     return CSRMatrix(np.asarray(values, dtype=np.int64), np.asarray(col, dtype=np.int64),
                      np.asarray(row, dtype=np.int64))
 
-    # challenge if you have this ordered all link id's disappear
 
 
 spec_csr_matrix = OrderedDict

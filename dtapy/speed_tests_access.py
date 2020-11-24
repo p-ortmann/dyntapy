@@ -13,7 +13,7 @@ import numpy as np
 from itertools import count
 import numba as nb
 import timeit
-from dtapy.algorithms.experimental.dict_forward_star import make_forward_stars
+from dtapy.internals.experimental.dict_forward_star import make_forward_stars
 from dtapy.datastructures.csr import construct_sparse_link_matrix
 
 # this file compares access times forward stars among three different implementation methods:
