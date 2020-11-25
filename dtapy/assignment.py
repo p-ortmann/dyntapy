@@ -6,15 +6,13 @@
 #
 #
 import numpy as np
-from collections import OrderedDict
 from scipy.sparse import csr_matrix
 from itertools import count
 import networkx as nx
-
-from dtapy.internals.jitclasses import Network, Demand, Nodes, Turns, Links
 from scipy.sparse import lil_matrix
 from stapy.demand import build_demand_structs
-
+from numba.typed import List,Dict
+from numba.core.types import int64, float64, UniTuple
 
 class Assignment:
     """This class has no value when instantiated on its own,
