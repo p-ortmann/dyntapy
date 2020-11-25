@@ -9,7 +9,6 @@ from heapq import heappop, heappush
 import numpy as np
 from numba import njit
 from numba.typed import Dict, List
-from stapy.setup import int_dtype
 
 
 @njit
@@ -110,7 +109,7 @@ def __shortest_path(costs, forward_star, edge_map, source, targets, node_order):
     while my_heap:
         heap_item = heappop(my_heap)
         d = heap_item[0]
-        i = int_dtype(heap_item[1])
+        i = np.int64(heap_item[1])
         if i in dist:
             continue  # had this node already
         dist[i] = d
