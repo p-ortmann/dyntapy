@@ -10,7 +10,7 @@ import numpy as np
 import osmnx as ox
 from stapy.settings import config_dict, speed_mapping, cap_mapping, default_capacity, default_speed
 from stapy import data_folder
-from stapy.utilities import log
+from utilities import log
 traffic_keys = config_dict['traffic_keys']
 def create_cascetta_nw():
     ox.graph_from_place()

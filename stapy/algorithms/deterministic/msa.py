@@ -12,7 +12,7 @@ from stapy.algorithms.helper_funcs import calculate_costs, aon
 from stapy.settings import assignment_parameters
 from stapy.assignment import StaticAssignment
 from stapy.gap import gap
-from stapy.utilities import log
+from utilities import log
 
 
 def msa_flow_averaging(obj: StaticAssignment):

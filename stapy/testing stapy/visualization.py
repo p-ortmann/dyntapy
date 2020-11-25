@@ -8,10 +8,10 @@
 #
 #
 #
-from stapy.network_data import get_from_ox_and_save, load_pickle
+from stapy.network_data import get_from_ox_and_save
 from stapy.assignment_methods import DUE
-from stapy.demand import generate_od, generate_od_fixed
-from stapy.visualization import plot_network, show_desire_lines, show_convergence
+from stapy.demand import generate_od_fixed
+from visualization import plot_network, show_desire_lines
 from stapy.assignment import  StaticAssignment
 (g,deleted)= get_from_ox_and_save('Gent', reload=True)
 #g = load_pickle('Gent')

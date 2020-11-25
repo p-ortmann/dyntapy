@@ -12,7 +12,7 @@ from numba.typed import Dict, List
 from itertools import count
 import networkx as nx
 from stapy.algorithms.graph_utils import make_forward_stars, make_backward_stars
-from stapy.utilities import log
+from utilities import log
 from scipy.sparse import lil_matrix
 from stapy.demand import build_demand_structs
 

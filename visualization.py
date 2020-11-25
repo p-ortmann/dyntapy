@@ -5,20 +5,22 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 #
+#
+#
 import numpy as np
 import networkx as nx
 from bokeh.io import show, output_file, output_notebook
-from bokeh.models import HoverTool, CustomJS, TapTool, OpenURL, Label
+from bokeh.models import HoverTool, TapTool, OpenURL, Label
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models.glyphs import MultiLine, Circle, X, Asterisk, Patches
+from bokeh.models.glyphs import Circle, Asterisk, Patches
 from shapely.geometry import LineString
 from stapy.settings import visualization_keys_edges, visualization_keys_nodes
-from stapy.utilities import log, __create_green_to_red_cm
+from utilities import __create_green_to_red_cm
 from stapy.assignment import StaticAssignment
 import osmnx as ox
 from pyproj import CRS
-from stapy.__init__ import data_folder, results_folder
+from stapy.__init__ import results_folder
 
 traffic_cm = __create_green_to_red_cm('hex')
 

@@ -10,7 +10,7 @@
 from stapy.network_data import get_from_ox_and_save
 from stapy.assignment_methods import SUN
 from stapy.demand import generate_random_bush
-from stapy.visualization import plot_network, show_desire_lines
+from visualization import plot_network, show_desire_lines
 from stapy.assignment import StaticAssignment
 from stapy.settings import assignment_parameters
 (g, deleted) = get_from_ox_and_save('Gent')

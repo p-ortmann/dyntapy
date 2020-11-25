@@ -6,14 +6,13 @@
 #
 #
 #
-import numba as nb
 from collections import OrderedDict
-from dtapy.datastructures.csr import CSRMatrix
+from datastructures import CSRMatrix
 from numba.core.types import UniTuple, int64, float64
 from numba.core.types.containers import ListType
 from numba.typed.typedlist import List
-from heapq import heappush, heappop, heapreplace
-from dtapy.datastructures.csr import construct_sparse_link_matrix
+from heapq import heappush, heappop
+from datastructures import construct_sparse_link_matrix
 from numba.experimental import jitclass
 
 spec_link = [('capacity', float64[:]),
