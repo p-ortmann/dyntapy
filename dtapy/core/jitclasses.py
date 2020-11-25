@@ -7,13 +7,15 @@
 #
 #
 from collections import OrderedDict
-from datastructures import CSRMatrix
-from numba.core.types import UniTuple, int64, float64
+from datastructures.csr import CSRMatrix
+from numba.core.types import UniTuple, int64, float64, unicode_type
 from numba.core.types.containers import ListType
 from numba.typed.typedlist import List
 from heapq import heappush, heappop
-from datastructures import construct_sparse_link_matrix
+from datastructures.csr import construct_sparse_link_matrix
 from numba.experimental import jitclass
+
+csr_type = CSRMatrix.class_type.instance_type
 
 spec_link = [('capacity', float64[:]),
              ('from_node', int64[:]),
@@ -31,7 +33,7 @@ class Links(object):
     # link matrix is a float matrix with three dimensions that contains all the information on the link state for all
     # time steps we use transpose here to make access to individual elements easy, e.g. network.links.flows[link_id]
     # returns the flow array for all time steps
-    def __init__(self, length, kjam, from_node, to_node, capacity, flow, travel_time):
+    def __init__(self, length, kjam, from_node, to_node, capacity, flow, travel_time, sending_flow, receiving_flow):
         self.capacity = capacity
         self.length = length
         self.kjam = kjam
@@ -39,12 +41,20 @@ class Links(object):
         self.from_node = from_node
         self.flow = flow
         self.travel_time = travel_time
+        self.sending_flow = sending_flow  # accessed for multiple time periods or a single one?
+        self.receiving_flow = receiving_flow
+        self.forward #csr linkxlink row is outgoing turns
+        self.backward #csr incoming turns
 
+spec_results=[('',),]
+@jitclass(spec_results)
 
-spec_node = [('forward', CSRMatrix.class_type.instance_type),
-             ('backward', CSRMatrix.class_type.instance_type)]
+spec_node = [('forward', csr_type),
+             ('backward', csr_type)]
 
 spec_node = OrderedDict(spec_node)
+
+
 
 
 @jitclass(spec_node)
@@ -57,14 +67,22 @@ class Nodes(object):
     def __init__(self, forward: CSRMatrix, backward: CSRMatrix):
         self.forward = forward
         self.backward = backward
+        self.position_first_in
+        self.position_first_out
+        self.nbtf
+
+
+spec_turn = [('fractions', csr_type)]
 
 
 @jitclass(spec_turn)
 class Turns(object):
     # db_restrictions refer to destination based restrictions as used in recursive logit
-    def __init__(self, fractions, db_restrictions: CSRMatrix):
-        self.fractions = fractions
-        self.db_restrictions = db_restrictions
+    def __init__(self, fractions, db_restrictions: CSRMatrix, receiving_flow):
+        self.fractions = fractions  # node x turn_ids
+        self.db_restrictions = db_restrictions  # destinations x turns,
+        self.receiving_flow = receiving_flow
+
 
 
 spec_demand = {'links': Links.class_type.instance_type}
@@ -77,8 +95,8 @@ class Demand(object):
         self.origins
 
 
-my_instance_type = CSRMatrix.class_type.instance_type
-spec_static_event = [('event_csrs', ListType(my_instance_type))]
+spec_static_event = [('event_csrs', ListType(csr_type)),
+                     ('name', unicode_type)]
 spec_static_event = OrderedDict(spec_static_event)
 
 
@@ -91,7 +109,8 @@ class StaticEvent(object):
 
 tup_type = UniTuple(float64, 3)
 spec_dynamic_events = [('event_queue', ListType(tup_type)),
-                       ('control_array', float64[:])]
+                       ('control_array', float64[:]),
+                       ('name', unicode_type)]
 
 spec_dynamic_events = OrderedDict(spec_dynamic_events)
 
@@ -105,7 +124,7 @@ class DynamicEvent(object):
     # Network object should carry more than one DynamicEvent if necessary!!!
     # control array needs to be a float array (for now, see create_d
 
-    def __init__(self, control_array, T):
+    def __init__(self, name, control_array):
         self.event_queue = List.empty_list(tup_type)
         self.control_array = control_array
 
@@ -127,12 +146,16 @@ spec_network = [('links', Links.class_type.instance_type),
 @jitclass(spec_network)
 class Network(object):
     # link mat
-    def __init__(self, links, nodes, turns):
+    def __init__(self, links, nodes, turns, dynamic_events, static_events, tot_links, tot_nodes, tot_destinations):
         self.links = links
         self.nodes = nodes
         self.turns = turns
-        self.dynamic_events
-        self.static_events
+        self.dynamic_events = dynamic_events
+        self.static_events = static_events
+        self.tot_links=tot_links
+        self.tot_nodes=tot_nodes
+        self.tot_destinations=tot_destinations
+        # TODO: add lookup tables for name to index
 
 
 def create_dynamic_event_cls(type):

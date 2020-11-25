@@ -24,3 +24,8 @@
 2020-11-25 13:26:54,358 INFO @stapy.assignment.py: Assignment object initialized!
 2020-11-25 13:26:56,457 INFO @stapy.assignment.py: Assignment object initialized!
 2020-11-25 14:25:27,974 INFO @stapy.network_data.py: Starting to load from OSM
+2020-11-25 15:57:25,579 INFO @stapy.network_data.py: Starting to load from OSM
+2020-11-25 15:58:13,160 INFO @stapy.network_data.py: Starting to load from OSM
+2020-11-25 15:58:34,905 INFO @stapy.network_data.py: Finished downloading
+2020-11-25 15:58:44,780 INFO @stapy.assignment.py: Assignment object initialized!
+2020-11-25 15:58:46,321 INFO @stapy.assignment.py: Assignment object initialized!
