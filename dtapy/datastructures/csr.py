@@ -22,8 +22,8 @@ def csr_sorted(func):
         seq = np.lexsort((index_array[:, 1], index_array[:, 0]))
         index_array = [index_array[ind] for ind in seq]
         values = [values[ind] for ind in seq]
-        index_array = np.array(index_array, dtype=np.int64)
-        values = np.array(values, dtype=np.int64)
+        index_array = np.array(index_array)
+        values = np.array(values)
         return func(index_array, values, number_of_rows)
 
     return with_sorted_inputs

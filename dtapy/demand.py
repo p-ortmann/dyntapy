@@ -99,3 +99,5 @@ def generate_random_bush(number_of_nodes, number_of_branches, seed=0):
             rand_od.rows[i] = list(j)
             rand_od.data[i] = list((int(np.random.random() * 2000)))
     return rand_od
+#TODO: add a generic way of handling demand from and to geographical locations, willem update method
+
