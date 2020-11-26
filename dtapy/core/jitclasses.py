@@ -30,9 +30,8 @@ spec_link = OrderedDict(spec_link)
 
 @jitclass(spec_link)
 class Links(object):
-    # link matrix is a float matrix with three dimensions that contains all the information on the link state for all
-    # time steps we use transpose here to make access to individual elements easy, e.g. network.links.flows[link_id]
-    # returns the flow array for all time steps
+    # Links carries all the attribute arrays like capacity, kjam etc and also forward and backward - CSR matrices that
+    # indicate connected turns
     def __init__(self, length, kjam, from_node, to_node, capacity, flow, travel_time, sending_flow, receiving_flow):
         self.capacity = capacity
         self.length = length
@@ -43,18 +42,25 @@ class Links(object):
         self.travel_time = travel_time
         self.sending_flow = sending_flow  # accessed for multiple time periods or a single one?
         self.receiving_flow = receiving_flow
-        self.forward #csr linkxlink row is outgoing turns
-        self.backward #csr incoming turns
+        self.forward  # csr linkxlink row is outgoing turns
+        self.backward  # csr incoming turns
 
-spec_results=[('',),]
+
+spec_results = [('',), ]
+
+
 @jitclass(spec_results)
+class Results(object):
+    def __init__(self, turning_fractions, flows):
+        self.turning_fractions
+        self.flows
+        self.path_set #list of all used paths by od pair
+
 
 spec_node = [('forward', csr_type),
              ('backward', csr_type)]
 
 spec_node = OrderedDict(spec_node)
-
-
 
 
 @jitclass(spec_node)
@@ -84,15 +90,15 @@ class Turns(object):
         self.receiving_flow = receiving_flow
 
 
-
 spec_demand = {'links': Links.class_type.instance_type}
 
 
 @jitclass(spec_demand)
 class Demand(object):
-    def __init__(self, od_matrix):
-        self.od_matrix = od_matrix
-        self.origins
+    def __init__(self, od_matrix, origins, destinations):
+        self.od_matrix = od_matrix #csr matrix origins x destinations #maybe also implement inverse ..
+        self.origins= origins #array of node id's that are origings
+        self.destinations= destinations #array of node id's destinations
 
 
 spec_static_event = [('event_csrs', ListType(csr_type)),
@@ -124,15 +130,17 @@ class DynamicEvent(object):
     # Network object should carry more than one DynamicEvent if necessary!!!
     # control array needs to be a float array (for now, see create_d
 
+    #TODO: think about if there should be DynamicArrayEvents and DynamicCSREvents, can't both be handled by the same class
+    #dynamically closing a turn is not possible with this design (maybe through capcity?), i guess that is not problematic
     def __init__(self, name, control_array):
         self.event_queue = List.empty_list(tup_type)
         self.control_array = control_array
 
-    def add_event(self, obj_index, val, time):
-        current_val = self.control_array[obj_index]
+    def add_event(self, time, obj_index, val):
         heappush(self.event_queue, (float64(time), float64(obj_index), float64(val)))
-
     def get_next_event(self):
+        (time, obj_index, val) = self.event_queue[0]
+    def pop_next_event(self):
         (time, obj_index, val) = heappop(self.event_queue)
 
 
@@ -140,7 +148,10 @@ spec_network = [('links', Links.class_type.instance_type),
                 ('nodes', Nodes.class_type.instance_type),
                 ('turns', Turns.class_type.instance_type),
                 ('static_events', ListType(StaticEvent.class_type.instance_type)),
-                ('dynamic_events', ListType(DynamicEvent.class_type.instance_type))]
+                ('dynamic_events', ListType(DynamicEvent.class_type.instance_type)),
+                ('tot_links', int64),
+                ('tot_nodes', int64),
+                ('tot_destinations', int64)]
 
 
 @jitclass(spec_network)
@@ -152,9 +163,9 @@ class Network(object):
         self.turns = turns
         self.dynamic_events = dynamic_events
         self.static_events = static_events
-        self.tot_links=tot_links
-        self.tot_nodes=tot_nodes
-        self.tot_destinations=tot_destinations
+        self.tot_links = tot_links
+        self.tot_nodes = tot_nodes
+        self.tot_destinations = tot_destinations
         # TODO: add lookup tables for name to index
 
 
