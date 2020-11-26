@@ -54,7 +54,7 @@ class Results(object):
     def __init__(self, turning_fractions, flows):
         self.turning_fractions
         self.flows
-        self.path_set #list of all used paths by od pair
+        self.path_set  # list of all used paths by od pair
 
 
 spec_node = [('forward', csr_type),
@@ -96,9 +96,9 @@ spec_demand = {'links': Links.class_type.instance_type}
 @jitclass(spec_demand)
 class Demand(object):
     def __init__(self, od_matrix, origins, destinations):
-        self.od_matrix = od_matrix #csr matrix origins x destinations #maybe also implement inverse ..
-        self.origins= origins #array of node id's that are origings
-        self.destinations= destinations #array of node id's destinations
+        self.od_matrix = od_matrix  # csr matrix origins x destinations #maybe also implement inverse ..
+        self.origins = origins  # array of node id's that are origings
+        self.destinations = destinations  # array of node id's destinations
 
 
 spec_static_event = [('event_csrs', ListType(csr_type)),
@@ -130,18 +130,21 @@ class DynamicEvent(object):
     # Network object should carry more than one DynamicEvent if necessary!!!
     # control array needs to be a float array (for now, see create_d
 
-    #TODO: think about if there should be DynamicArrayEvents and DynamicCSREvents, can't both be handled by the same class
-    #dynamically closing a turn is not possible with this design (maybe through capcity?), i guess that is not problematic
+    # TODO: think about if there should be DynamicArrayEvents and DynamicCSREvents, can't both be handled by the same class
+    # dynamically closing a turn is not possible with this design (maybe through capcity?), i guess that is not problematic
     def __init__(self, name, control_array):
         self.event_queue = List.empty_list(tup_type)
         self.control_array = control_array
 
     def add_event(self, time, obj_index, val):
         heappush(self.event_queue, (float64(time), float64(obj_index), float64(val)))
+
     def get_next_event(self):
         (time, obj_index, val) = self.event_queue[0]
+
     def pop_next_event(self):
         (time, obj_index, val) = heappop(self.event_queue)
+    # alternative to heap is to have different queues for each dt, continuous should be better for longer time steps..)
 
 
 spec_network = [('links', Links.class_type.instance_type),
