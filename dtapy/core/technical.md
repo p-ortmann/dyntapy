@@ -1,4 +1,5 @@
 ### Class Structure and Design Choices
+'''mermaid
 classDiagram
     Network -- Links
     Network -- Nodes
@@ -45,3 +46,4 @@ classDiagram
      
 
 
+'''
