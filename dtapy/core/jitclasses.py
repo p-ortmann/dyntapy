@@ -131,16 +131,16 @@ class Demand(object):
         self.destinations = destinations  # array of node id's destinations
 
 
-spec_static_event = [('event_csrs', ListType(csr_type)),
-                     ('name', unicode_type)]
+spec_static_event = [('events', csr_type),
+                     ('attribute_id', int64)]
 spec_static_event = OrderedDict(spec_static_event)
 
 
 @jitclass(spec_static_event)
 class StaticEvent(object):
-    def __init__(self, name, index_array, values):
-        self.csr = construct_sparse_link_matrix(index_array=index_array, values=values)
-        self.name = name
+    def __init__(self, attribute_id, index_array, values):
+        self.events = construct_sparse_link_matrix(index_array=index_array, values=values)
+        self.attribute_id = attribute_id
 
 
 tup_type = UniTuple(float64, 3)
