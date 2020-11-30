@@ -66,6 +66,7 @@ class Links(object):
         def get_capacity(self, link_id, time=0): # this will get inlined by the jit compiler - no overhead .
             return self.capacity[link_id]
     def get_var(self, link_id, attribute, time=0):
+        pass
 
     # TODO: explore and enforce use of @property decorator for those properties that are allowed public access
     # TODO: name mangle properties that should remain private
@@ -163,7 +164,7 @@ class DynamicEvent(object):
     # dynamically closing a turn is not possible with this design (maybe through capcity?), i guess that is not problematic
     def __init__(self, name, control_array):
         self.__event_queue = List.empty_list(tup_type)
-        self.control_array = control_array
+        self.__control_array = control_array
 
     def add_event(self, time, obj_index, val):
         heappush(self.event_queue, (float64(time), float64(obj_index), float64(val)))
