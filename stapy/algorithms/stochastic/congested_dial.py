@@ -1,5 +1,5 @@
 #  License: GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007, see license.txt
-#  More information at: https://gitlab.mech.kuleuven.be/ITSCreaLab
+#  More information at: https://gitlab.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 #
 #
