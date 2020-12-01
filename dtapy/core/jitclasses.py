@@ -47,26 +47,26 @@ class Links(object):
         self.backward  # csr incoming turns
         self.event_changes  # csr link_id x attribute_ids = val, checks necessary if future values are extracted
 
-    if registered_events[link_capacity_id]:
-        def get_capacity(self, link_id, time=0):  # timing access and overhead through the sparse check,
-            # possibly different approach, depends on whether full array is needed for the 'time'
-            # or only a single entry
-            # alternative: add a check on whether event queue exists for this attribute (possibly hard, at compile time the object
-            # doesn't exist yet ...# - can functions be compiled differently based on this?
-            # TODO: test this design on compatibility with numba
-            if time == 0:
-                return self.capacity[link_id]
-            else:
-                if self.event_changes.get_nnz(link_id) != link_capacity_id:
-                    return self.capacity[link_id]
-                else:
-                    # interpolation ..
-                    return 0
-    else:
-        def get_capacity(self, link_id, time=0): # this will get inlined by the jit compiler - no overhead .
-            return self.capacity[link_id]
-    def get_var(self, link_id, attribute, time=0):
-        pass
+    # if registered_events[link_capacity_id]:
+    #     def get_capacity(self, link_id, time=0):  # timing access and overhead through the sparse check,
+    # possibly different approach, depends on whether full array is needed for the 'time'
+    # or only a single entry
+    # alternative: add a check on whether event queue exists for this attribute (possibly hard, at compile time the object
+    # doesn't exist yet ...# - can functions be compiled differently based on this?
+    # TODO: test this design on compatibility with numba
+    # if time == 0:
+    #     return self.capacity[link_id]
+    # else:
+    #     if self.event_changes.get_nnz(link_id) != link_capacity_id:
+    #         return self.capacity[link_id]
+    #     else:
+    # interpolation ..
+    # return 0
+    # else:
+    #     def get_capacity(self, link_id, time=0): # this will get inlined by the jit compiler - no overhead .
+    #         return self.capacity[link_id]
+    # def get_var(self, link_id, attribute, time=0):
+    #     pass
 
     # TODO: explore and enforce use of @property decorator for those properties that are allowed public access
     # TODO: name mangle properties that should remain private
@@ -104,7 +104,7 @@ class Nodes(object):
         self.position_first_out
         self.nbtf
         self.event_changes
-        #nodes.forward.getrow(node_id)=link_ids
+        # nodes.forward.getrow(node_id)=link_ids
 
 
 spec_turn = [('fractions', csr_type)]
@@ -210,9 +210,9 @@ class Network(object):
         # reduces overhead induced by these event mechanisms ..
         # restricts controller to register changes in time horizon steps, is this
         pass
-    def get_controller_response(self,dt,T, Results:Results):
-        pass
 
+    def get_controller_response(self, dt, T, Results: Results):
+        pass
 
 
 def create_dynamic_event_cls(type):

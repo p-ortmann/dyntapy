@@ -89,7 +89,7 @@ The construction of the CSRMatrices for these StaticEvents can be done in pre-pr
 ```
 The development for data structures that also allow generic control paradigms with a different
 temporal granularity than LTM remains to be further investigated.
-At this point it's not entirely clear how it would work, after implementing some control flavored
-versions of LTM this'll be revisited. 
-Nevertheless we will include a simple controller class which takes it's control actions in sync with the
-Network loading because it is a straight forward extension of the dealing with the static events.
+At this point it's not entirely clear how it would work. We hope that, after implementing some control flavored
+versions of LTM, this can be revisited. 
+Nevertheless, we will include a simple controller class which takes its control actions in sync with the
+network loading because it is a straight forward extension of the dealing with the static events.
