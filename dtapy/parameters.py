@@ -9,4 +9,5 @@
 # ids for event handling
 link_capacity_id=2
 registered_events=[True, False]
+max_capacity=10000
 #0: capacity

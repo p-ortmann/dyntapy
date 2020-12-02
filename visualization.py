@@ -146,10 +146,25 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     show(plot)
 
 
-def debug_plot(obj: StaticAssignment, flows, costs):
-    obj.link_travel_times = costs
-    obj.link_flows = flows
-    obj.write_back()
+def debug_plot(obj, costs, flows, t=None):
+    """
+    convenience function for plotting in dynamic and static assignment
+    Parameters
+    ----------
+    obj : StaticAssignment or DynamicAssignment
+    costs : cost matrix/vector
+    flows : flow matrix/vector
+    t : index of time slice
+
+    Returns
+    -------
+
+    """
+    assert type(t) == int
+    if t is not None:
+        costs = costs[t]
+        flows = flows[t]
+    obj.write_back(costs, flows)
     plot_network(obj.g)
 
 
