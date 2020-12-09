@@ -11,114 +11,162 @@
 import numba as nb
 import numpy as np
 from collections import OrderedDict
-import functools
-from numba.core.types import float64, int64
+from numba.core.types import float32, uint32
+from heapq import heappush, heappop
 
-valid_csr_val_types = [float64[:], int64[:]]
-
-def csr_sorted(func):
-    # decorator that sorts the index array and value array for the sparse matrix creation
-    # np.lexsort is not implemented in numba
-    @functools.wraps(func)
-    def with_sorted_inputs(index_array=None, values=None, number_of_rows=None):
-        seq = np.lexsort((index_array[:, 1], index_array[:, 0]))
-        index_array = [index_array[ind] for ind in seq]
-        values = [values[ind] for ind in seq]
-        index_array = np.array(index_array)
-        values = np.array(values)
-        return func(index_array, values, number_of_rows)
-
-    return with_sorted_inputs
-
-def __build_csr_cls():
-    cls = []
-    for my_type in valid_csr_val_types:
-        spec_csr_matrix = OrderedDict
-        spec_csr_matrix = {'values': my_type, 'col_index': nb.types.int64[:], 'row_index': nb.types.int64[:]}
-
-        @nb.experimental.jitclass(spec_csr_matrix)
-        class CSRMatrix(object):
-            # a minimal csr matrix implementation a la wikipedia
-            # used for the backward and forward stars of nodes
-            def __init__(self, values, col_index, row_index):
-                self.values = values
-                self.col_index = col_index
-                self.row_index = row_index
-
-            def get_nnz(self, row):
-                # getting all the non zero columns of a particular row
-                row_start = self.row_index[row]
-                row_end = self.row_index[row + 1]
-                return self.col_index[row_start:row_end]
-
-            def get_row(self, row):
-                row_start = self.row_index[row]
-                row_end = self.row_index[row + 1]
-                return self.values[row_start:row_end]
-
-        cls.append(CSRMatrix)
-    return cls
-def __build_csr_funs(cls):
-    funs=[]
-    for cl, type in cls, valid_csr_val_types:
-        @csr_sorted
-        @nb.njit
-        def construct_sparse_matrix(index_array, values, number_of_rows):
-            """
-
-            Parameters
-            ----------
-            index_array : 2d array with each row containing the indexes of nnz element
-            values : values in order of index array
-            number_of_rows :
-            val_type : type of the values
-
-            Returns
-            -------
-
-            """
-
-            # index_array with the position of the elements (i,j), i being the row and j the column
-            # sorted by rows with ties settled by column. Values sorted accordingly, see csr_sorted decorator
-            # example for valid index_array:
-            # array([[0, 1],
-            #        [1, 480640],
-            #        [2, 3],
-            #        [2, 356104], dtype=int64)
-            col, row = nb.typed.List(), nb.typed.List()
-            row.append(0)
-            row_counter = 0
-            link_counter = 0
-            link_id = 0
-            for i in np.arange(number_of_rows + 1, dtype=np.int64):
-                link_counter = 0
-                for edge in index_array[link_id:]:
-                    if i == edge[0]:
-                        # values.append(link_id+link_counter)
-                        col.append(index_array[link_id + link_counter][1])
-                        row_counter += 1
-                        link_counter += 1
-                    else:
-                        # next row
-                        row.append(row_counter)
-                        link_id += link_counter
-                        break
-            return cl(np.asarray(values, type), np.asarray(col, dtype=np.int64),
-                                np.asarray(row, dtype=np.int64))
-        funs.append(construct_sparse_matrix)
-    return funs
+numba_csr_val_types = [float32[:], uint32[:]]
+numpy_csr_val_types = [np.float32, np.uint32]
 
 
+@nb.njit
+def csr_sort(index_array, values):
+    """
+
+    Parameters
+    ----------
+    index_array : 2d array with each row containing the indexes of nnz element, uint32
+    values : 1d array with corresponding value, any type
+
+    Returns
+    -------
+
+    """
+    # need to use reflected list here ([]) and not the faster typed List(), see ticket
+    # https://github.com/numba/numba/issues/4926
+    # function that sorts the index array and value array for the sparse matrix creation
+    my_heap = [(np.uint32(0), np.uint32(0), np.uint32(0), np.uint32(0))]
+    sorted_index_array = np.empty_like(index_array)
+    sorted_values = np.empty_like(values)
+    for index, edge in enumerate(index_array):
+        i, j = edge
+        heappush(my_heap, (uint32(i * 10 + j), i, j, uint32(index)))
+    c = 0
+
+    heappop(my_heap)  # removing init val
+    while len(my_heap) > 0:
+        tuple = heappop(my_heap)
+        key, i, j, index = tuple[0], tuple[1], tuple[2], tuple[3]
+        sorted_index_array[c] = i, j
+        sorted_values[c] = values[index]
+        c += 1
+    return sorted_index_array, sorted_values
 
 
-cls = __build_csr_cls()
-F64CSRMatrix, I64CSRMatrix=__build_csr_cls()
-construct_sparse_matrix_i64, construct_sparse_matrix_f64 = __build_csr_funs([F64CSRMatrix, I64CSRMatrix])
+def __build_csr_cls(nb_type):
+    """
+
+    Parameters
+    ----------
+    nb_type : numba array type of value array, e.g. uint32[:] or float32[:]
+    np_type : corresponding numpy type, e.g. np.uint32, np.float32
+
+    Returns
+    -------
+
+    """
+    spec_csr_matrix = [('_values', nb_type), ('_col_index', nb.types.uint32[:]),
+                       ('_row_index', nb.types.uint32[:]), ('_nnz_rows', nb.types.uint32[:]),
+                       ('_number_of_rows', uint32)]
+    spec_csr_matrix = OrderedDict(spec_csr_matrix)
+
+    @nb.experimental.jitclass(spec_csr_matrix)
+    class CSRMatrix(object):
+        # a minimal csr matrix implementation a la wikipedia
+        #    used for the backward and forward stars of nodes
+        # get_nnz and get_row should only be used on rows for which a value is present
+        # otherwise indexerrors will be raised
+        def __init__(self, values, col_index, row_index):
+            self._values = values
+            self._col_index = col_index
+            self._row_index = row_index
+            self._nnz_rows = self.__set_nnz_rows()
+            self._number_of_rows = len(row_index) - 2
+
+        def get_nnz(self, row):
+            # getting all the non zero columns of a particular row
+            row_start = self._row_index[row]
+            row_end = self._row_index[row + 1]
+            return self._col_index[row_start:row_end]
+
+        def get_row(self, row):
+            row_start = self._row_index[row]
+            row_end = self._row_index[row + 1]
+            print(row_start)
+            print(row_end)
+            return self._values[row_start:row_end]
+            # except Exception:
+            #   return np.empty(0, dtype=np_type)
+
+        def __set_nnz_rows(self):
+            rows = []
+            for row in np.arange(len(self._row_index[:-1]), dtype=np.uint32):
+                if len(self.get_nnz(row)) > 0:
+                    rows.append(row)
+            return np.array(rows, dtype=np.uint32)
+
+        def get_nnz_rows(self):
+            # get rows that have non-zero values
+            return self._nnz_rows
+
+    return CSRMatrix
 
 
+#@nb.njit
+def _csr_format(index_array, number_of_rows):
+    """
+
+    Parameters
+    ----------
+    index_array : 2d array with each row containing the indexes of nnz element
+    number_of_rows : size of sparse matrix
+    Returns
+    -------
+
+    """
+    # index_array with the position of the elements (i,j), i being the row and j the column
+    # sorted by rows with ties settled by column. Values sorted accordingly, see csr_sort
+    # example for valid index_array:
+    # array([[0, 1],
+    #        [1, 480640],
+    #        [2, 3],
+    #        [2, 356104], dtype=uint32)
+    col, row = nb.typed.List(), nb.typed.List()
+    row.append(np.uint32(0))
+    row_value_counter = np.uint32(0)
+    processed_edges = np.uint32(0)
+    empty_csr = len(index_array) == 1
+    print(empty_csr)
+    for i in np.arange(number_of_rows + 1, dtype=np.uint32):
+        edges_in_row = np.uint32(0)
+        if empty_csr:
+            row.append(row_value_counter)
+        else:
+            for edge in index_array[processed_edges:]:
+                if i == edge[0]:
+                    # values.append(link_id+link_counter)
+                    # print('id+c: ')
+                    # print(_id + _counter)
+                    col.append(index_array[np.uint32(processed_edges + edges_in_row), 1])
+                    row_value_counter += np.uint32(1)
+                    edges_in_row += np.uint32(1)
+                else:
+                    # next row
+                    row.append(row_value_counter)
+                    processed_edges += edges_in_row
+                    break
 
 
+    return np.asarray(col, dtype=np.uint32), np.asarray(row, dtype=np.uint32)
 
 
+F32CSRMatrix = __build_csr_cls(nb.float32[:])
+UI32CSRMatrix = __build_csr_cls(nb.uint32[:])
 
-
+#empty initilization below, be aware of missing boundscheck in numba .., unless the
+# wdir has a specified .numba_config_yaml with NUMBA_BOUNDSCHECK set they will not work.
+# col, row = _csr_format(np.array([[]]), 4)
+# val = np.array([], dtype=np.float32)
+# my_csr = F32CSRMatrix(val, col, row)
+# print(my_csr)
+# my_csr.get_row(10)
+# my_csr.get_row(11)

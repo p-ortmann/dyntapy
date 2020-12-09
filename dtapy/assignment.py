@@ -11,8 +11,14 @@ from itertools import count
 import networkx as nx
 from scipy.sparse import lil_matrix
 from stapy.demand import build_demand_structs
-from numba.typed import List,Dict
-from numba.core.types import int64, float64, UniTuple
+from numba.typed import List, Dict
+from numba.core.types import uint32, float32, int32, float32
+from datastructures.csr import ui32_construct_sparse_matrix, f32_construct_sparse_matrix
+from dtapy.core.jitclasses import Links, Nodes, Network, Turns, Demand
+from numba.experimental import jitclass
+from dtapy.parameters import v_wave_default, turn_capacity_default, turn_type_default, node_capacity_default, \
+    node_control_default
+
 
 class Assignment:
     """This class has no value when instantiated on its own,
@@ -27,42 +33,107 @@ class Assignment:
         od_matrix : array like object
             Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment object
         """
-        self._link_matrix=self.build_link_matrix()
-        self.network= self.build_network()
-        self.demand= self.build_demand()
-        self.node_label, self.link_label= None, None,
+        self._link_matrix = self.build_link_matrix()
+        self.demand = self.build_demand()
+        self.network = self.build_network()
+        self.node_label, self.link_label = None, None,
         self.g = g
+        self.number_of_nodes = self.g.number_of_nodes()
+        self.number_of_links = self.g.number_of_edges()
         # dict of dict with outer dict keyed by edges (u,v) and inner dict as data
         # to be dumped into the nx.DiGraph as key value pairs
         self.transform_graph_data()
         self.set_od_matrix(od_matrix)
         self.set_internal_labels(self.g, self.node_label, self.link_label)
+
+    def build_demand(self, od_matrix, g: nx.DiGraph):
+        origins, destinations, number_of_timesteps = None, None, None
+        return Demand(od_matrix, origins, destinations, number_of_timesteps)
+    def __build_nodes(self):
+        link_ids = np.arange(self.g.number_of_edges())
+        forward = ui32_construct_sparse_matrix(self.link_label, link_ids, self.number_of_nodes)
+        backward = ui32_construct_sparse_matrix(np.column_stack((self.link_label[:, 1], self.link_label[:, 0])),
+                                                link_ids, self.number_of_nodes)
+        capacity = np.full(self.number_of_nodes, node_capacity_default, dtype=np.float32)
+        control_type = np.full(self.number_of_nodes, node_control_default, dtype=np.int8)
+        return Nodes(forward, backward, control_type, capacity)
+
+    def __build_turns(self, nodes : Nodes):
+        to_nodes=List()
+        from_nodes=List()
+        from_links=List()
+        to_links=List()
+        turn_id=List()
+        turn_counter=0
+        for via_node in np.arange(self.number_of_nodes):
+            #named here _attribute to indicate all the to nodes/links that are associated with the via_node
+            _to_nodes = nodes.forward.getnnz(via_node)
+            _from_nodes=nodes.backward.getnnz(via_node)
+            _from_links=nodes.backward.getrow(via_node)
+            _to_links=nodes.forward.getrow(via_node)
+            for to_node, from_node, from_link, to_link in zip (_to_nodes, _from_nodes, _from_links, _to_links):
+                turn_id.append(turn_counter)
+                to_nodes.append(to_node)
+                from_nodes.append(from_node)
+                from_links.append(from_link)
+                to_links.append(to_link)
+                turn_counter+=1
+        number_of_turns=turn_counter+1
+
+
+
+
+        capacity = np.full(number_of_turns, turn_capacity_default, dtype=np.float32)
+        control_type = np.full(number_of_turns, turn_type_default, dtype=np.int8)
+
+        Turns()
+
+
+    def __build_links(self):
+        """
+        initiates all the different numpy arrays for the links object from nx.DiGraph,
+        requires the networkx graph to be set up in accordance with the network_data file.
+        Returns
+        links : Links
+        -------
+
+        """
+        length, capacity, v0_prt, v_wave = np.empty(self.g.number_of_nodes(), dtype=np.float32) * 4
+        lanes = np.empty(self.g.number_of_nodes(), dtype=np.uint32)
+        from_node = self.link_label[:, 0]
+        to_node = self.link_label[:, 1]
+        link_ids = np.arange(self.g.number_of_edges())
+        for _id, arr in zip(link_ids, self.link_label):
+            u, v = arr
+            length[_id] = self.g[u][v]['length']
+            capacity[_id] = self.g[u][v]['capacity']
+            v0_prt[_id] = self.g[u][v]['max_speed']
+            lanes[_id] = self.g[u][v]['lanes']
+            from_node[_id] = u
+            to_node[_id] = v
+            ui32_construct_sparse_matrix()
+        costs = np.copy(v0_prt)
+        cvn_up, cvn_down = np.empty((self.demand.number_of_time_steps, self.number_of_links), dtype=np.float32) * 2
+        v_wave = np.full(self.number_of_links, v_wave_default, dtype=np.float32)
+
+        return Links(length, from_node, to_node, capacity, v_wave, v0_prt, costs, cvn_up, cvn_down, forward, backward)
+
+
+
     @staticmethod
-    def build_network(g:nx.DiGraph):
-        return 0
-    @staticmethod
-    def build_demand(od_matrix, g:nx.DiGraph):
-        return 0
-    @staticmethod
-    def set_internal_labels(g:nx.DiGraph, node_labels, link_labels):
+    def set_internal_labels(g: nx.DiGraph, node_labels, link_labels):
         # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the
-        #IDs used in nx
-        node_labels=np.empty(g.number_of_nodes(), dtype=np.int64)
-        link_labels=np.empty((g.number_of_edges(),2), dtype=np.int64)
+        # IDs used in nx
+        node_labels = np.empty(g.number_of_nodes(), dtype=np.uint32)
+        link_labels = np.empty((g.number_of_edges(), 2), dtype=np.uint32)
         counter = count()
         for node_id, u in enumerate(g.nodes):
             g.nodes[u]['_id'] = node_id
-            node_labels[node_id]=u
+            node_labels[node_id] = u
             for v in g.succ[u]:
                 link_id = next(counter)
                 g[u][v]['_id'] = link_id
-                link_labels[link_id][0],link_labels[link_id][1]=u,v
-
-    def build_link_matrix(self):
-        #creates a 3D matrix that contains the full state on each link for all time periods,
-        # see Links object for details
-        _link_matrix = np.empty(shape=(g.number_of_edges, 4 + 2 * number_of_timesteps)
-        return _link_matrix
+                link_labels[link_id][0], link_labels[link_id][1] = u, v
 
     def transform_graph_data(self):
         """
@@ -128,32 +199,23 @@ class Assignment:
             if d > 0:
                 self.node_data[i]['destination_traffic'] = float(d)
 
-
-
-
-
-
-
-#my_array = np.arange(50000).reshape(10000, 5)
-#my_network = Network(link_matrix=my_array)
-#print(my_network.links.capacity[5])
+# my_array = np.arange(50000).reshape(10000, 5)
+# my_network = Network(link_matrix=my_array)
+# print(my_network.links.capacity[5])
 
 # remapping of od from different time granularity to computation time steps
 # node or link event which triggers a change in otherwise staionary characteristics
 # example ramp metering event capacity choke, relative and absolute events
 
 
-
-#TODO: jeroen which attributes are dynamic
-#TODO: which ordering to use instar, outstar - ideally use both depending on your lagorithm yes both
-#TODO: how high a priority is visualization.. - one time, interval visualization
+# TODO: jeroen which attributes are dynamic
+# TODO: which ordering to use instar, outstar - ideally use both depending on your lagorithm yes both
+# TODO: how high a priority is visualization.. - one time, interval visualization
 # arrays for different things separately by node id
 # what does the node data structure look like, turning fraction matrix
-#data structure for events a sparse matrix .. time steps( row) * links(columns) value as capacity,
+# data structure for events a sparse matrix .. time steps( row) * links(columns) value as capacity,
 # different ones for each theme
 
-#is the results object a good decision?, we can just pass on network/ demand objects for warm starting
-#to enable syntax like DynamicAssignment.Network.Flows
-# time incoming outgoing link, belgium network
-
-
+# is the results object a good decision?, we can just pass on network/ demand objects for warm starting
+# to enable syntax like DynamicAssignment.Network.Flows
+# time incoming outgoing link, belgium netwo

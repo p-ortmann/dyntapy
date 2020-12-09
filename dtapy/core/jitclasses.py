@@ -7,65 +7,48 @@
 #
 #
 from collections import OrderedDict
-from datastructures.csr import I64CSRMatrix, F64CSRMatrix, construct_sparse_matrix_f64, construct_sparse_matrix_i64
-from numba.core.types import UniTuple, int64, float64, unicode_type
+from datastructures.csr import UI32CSRMatrix, F32CSRMatrix
+from numba.core.types import float32, uint32, int8
 from numba.core.types.containers import ListType
-from numba.typed.typedlist import List
-from heapq import heappush, heappop
 from numba.experimental import jitclass
-from dtapy.parameters import link_capacity_id, registered_events, max_capacity
 
-i64csr_type = I64CSRMatrix.class_type.instance_type
-f64csr_type = F64CSRMatrix.class_type.instance_type
+ui32csr_type = UI32CSRMatrix.class_type.instance_type
+f32csr_type = F32CSRMatrix.class_type.instance_type
 
-spec_link = [('capacity', float64[:]),
-             ('from_node', int64[:]),
-             ('to_node', int64[:]),
-             ('kjam', float64[:]),
-             ('length', float64[:]),
-             ('flow', float64[:, :]),
-             ('travel_time', float64[:, :]),
-             ('forward', i64csr_type),
-             ('backward', i64csr_type)]
+# possibly: experiment with data types uint32, float32
+# -> int32(max 2147483648), float32( worst precision under 16384 is 0.001953125)
+
+spec_link = [('capacity', float32[:]),
+             ('from_node', uint32[:]),
+             ('to_node', uint32[:]),
+             ('length', float32[:]),
+             ('flow', float32[:, :]),
+             ('travel_time', float32[:, :]),
+             ('forward', ui32csr_type),
+             ('backward', ui32csr_type)]
 
 spec_link = OrderedDict(spec_link)
 
 
 @jitclass(spec_link)
 class Links(object):
-    # Links carries all the attribute arrays like capacity, kjam etc and also forward and backward - CSR matrices that
-    # indicate connected turns
-    def __init__(self, length, kjam, from_node, to_node, capacity, flow, t0, sending_flow, receiving_flow,
-                 forward, backward):
-        """
+    """
+    A simple class that carries various arrays and CSR Matrices that have link ids as their index
+    """
 
-        Parameters
-        ----------
-        length : float64[:] lengths in kilometers
-        kjam : float64[:] jam densities
-        from_node : int64[:]
-        to_node : int64[:]
-        capacity : float64[:]
-        flow : float64[:,:] links x time slices
-        t0 : float64[:] , free flow travel time
-        sending_flow : float64[:]
-        receiving_flow : float64[:]
-        forward : I64CSRMatrix <int64>
-        backward : I64CSRMatrix <int64>
-        """
+    def __init__(self, length, from_node, to_node, capacity, v_wave, costs, v0, cvn_up, cvn_down,
+                 forward, backward):
         self.capacity = capacity
         self.length = length
-        self.kjam = kjam
         self.to_node = to_node
         self.from_node = from_node
-        self.flow = flow
-        self.t0 = t0
-        self.sending_flow = sending_flow
-        self.receiving_flow = receiving_flow
+        self.v_wave = v_wave
+        self.costs = costs
+        self.v0 = v0
+        self.cvn_up = cvn_up
+        self.cvn_down = cvn_down
         self.forward = forward  # csr linkxlink row is outgoing turns
         self.backward = backward  # csr incoming turns
-
-
 
 
 spec_results = [('',), ]
@@ -80,16 +63,21 @@ class Results(object):
         self.controller_strategy
 
 
-spec_node = [('forward', i64csr_type),
-             ('backward', i64csr_type)]
+spec_node = [('forward', ui32csr_type),
+             ('backward', ui32csr_type),
+             ('control_type', int8[:]),
+             ('capacity', float32[:])]
 
 spec_node = OrderedDict(spec_node)
 
 
 @jitclass(spec_node)
 class Nodes(object):
+    """
+    A simple class that carries various arrays and CSR Matrices that have node ids as their index
+    """
 
-    def __init__(self, forward: I64CSRMatrix, backward: I64CSRMatrix):
+    def __init__(self, forward: UI32CSRMatrix, backward: UI32CSRMatrix, control_type, capacity):
         """
         forward and backward are sparse matrices in csr format that indicate connected links and their nodes
         both are nodes x nodes with f(i,j) = link_id and essentially carry the same information. There's duplication to
@@ -97,62 +85,99 @@ class Nodes(object):
         forward is fromNode x toNode and backward toNode x fromNode
         Parameters
         ----------
-        forward : I64CSRMatrix <int64>
-        backward : I64CSRMatrix <int64>
+        forward : I64CSRMatrix <uint32>
+        backward : I64CSRMatrix <uint32>
+        turn_fractions : F64CSRMatrix <float32>
+
         """
-        self.forward = forward
+        self.forward : UI32CSRMatrix = forward
         self.backward = backward
+        #self.turn_fractions = turn_fractions  # node x turn_ids
+        self.control_type = control_type  #
+        self.capacity = capacity
 
 
-
-spec_turn = [('fractions', f64csr_type),
-             ('db_restrictions', i64csr_type)]
+spec_turn = [('db_restrictions', ui32csr_type),
+             ('t0', float32),
+             ('capacity', float32[:]),
+             ('from_node', uint32[:]),
+             ('to_node', uint32[:]),
+             ('via_node', uint32[:]),
+             ('from_link', uint32[:]),
+             ('to_link', uint32[:]),
+             ('type', int8[:])]
+spec_turn = OrderedDict(spec_turn)
 
 
 @jitclass(spec_turn)
 class Turns(object):
+    """
+    A simple class that carries various arrays and CSR Matrices that have turn ids as their index
+    """
+
     # db_restrictions refer to destination based restrictions as used in recursive logit
-    def __init__(self, fractions, db_restrictions: I64CSRMatrix, receiving_flow):
-        self.fractions = fractions  # node x turn_ids
-        self.db_restrictions = db_restrictions  # destinations x turns,
+    def __init__(self, db_restrictions: UI32CSRMatrix, t0, capacity, from_node, via_node, to_node, from_link, to_link,
+                 type):
+        """
+
+        Parameters
+        ----------
+        db_restrictions :
+        """
+        self.db_restrictions = db_restrictions  # destinations x turns
+        self.t0 = t0
+        self.capacity = capacity
+        self.from_node = from_node
+        self.to_node = to_node
+        self.via_node = via_node
+        self.from_link = from_link
+        self.to_link = to_link
+        self.type = type
 
 
-spec_demand = ['to_destinations', i64csr_type,
-               'to_origins', f64csr_type]
+spec_demand = ['to_destinations', ui32csr_type,
+               'to_origins', f32csr_type]
 spec_demand = OrderedDict(spec_demand)
 
 
 @jitclass(spec_demand)
 class Demand(object):
-    def __init__(self, od_matrix, origins, destinations):
+    def __init__(self, od_matrix, origins, destinations, number_of_time_steps):
         self.od_matrix = od_matrix  # csr matrix origins x destinations #maybe also implement inverse ..
         self.origins = origins  # array of node id's that are origins
         self.destinations = destinations  # array of node id's destinations
+        self.number_of_timesteps = number_of_time_steps
 
 
-spec_static_event = [('events', f64csr_type),
-                     ('attribute_id', int64)]
+spec_static_event = [('events', f32csr_type),
+                     ('attribute_id', uint32)]
 spec_static_event = OrderedDict(spec_static_event)
 
 
 @jitclass(spec_static_event)
 class StaticEvent(object):
+    # events is a CSR with timeslice x obj_ids = val
     def __init__(self, events, attribute_id):
-        self.events = events
-        self.attribute_id = attribute_id
+        self.__events = events
+        self.__attribute_id = attribute_id
 
+    def get_ids(self, time_slice):
+        return self.__events.get_nnz(time_slice)
 
+    def get_values(self, time_slice):
+        return self.__events.get_row(time_slice)
 
-
+    def get_attr_id(self):
+        return self.__attribute_id
 
 
 spec_network = [('links', Links.class_type.instance_type),
                 ('nodes', Nodes.class_type.instance_type),
                 ('turns', Turns.class_type.instance_type),
                 ('static_events', ListType(StaticEvent.class_type.instance_type)),
-                ('tot_links', int64),
-                ('tot_nodes', int64),
-                ('tot_destinations', int64)]
+                ('tot_links', uint32),
+                ('tot_nodes', uint32),
+                ('tot_destinations', uint32)]
 
 
 @jitclass(spec_network)
@@ -168,16 +193,21 @@ class Network(object):
         self.tot_destinations = tot_destinations
         # TODO: add lookup tables for name to index
 
-    def update_event_changes(self, dt, T):
+    def update_event_changes(self, time_slice):
         for static_event in self.static_events:
-            static_event.attribute_id
+            array = self.get_array(static_event.get_attr_id)
+            for obj_id, val in zip(static_event.get_ids(time_slice), static_event.get_values(time_slice)):
+                array[obj_id] = val
+
+    def get_array(self, attr):
+        if attr == 0:
+            return self.links.capacity
         # dt current time step
         # T time horizon
         # sets event changes in links turns nodes in accordance with what is registered in dynamic events and
         # static events for that time period
         # reduces overhead induced by these event mechanisms ..
         # restricts controller to register changes in time horizon steps, is this
-        pass
 
     # def get_controller_response(self, dt, T, Results: Results):
     # controllers are able to respond to results of the previous time step. LTM and the controller are assumed to be
@@ -218,33 +248,32 @@ class Network(object):
 #         return self.capacity[link_id]
 # def get_var(self, link_id, attribute, time=0):
 #     pass
-# tup_type = UniTuple(float64, 3)
+# tup_type = UniTuple(float32, 3)
 # spec_dynamic_events = [('event_queue', ListType(tup_type)),
-#                        ('control_array', float64[:]),
+#                        ('control_array', float32[:]),
 #                        ('name', unicode_type)]
 #
 # spec_dynamic_events = OrderedDict(spec_dynamic_events)
 # @jitclass(spec_dynamic_events)
 # class DynamicEvent(object):
-    # dynamicEvent is a structure that handles the control over a given array, e.g. the capacities of links
-    # if a control algorithm should make changes to these
-    # scheduling of events is handled with a heap data structure
-    # some of the type choices and casting here are motivated by heapq not accepting heterogeneous type
-    # control array needs to be a float array
+# dynamicEvent is a structure that handles the control over a given array, e.g. the capacities of links
+# if a control algorithm should make changes to these
+# scheduling of events is handled with a heap data structure
+# some of the type choices and casting here are motivated by heapq not accepting heterogeneous type
+# control array needs to be a float array
 
-    # TODO: think about if there should be DynamicArrayEvents and DynamicCSREvents, can't both be handled by the same class
-    # dynamically closing a turn is not possible with this design (maybe through capcity?), i guess that is not problematic
-    # def __init__(self, name, control_array):
-    #     self.__event_queue = List.empty_list(tup_type)
-    #     self.__control_array = control_array
-    #
-    # def add_event(self, time, obj_index, val):
-    #     heappush(self.event_queue, (float64(time), float64(obj_index), float64(val)))
-    #
-    # def get_next_event(self):
-    #     (time, obj_index, val) = self.event_queue[0]
-    #
-    # def pop_next_event(self):
-    #     (time, obj_index, val) = heappop(self.event_queue)
-    # alternative to heap is to have different queues for each dt, continuous should be better for longer time steps..)
-
+# TODO: think about if there should be DynamicArrayEvents and DynamicCSREvents, can't both be handled by the same class
+# dynamically closing a turn is not possible with this design (maybe through capcity?), i guess that is not problematic
+# def __init__(self, name, control_array):
+#     self.__event_queue = List.empty_list(tup_type)
+#     self.__control_array = control_array
+#
+# def add_event(self, time, obj_index, val):
+#     heappush(self.event_queue, (float32(time), float32(obj_index), float32(val)))
+#
+# def get_next_event(self):
+#     (time, obj_index, val) = self.event_queue[0]
+#
+# def pop_next_event(self):
+#     (time, obj_index, val) = heappop(self.event_queue)
+# alternative to heap is to have different queues for each dt, continuous should be better for longer time steps..)

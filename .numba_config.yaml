@@ -14,3 +14,4 @@ debuginfo: 1
 debug_typeinfer: 0
 dump_annotation: 0
 NUMBA_OPT: 1
+NUMBA_BOUNDSCHECK: 1
