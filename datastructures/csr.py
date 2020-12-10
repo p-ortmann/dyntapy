@@ -19,9 +19,14 @@ numpy_csr_val_types = [np.float32, np.uint32]
 
 
 @nb.njit
-def csr_sort(index_array, values):
+def __csr_sort(index_array, values):
     """
-
+    sorts index_array increasing according to rows, ties are broken by the columns
+    example for sorted index_array:
+    array([[0, 1],
+           [1, 480640],
+           [2, 3],
+           [2, 356104], dtype=uint32)
     Parameters
     ----------
     index_array : 2d array with each row containing the indexes of nnz element, uint32
@@ -111,8 +116,30 @@ def __build_csr_cls(nb_type):
     return CSRMatrix
 
 
-#@nb.njit
-def _csr_format(index_array, number_of_rows):
+@nb.njit
+def csr_prep(index_array, values, number_of_rows, unsorted=True):
+    """
+
+    Parameters
+    ----------
+    index_array :  2d array with each row containing the indexes of nnz element, uint32
+    values : 1d array with corresponding value, any type
+    number_of_rows : size of sparse matrix, uint32/64
+    unsorted : index_array and values sorted or not, see __csr_sort, boolean
+
+    Returns
+    -------
+
+    """
+    if unsorted:
+        index_array, values = __csr_sort(index_array, values)
+    col, row = __csr_format(index_array, number_of_rows)
+    return values, col, row
+
+
+
+@nb.njit
+def __csr_format(index_array, number_of_rows):
     """
 
     Parameters
@@ -125,17 +152,11 @@ def _csr_format(index_array, number_of_rows):
     """
     # index_array with the position of the elements (i,j), i being the row and j the column
     # sorted by rows with ties settled by column. Values sorted accordingly, see csr_sort
-    # example for valid index_array:
-    # array([[0, 1],
-    #        [1, 480640],
-    #        [2, 3],
-    #        [2, 356104], dtype=uint32)
     col, row = nb.typed.List(), nb.typed.List()
     row.append(np.uint32(0))
     row_value_counter = np.uint32(0)
     processed_edges = np.uint32(0)
     empty_csr = len(index_array) == 1
-    print(empty_csr)
     for i in np.arange(number_of_rows + 1, dtype=np.uint32):
         edges_in_row = np.uint32(0)
         if empty_csr:
@@ -155,14 +176,13 @@ def _csr_format(index_array, number_of_rows):
                     processed_edges += edges_in_row
                     break
 
-
     return np.asarray(col, dtype=np.uint32), np.asarray(row, dtype=np.uint32)
 
 
 F32CSRMatrix = __build_csr_cls(nb.float32[:])
 UI32CSRMatrix = __build_csr_cls(nb.uint32[:])
 
-#empty initilization below, be aware of missing boundscheck in numba .., unless the
+# empty initilization below, be aware of missing boundscheck in numba .., unless the
 # wdir has a specified .numba_config_yaml with NUMBA_BOUNDSCHECK set they will not work.
 # col, row = _csr_format(np.array([[]]), 4)
 # val = np.array([], dtype=np.float32)

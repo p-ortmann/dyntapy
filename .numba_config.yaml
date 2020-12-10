@@ -5,13 +5,15 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 #
-dump_cfg: 0
+dump_cfg: 1
 color_scheme: dark_bg
-full_tracebacks: 1
+NUMBA_FULL_TRACEBACKS: 1
 show_help: 1
 highlight_dumps: 0
 debuginfo: 1
 debug_typeinfer: 0
 dump_annotation: 0
+NUMBA_DEBUG: 1
 NUMBA_OPT: 1
 NUMBA_BOUNDSCHECK: 1
+NUMBA_DEVELOPER_MODE: 1

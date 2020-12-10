@@ -6,20 +6,21 @@
 #
 #
 #
+# test file to check whether something works in jitclass or jitted function..
 import numba as nb
 import numpy as np
-from os import environ
 spec = [('arr', nb.types.int64[:])]
 
 @nb.experimental.jitclass(spec)
 class MyClass(object):
-    def __init__(self, arr):
-        self.arr = arr
+    def __init__(self):
+        pass
 
-    def get_row(self, row):
-        return self.arr[row]
+    def set_arr(self, arr):
+        self.arr=arr
 
 
 arr = np.arange(10, dtype=np.int64)
-my_inst = MyClass(arr)
-print(my_inst.get_row(12))
+my_inst = MyClass()
+my_inst.set_arr(arr)
+

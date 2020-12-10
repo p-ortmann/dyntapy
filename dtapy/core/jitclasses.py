@@ -90,9 +90,9 @@ class Nodes(object):
         turn_fractions : F64CSRMatrix <float32>
 
         """
-        self.forward : UI32CSRMatrix = forward
+        self.forward: UI32CSRMatrix = forward
         self.backward = backward
-        #self.turn_fractions = turn_fractions  # node x turn_ids
+        # self.turn_fractions = turn_fractions  # node x turn_ids
         self.control_type = control_type  #
         self.capacity = capacity
 
@@ -116,15 +116,8 @@ class Turns(object):
     """
 
     # db_restrictions refer to destination based restrictions as used in recursive logit
-    def __init__(self, db_restrictions: UI32CSRMatrix, t0, capacity, from_node, via_node, to_node, from_link, to_link,
-                 type):
-        """
-
-        Parameters
-        ----------
-        db_restrictions :
-        """
-        self.db_restrictions = db_restrictions  # destinations x turns
+    def __init__(self, t0, capacity, from_node, via_node, to_node, from_link, to_link,
+                 link_type):
         self.t0 = t0
         self.capacity = capacity
         self.from_node = from_node
@@ -132,7 +125,11 @@ class Turns(object):
         self.via_node = via_node
         self.from_link = from_link
         self.to_link = to_link
-        self.type = type
+        self.type = link_type
+
+    def set_db_restrictions(self, db_restrictions):
+        # happens in preprocessing after in initialization ..
+        self.db_restrictions = db_restrictions
 
 
 spec_demand = ['to_destinations', ui32csr_type,
