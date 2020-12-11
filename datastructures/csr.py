@@ -11,7 +11,7 @@
 import numba as nb
 import numpy as np
 from collections import OrderedDict
-from numba.core.types import float32, uint32
+from numba.core.types import float32, uint32, uint64
 from heapq import heappush, heappop
 
 numba_csr_val_types = [float32[:], uint32[:]]
@@ -19,7 +19,7 @@ numpy_csr_val_types = [np.float32, np.uint32]
 
 
 @nb.njit
-def __csr_sort(index_array, values):
+def __csr_sort(index_array, values, number_of_columns):
     """
     sorts index_array increasing according to rows, ties are broken by the columns
     example for sorted index_array:
@@ -39,22 +39,25 @@ def __csr_sort(index_array, values):
     # need to use reflected list here ([]) and not the faster typed List(), see ticket
     # https://github.com/numba/numba/issues/4926
     # function that sorts the index array and value array for the sparse matrix creation
-    my_heap = [(np.uint32(0), np.uint32(0), np.uint32(0), np.uint32(0))]
+    my_heap = [(np.uint64(0), np.uint64(0), np.uint64(0), np.uint64(0))]
     sorted_index_array = np.empty_like(index_array)
     sorted_values = np.empty_like(values)
     for index, edge in enumerate(index_array):
         i, j = edge
-        heappush(my_heap, (uint32(i * 10 + j), i, j, uint32(index)))
+        heappush(my_heap, (uint64(i*(number_of_columns+1)+j), uint64(i),uint64(j) , uint64(index)))
+        # (2,3) -->
     c = 0
 
     heappop(my_heap)  # removing init val
     while len(my_heap) > 0:
         tuple = heappop(my_heap)
         key, i, j, index = tuple[0], tuple[1], tuple[2], tuple[3]
-        sorted_index_array[c] = i, j
-        sorted_values[c] = values[index]
+        sorted_index_array[c] = uint32(i),uint32(j)
+        sorted_values[c] = values[uint32(index)]
         c += 1
     return sorted_index_array, sorted_values
+
+
 
 
 def __build_csr_cls(nb_type):
@@ -96,8 +99,6 @@ def __build_csr_cls(nb_type):
         def get_row(self, row):
             row_start = self._row_index[row]
             row_end = self._row_index[row + 1]
-            print(row_start)
-            print(row_end)
             return self._values[row_start:row_end]
             # except Exception:
             #   return np.empty(0, dtype=np_type)
@@ -117,14 +118,14 @@ def __build_csr_cls(nb_type):
 
 
 @nb.njit
-def csr_prep(index_array, values, number_of_rows, unsorted=True):
+def csr_prep(index_array, values, shape, unsorted=True):
     """
 
     Parameters
     ----------
     index_array :  2d array with each row containing the indexes of nnz element, uint32
     values : 1d array with corresponding value, any type
-    number_of_rows : size of sparse matrix, uint32/64
+    shape : shape of sparse matrix (rows,colums), uint32/64
     unsorted : index_array and values sorted or not, see __csr_sort, boolean
 
     Returns
@@ -132,8 +133,10 @@ def csr_prep(index_array, values, number_of_rows, unsorted=True):
 
     """
     if unsorted:
-        index_array, values = __csr_sort(index_array, values)
-    col, row = __csr_format(index_array, number_of_rows)
+        index_array, values = __csr_sort(index_array, values, shape[1])
+    print(index_array[:10])
+    print(values[:10])
+    col, row = __csr_format(index_array, shape[0])
     return values, col, row
 
 

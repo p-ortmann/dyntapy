@@ -23,9 +23,15 @@ spec_link = [('capacity', float32[:]),
              ('to_node', uint32[:]),
              ('length', float32[:]),
              ('flow', float32[:, :]),
-             ('travel_time', float32[:, :]),
+             ('costs', float32[:, :]),
              ('forward', ui32csr_type),
-             ('backward', ui32csr_type)]
+             ('backward', ui32csr_type),
+             ('v_wave', float32[:]),
+             ('v0', float32[:]),
+             ('cvn_up', float32[:, :]),
+             ('cvn_down', float32[:, :]),
+             ('type', int8[:]),
+             ('lanes', int8[:])]
 
 spec_link = OrderedDict(spec_link)
 
@@ -37,7 +43,7 @@ class Links(object):
     """
 
     def __init__(self, length, from_node, to_node, capacity, v_wave, costs, v0, cvn_up, cvn_down,
-                 forward, backward):
+                 forward, backward, lanes):
         self.capacity = capacity
         self.length = length
         self.to_node = to_node
@@ -49,18 +55,19 @@ class Links(object):
         self.cvn_down = cvn_down
         self.forward = forward  # csr linkxlink row is outgoing turns
         self.backward = backward  # csr incoming turns
+        self.lanes = lanes
 
 
-spec_results = [('',), ]
-
-
-@jitclass(spec_results)
-class Results(object):
-    def __init__(self, turning_fractions, flows):
-        self.turning_fractions
-        self.flows
-        self.path_set  # list of all used paths by od pair
-        self.controller_strategy
+# spec_results = [('',), ]
+#
+#
+# @jitclass(spec_results)
+# class Results(object):
+#     def __init__(self, turning_fractions, flows):
+#         self.turning_fractions
+#         self.flows
+#         self.path_set  # list of all used paths by od pair
+#         self.controller_strategy
 
 
 spec_node = [('forward', ui32csr_type),
@@ -98,7 +105,7 @@ class Nodes(object):
 
 
 spec_turn = [('db_restrictions', ui32csr_type),
-             ('t0', float32),
+             ('t0', float32[:]),
              ('capacity', float32[:]),
              ('from_node', uint32[:]),
              ('to_node', uint32[:]),
@@ -117,7 +124,7 @@ class Turns(object):
 
     # db_restrictions refer to destination based restrictions as used in recursive logit
     def __init__(self, t0, capacity, from_node, via_node, to_node, from_link, to_link,
-                 link_type):
+                 turn_type):
         self.t0 = t0
         self.capacity = capacity
         self.from_node = from_node
@@ -125,22 +132,26 @@ class Turns(object):
         self.via_node = via_node
         self.from_link = from_link
         self.to_link = to_link
-        self.type = link_type
+        self.type = turn_type
 
     def set_db_restrictions(self, db_restrictions):
         # happens in preprocessing after in initialization ..
         self.db_restrictions = db_restrictions
 
 
-spec_demand = ['to_destinations', ui32csr_type,
-               'to_origins', f32csr_type]
+spec_demand = [('to_destinations', ui32csr_type),
+               ('to_origins', ui32csr_type),
+               ('origins', uint32[:]),
+               ('destinations', uint32[:]),
+               ('number_of_time_steps', uint32)]
 spec_demand = OrderedDict(spec_demand)
 
 
 @jitclass(spec_demand)
 class Demand(object):
-    def __init__(self, od_matrix, origins, destinations, number_of_time_steps):
-        self.od_matrix = od_matrix  # csr matrix origins x destinations #maybe also implement inverse ..
+    def __init__(self, to_destinations, to_origins, origins, destinations, number_of_time_steps):
+        self.to_destinations = to_destinations  # csr matrix origins x destinations
+        self.to_origins = to_origins  # csr destinations x origins
         self.origins = origins  # array of node id's that are origins
         self.destinations = destinations  # array of node id's destinations
         self.number_of_timesteps = number_of_time_steps
@@ -180,15 +191,18 @@ spec_network = [('links', Links.class_type.instance_type),
 @jitclass(spec_network)
 class Network(object):
     # link mat
-    def __init__(self, links, nodes, turns, static_events, tot_links, tot_nodes, tot_destinations):
+    def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_destinations):
         self.links = links
         self.nodes = nodes
         self.turns = turns
-        self.static_events = static_events
+        self.static_events
         self.tot_links = tot_links
         self.tot_nodes = tot_nodes
         self.tot_destinations = tot_destinations
         # TODO: add lookup tables for name to index
+
+    def set_static_events(self, list_static_events):
+        self.static_events = list_static_events
 
     def update_event_changes(self, time_slice):
         for static_event in self.static_events:

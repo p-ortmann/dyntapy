@@ -8,33 +8,9 @@ import os
 import networkx as nx
 import numpy as np
 import osmnx as ox
-from stapy.settings import config_dict, speed_mapping, cap_mapping, default_capacity, default_speed
-from stapy import data_folder
+from dtapy.parameters import speed_mapping, cap_mapping, default_capacity, default_speed
+from dtapy import data_folder
 from utilities import log
-traffic_keys = config_dict['traffic_keys']
-def create_cascetta_nw():
-    ox.graph_from_place()
-    """creates toy network based on cascetta and returns the corresponding TrafficGraph"""
-    g = nx.DiGraph()
-    ebunch_of_nodes = [
-        (1, {'x': 0, 'y': np.sqrt(2)}),
-        (2, {'x': np.sqrt(2), 'y': 2 * np.sqrt(2)}),
-        (3, {'x': np.sqrt(2), 'y': 0}),
-        (4, {'x': 2 * np.sqrt(2), 'y': np.sqrt(2)})]
-    ebunch_of_edges = [
-        (1, 2, {'length':2000}), (1, 3, {'length':2000}), (2, 3, {'length':2000 * np.sqrt(2)}), (2, 4, {'length':2000}),
-        (3, 4, {'length':2000}), (4, 3, {'length':2000}), (4, 2, {'length':2000}), (3, 2, {'length':2000 * np.sqrt(2)}),
-        (3, 1, {'length':2000}), (2, 1, {'length':2000})]
-    g.add_nodes_from(ebunch_of_nodes)
-    g.add_edges_from(ebunch_of_edges)
-    for (u, v) in g.edges():
-        g[u][v]['capacity'] = np.int(2000)
-        g[u][v]['maxspeed'] = np.int(120)
-        if (u, v) in [(2, 3), (3, 2)]:
-            g[u][v]['capacity'] = np.int(2000)
-            g[u][v]['maxspeed'] = np.int(80)
-    set_free_flow_travel_times(g)
-    return g
 
 
 def get_from_ox_and_save(name: str, plot_deleted=True, reload=False):
@@ -103,16 +79,17 @@ def set_free_flow_travel_times(g: nx.DiGraph):
                 speed = data['maxspeed']
             if isinstance(data['length'], str):
                 # print(f' u: {u} v: {v} and data: {data}')
-                data['length'] = int(data['length'])
-            g[u][v]['travel_time'] = np.float(data['length'] / (speed/3.6))
-            #print(g[u][v]['travel_time'])
+                data['length'] = float(data['length'])
+            g[u][v]['travel_time'] = np.float(data['length'] / (speed / 3.6))
+            # print(g[u][v]['travel_time'])
         except KeyError:
             print(f"insufficient data for edge {u} {v} data: {data};length not provided..")
 
 
 def __clean_up_data(g: nx.DiGraph):
     for u, v, data in g.edges.data():
-        tmp = set(data.keys()).intersection(traffic_keys)  # filter keys for all traffic related (numerical) attr
+        tmp = set(data.keys()).intersection(
+            {'capacity', 'length', 'maxspeed', 'flow'})  # filter keys for all traffic related float attr
         # maybe attach the list of used traffic keys to the graph?
         for key in tmp:
             try:
@@ -120,7 +97,10 @@ def __clean_up_data(g: nx.DiGraph):
 
             except (TypeError, ValueError) as e:
                 # maxspeed can be all over the place in format .. e.g. ['30', 'variable'] or ['none','100']
-                assert key == 'maxspeed'
+                if key == 'lanes':
+                    print(data[key])
+                print()
+                assert key =='maxspeed'
                 if isinstance(data[key], list):  # some tags, such as maxspeed may carry multiple values, if it's
                     # not a list but some other structure a new case should be defined to handle this  ..
                     float_list = []
@@ -147,7 +127,7 @@ def __clean_up_data(g: nx.DiGraph):
                 # no highway tag..
                 print(data)
                 data['maxspeed'] = 50
-
+        assert 'length' in data
         try:
             lanes = int(data['lanes'])
         except (KeyError, TypeError, ValueError) as e:
@@ -156,9 +136,10 @@ def __clean_up_data(g: nx.DiGraph):
                 try:
                     lanes = min([int(val) for val in data['lanes']])
                 except ValueError:
-                    lanes=1
+                    lanes = 1
             else:
                 lanes = 1
+        data['lanes'] = lanes
         data['capacity'] = __capacity(data['highway'], lanes)
 
 

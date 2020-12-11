@@ -32,16 +32,19 @@ class Assignment:
         od_matrix : array like object
             Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment object
         """
-        self.node_label, self.link_label = self.set_internal_labels(self.g)
         self.g = g
-        self.number_of_nodes = self.g.number_of_nodes()
-        self.number_of_links = self.g.number_of_edges()
+        self.node_label, self.link_label, self.node_adjacency = self.set_internal_labels(self.g)
+        self.number_of_nodes = np.uint32(self.g.number_of_nodes())
+        self.number_of_links = np.uint32(self.g.number_of_edges())
+        self.number_of_turns = None
+        self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
         self.network = self.build_network()
+        print('network build, lets see')
+        print()
         # dict of dict with outer dict keyed by edges (u,v) and inner dict as data
         # to be dumped into the nx.DiGraph as key value pairs
-        self.transform_graph_data()
-        self.set_od_matrix(od_matrix)
+        # self.set_od_matrix(od_matrix)
 
     def build_demand(self, od_matrix, g: nx.DiGraph):
         origins, destinations, number_of_timesteps = None, None, None
@@ -50,14 +53,15 @@ class Assignment:
     def build_network(self):
         nodes = self.__build_nodes()
         turns = self.__build_turns(nodes)
-        links = self.build_network(turns)
+        links = self.__build_links(turns)
+        return Network(links, nodes, turns, self.number_of_nodes, self.number_of_links, self.number_of_turns)
 
     def __build_nodes(self):
-        link_ids = np.arange(self.g.number_of_edges())
-        values, col, row = csr_prep(self.link_label, link_ids, self.number_of_nodes)
+        link_ids = np.arange(self.g.number_of_edges(), dtype=np.uint32)
+        values, col, row = csr_prep(self.node_adjacency, link_ids, (self.number_of_nodes, self.number_of_nodes))
         forward = UI32CSRMatrix(values, col, row)
-        values, col, row = csr_prep(np.column_stack((self.link_label[:, 1], self.link_label[:, 0])),
-                                    link_ids, self.number_of_nodes)
+        values, col, row = csr_prep(np.column_stack((self.node_adjacency[:, 1], self.node_adjacency[:, 0])),
+                                    link_ids, (self.number_of_nodes, self.number_of_nodes))
         backward = UI32CSRMatrix(values, col, row)
         capacity = np.full(self.number_of_nodes, node_capacity_default, dtype=np.float32)
         control_type = np.full(self.number_of_nodes, node_control_default, dtype=np.int8)
@@ -72,10 +76,10 @@ class Assignment:
         turn_counter = 0
         for via_node in np.arange(self.number_of_nodes):
             # named here _attribute to indicate all the to nodes/links that are associated with the via_node
-            _to_nodes = nodes.forward.getnnz(via_node)
-            _from_nodes = nodes.backward.getnnz(via_node)
-            _from_links = nodes.backward.getrow(via_node)
-            _to_links = nodes.forward.getrow(via_node)
+            _to_nodes = nodes.forward.get_nnz(via_node)
+            _from_nodes = nodes.backward.get_nnz(via_node)
+            _from_links = nodes.backward.get_row(via_node)
+            _to_links = nodes.forward.get_row(via_node)
             for to_node, from_node, from_link, to_link in zip(_to_nodes, _from_nodes, _from_links, _to_links):
                 turn_id.append(turn_counter)
                 to_nodes.append(to_node)
@@ -84,11 +88,11 @@ class Assignment:
                 to_links.append(to_link)
                 turn_counter += 1
         number_of_turns = turn_counter + 1
-
+        self.number_of_turns = number_of_turns
         capacity = np.full(number_of_turns, turn_capacity_default, dtype=np.float32)
         turn_type = np.full(number_of_turns, turn_type_default, dtype=np.int8)
-        t0 = np.full(number_of_turns, turn_t0_default, dtype=np.int8)
-        Turns(t0, capacity, np.array(from_nodes, dtype=np.uint32), np.arange(self.number_of_nodes, dtype=np.uint32),
+        t0 = np.full(number_of_turns, turn_t0_default, dtype=np.float32)
+        return Turns(t0, capacity, np.array(from_nodes, dtype=np.uint32), np.arange(self.number_of_nodes, dtype=np.uint32),
               np.array(to_nodes, dtype=np.uint32), np.array(from_links, dtype=np.uint32),
               np.array(to_links, dtype=np.uint32), turn_type)
 
@@ -101,21 +105,23 @@ class Assignment:
         -------
 
         """
-        length, capacity, v0_prt, v_wave = np.empty(self.g.number_of_nodes(), dtype=np.float32) * 4
-        lanes = np.empty(self.g.number_of_nodes(), dtype=np.uint32)
-        from_node = self.link_label[:, 0]
-        to_node = self.link_label[:, 1]
+        length = np.empty(self.g.number_of_edges(), dtype=np.float32)
+        capacity = np.empty(self.g.number_of_edges(), dtype=np.float32)
+        v0_prt = np.empty(self.g.number_of_edges(), dtype=np.float32)
+        lanes = np.empty(self.g.number_of_edges(), dtype=np.uint8)
+        from_node = self.node_adjacency[:, 0]
+        to_node = self.node_adjacency[:, 1]
         link_ids = np.arange(self.g.number_of_edges())
         for _id, arr in zip(link_ids, self.link_label):
             u, v = arr
+            print(f'{u=}{v=}{_id=}')
             length[_id] = self.g[u][v]['length']
             capacity[_id] = self.g[u][v]['capacity']
-            v0_prt[_id] = self.g[u][v]['max_speed']
+            v0_prt[_id] = self.g[u][v]['maxspeed']
             lanes[_id] = self.g[u][v]['lanes']
-            from_node[_id] = u
-            to_node[_id] = v
-        costs = np.copy(v0_prt)
-        cvn_up, cvn_down = np.empty((self.demand.number_of_time_steps, self.number_of_links), dtype=np.float32) * 2
+        costs = np.empty((self.number_of_time_steps, self.number_of_links), dtype=np.float32)
+        cvn_up = np.empty((self.number_of_time_steps, self.number_of_links), dtype=np.float32)
+        cvn_down = np.empty((self.number_of_time_steps, self.number_of_links), dtype=np.float32)
         v_wave = np.full(self.number_of_links, v_wave_default, dtype=np.float32)
         number_of_turns = np.uint32(len(turns.to_link))
         fw_index_array = np.column_stack((turns.from_link, turns.to_link))
@@ -126,14 +132,14 @@ class Assignment:
         val, col, row = csr_prep(bw_index_array, val, self.number_of_links)
         backward = UI32CSRMatrix(val, col, row)
 
-        return Links(length, from_node, to_node, capacity, v_wave, v0_prt, costs, cvn_up, cvn_down, forward, backward)
+        return Links(length, from_node, to_node, capacity, v_wave, costs,v0_prt, cvn_up, cvn_down, forward, backward,lanes)
 
     @staticmethod
     def set_internal_labels(g: nx.DiGraph):
         # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the
         # IDs used in nx
-        node_labels = np.empty(g.number_of_nodes(), dtype=np.uint32)
-        link_labels = np.empty((g.number_of_edges(), 2), dtype=np.uint32)
+        node_labels = np.empty(g.number_of_nodes(), np.uint64)
+        link_labels = np.empty((g.number_of_edges(), 2), np.uint64)
         counter = count()
         for node_id, u in enumerate(g.nodes):
             g.nodes[u]['_id'] = node_id
@@ -142,41 +148,15 @@ class Assignment:
                 link_id = next(counter)
                 g[u][v]['_id'] = link_id
                 link_labels[link_id][0], link_labels[link_id][1] = u, v
-        return node_labels, link_labels
+        node_adjacency = np.empty((g.number_of_edges(), 2), dtype=np.uint32)
+        for u, v, data in g.edges.data():
 
-    def transform_graph_data(self):
-        """
-        routine to consolidate existing link_ids and labelling logic
-        Returns
-        -------
-        adjacency stores node and link ids in assignment reference e.g. adjacency[link_id](node_id,node_id) with
-        labelling starting at 0
-        translation_link_ids_nx stores the same information in reference of the underlying nx graph,
-        e.g. translation_link_ids_nx[link_id]=(u,v) with u and v being node indices for self.g
-        note that 'link_id' always refers to the assignment ids as the nx dicts references nodes by key (u,v)
-        """
-        self.adj_edge_list = List()
-        for i in range(self.edge_order): self.adj_edge_list.append((0, 0))
-        self.edge_map, self.inverse_edge_map = Dict(), Dict()
-        self.translation_link_ids_nx = [None for _ in range(self.edge_order)]
-        self.node_map_to_nx = [None for _ in range(self.node_order)]
-        self.link_flows, self.link_capacities, self.link_ff_times, self.link_travel_times = \
-            (np.zeros(self.g.number_of_edges()) for _ in range(4))
-        counter = count()
-        for node_id, u in enumerate(self.g.nodes):
-            self.g.nodes[u]['_id'] = node_id
-            self.node_map_to_nx[node_id] = u
-            for v in self.g.succ[u]:
-                link_id = next(counter)
-                self.g[u][v]['_id'] = link_id
-                self.translation_link_ids_nx[link_id] = (u, v)
-                self.link_capacities[link_id] = self.g[u][v]['capacity']
-                self.link_ff_times[link_id] = self.g[u][v]['travel_time']
-        for u, v, link_id in self.g.edges.data('_id'):
-            _u, _v = self.g.nodes[u]['_id'], self.g.nodes[v]['_id']
-            self.adj_edge_list[link_id] = _u, _v
-            self.edge_map[(_u, _v)] = link_id
-            self.inverse_edge_map[link_id] = (_u, _v)
+            _id = data['_id']
+            node1 = g.nodes[u]['_id']
+            node2 = g.nodes[v]['_id']
+            node_adjacency[_id] = node1, node2
+
+        return node_labels, link_labels, node_adjacency
 
     def set_od_matrix(self, od_matrix):
         """
