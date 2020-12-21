@@ -122,3 +122,9 @@ The node model needs as its input the global sending and receiving flows of the 
  Choices are made based on what seems efficient for the
  use of the data structure inside the algorithms.
  
+ ###What's still coming?
+ do check trello and reach out to us at itscrealab@kuleuven.be.
+ https://trello.com/invite/b/JJe3F5H3/84248383af0033e19119df8fa817da65/dta-implementation
+ 
+
+ 
