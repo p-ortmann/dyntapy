@@ -10,7 +10,6 @@ classDiagram
     Network : Links
     Network : Nodes
     Network : Turns
-    Network : List <DynamicEvent> dynamic_events
     Network : List <CSRMatrix> static_events
     Network : process_events(self,time)
     Network : get_controller_response(self, time, results)
@@ -28,13 +27,6 @@ classDiagram
     Links: CSRMatrix <int64> backward
     Links: CSRMatrix <float64> event_changes
     Links: ...
-    class DynamicEvent{
-    List <Tuple> __event_queue
-    Array1D <float64> __control_array
-    add_event(time, obj_index, val)
-    get_next_event()
-    pop_next_event()
-    }
     class StaticEvent{
     CSRMatrix <float64> events
     int64 attribute_id
@@ -52,9 +44,15 @@ classDiagram
     ...
     }
 ```
+The class structure above may not reflect the most recent state. The current architecture is meant to facilitate 
+extensions, such as different network loading mechanisms, easily. Base line objects like Node, Links and Turns are
+inherited from when conceiving new data structures for a specific network loading method. This is demonstrated in the jitclass
+ for I-LTM, the setup file for I-LTM shows how the default objects can be replaced in the assignment object.
+ Similar consideration will be made for the Route Choice objects as well, to decouple the implementation of route choice
+  and network loading and allow swapping in different methods without rewriting the existing code base.
+ 
 
-
-We want to point out here the purpose and intention behind keeping track of DynamicEvent and StaticEvent objects 
+We want to point out here the purpose and intention behind keeping track of StaticEvent objects 
 that are associated with the Network. 
 First, some background that serves as motivation: Throughout the day attributes that we, as modellers, associate with entities may vary. 
 
@@ -74,6 +72,10 @@ At time step 3 the value is changed to $`B`$, $`B`$ could very well be the value
 The Network object stores a reference to the controlled array for each of the StaticEvent objects and updates them appropriately for each time step as we progress through the simulation in the
 network loading.
 The construction of the CSRMatrices for these StaticEvents can be done in pre-processing.
+
+A controller can exploit this structure by making changes in sync with the LTM time steps and registering changes 
+(control actions) for the next time step. A smaller control granularity can be attained by lowering the time step
+,at the expense of computing time. (documentation and implementation to be extended)
 
 ```math
 \begin{array}{ccccccc}
@@ -98,7 +100,19 @@ The node model needs as its input the global sending and receiving flows of the 
  global turning fractions for the different turns, and the capacity of the incoming links. With global we mean 
  homogeneous flow that is not destination based. Turning fractions and Link characteristics are sorted by their 
  respective Turn- and Link IDs [^1]. Internally, the node model needs to be able to associate with each Turn its incoming 
- and outgoing Link. 
+ and outgoing Link and connected characteristics (typically capacity). It's undesirable to pass on the whole mappings between
+ Turns and Links to the node model, we address this problem by creating a new mapping that exploits the stable 
+ topological order of the link IDs, see figure below.
+  
+ 
+ ![Node Turns](img%20src/node_model_mapping.png)*On the right hand side of the figure you see an input vector of the 
+ node model, here sending flow. This is gathered from a larger array that contains the homogeneous sending flows for all
+  links for one time step. The respective indexes are given through the sparse in_link and out_link structures for the 
+  nodes, on the right hand side you see the solution to the mapping issue described in the section above. We store a 
+  sparse matrix which gives the index of the in_link as it is received by the node model. This allows us to connect 
+  with each turn its in_link and out_link attributes without repeatedly querying our global mappings. Note that an
+  equivalent sparse matrix is required for the out links to map the receiving flows, see ILTMNode class.*
+
  
  
  [^1]: This may not always be the case with sparse matrices where entities like links are often associate with more than
