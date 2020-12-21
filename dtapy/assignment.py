@@ -42,10 +42,13 @@ class Assignment:
         self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
         self.network = self.build_network()
+        print('network build')
         if typeof(demand) !=DemandSimulation.class_type.instance_type:
             raise TypeError
         self.demand_simulation : DemandSimulation=demand
+        print('demand simulation registered')
         self.network_loading_data_structs(method=network_loading_method)
+        print('DNL data structures build')
         #replacing network object with specialized version for network loading method
 
 
@@ -65,50 +68,52 @@ class Assignment:
         turns = self.__build_turns(nodes)
         print("turns passed")
         links = self.__build_links(turns)
-        return Network(links, nodes, turns, self.number_of_nodes, self.number_of_links, self.number_of_turns)
+        print("links passed")
+        return Network(links, nodes, turns, self.number_of_links, self.number_of_nodes, self.number_of_turns)
 
     def __build_nodes(self):
         link_ids = np.arange(self.g.number_of_edges(), dtype=np.uint32)
-        values, col, row = csr_prep(self.node_adjacency, link_ids, (self.number_of_nodes, self.number_of_nodes))
-        forward = UI32CSRMatrix(values, col, row)
-        values, col, row = csr_prep(np.column_stack((self.node_adjacency[:, 1], self.node_adjacency[:, 0])),
-                                    link_ids, (self.number_of_nodes, self.number_of_nodes))
-        backward = UI32CSRMatrix(values, col, row)
+        values, col, row = csr_prep(np.column_stack((self.node_adjacency[:, 0], link_ids )), self.node_adjacency[:, 1], (self.number_of_nodes, self.number_of_links))
+        out_links = UI32CSRMatrix(values, col, row)
+        values, col, row = csr_prep(np.column_stack((self.node_adjacency[:, 1],link_ids)),
+                                    self.node_adjacency[:, 0], (self.number_of_nodes, self.number_of_links))
+        in_links = UI32CSRMatrix(values, col, row)
         capacity = np.full(self.number_of_nodes, node_capacity_default, dtype=np.float32)
         control_type = np.full(self.number_of_nodes, node_control_default, dtype=np.int8)
-        forward_sizes=[len(forward.get_row(row)) for row in np.arange(self.g.number_of_nodes(), dtype=np.uint32)]
-        backward_sizes=[len(backward.get_row(row)) for row in np.arange(self.g.number_of_nodes(), dtype=np.uint32)]
-        forward_sizes=np.array(forward_sizes, dtype=np.uint32)
-        backward_sizes=np.array(backward_sizes, dtype=np.uint32)
-        return Nodes(forward, backward, forward_sizes, backward_sizes, control_type, capacity)
+        number_of_out_links=[len(in_links.get_row(row)) for row in np.arange(self.g.number_of_nodes(), dtype=np.uint32)]
+        number_of_in_links=[len(out_links.get_row(row)) for row in np.arange(self.g.number_of_nodes(), dtype=np.uint32)]
+        number_of_out_links=np.array(number_of_out_links, dtype=np.uint32)
+        number_of_in_links=np.array(number_of_in_links, dtype=np.uint32)
+        return Nodes(in_links, out_links, number_of_out_links, number_of_in_links, control_type, capacity)
 
     def __build_turns(self, nodes: Nodes):
         to_nodes = List()
         from_nodes = List()
         from_links = List()
         to_links = List()
-        turn_id = List()
+        via_nodes = List()
         turn_counter = 0
         for via_node in np.arange(self.number_of_nodes):
             # named here _attribute to indicate all the to nodes/links that are associated with the via_node
-            _to_nodes = nodes.out_links.get_nnz(via_node)
-            _from_nodes = nodes.in_links.get_nnz(via_node)
-            _from_links = nodes.in_links.get_row(via_node)
-            _to_links = nodes.out_links.get_row(via_node)
-            for to_node, from_node, from_link, to_link in zip(_to_nodes, _from_nodes, _from_links, _to_links):
-                turn_id.append(turn_counter)
-                to_nodes.append(to_node)
-                from_nodes.append(from_node)
-                from_links.append(from_link)
-                to_links.append(to_link)
-                turn_counter += 1
-        number_of_turns = turn_counter + 1
+            _to_nodes = nodes.out_links.get_row(via_node)
+            _from_nodes = nodes.in_links.get_row(via_node)
+            _from_links = nodes.in_links.get_nnz(via_node)
+            _to_links = nodes.out_links.get_nnz(via_node)
+            for from_node, from_link in zip( _from_nodes, _from_links):
+                for to_node, to_link in zip( _to_nodes, _to_links):
+                    via_nodes.append(via_node)
+                    to_nodes.append(to_node)
+                    from_nodes.append(from_node)
+                    from_links.append(from_link)
+                    to_links.append(to_link)
+                    turn_counter += 1
+        number_of_turns = turn_counter
         self.number_of_turns = number_of_turns
         capacity = np.full(number_of_turns, turn_capacity_default, dtype=np.float32)
         turn_type = np.full(number_of_turns, turn_type_default, dtype=np.int8)
         t0 = np.full(number_of_turns, turn_t0_default, dtype=np.float32)
         return Turns(t0, capacity, np.array(from_nodes, dtype=np.uint32),
-                     np.arange(self.number_of_nodes, dtype=np.uint32),
+                     np.array(via_nodes, dtype=np.uint32),
                      np.array(to_nodes, dtype=np.uint32), np.array(from_links, dtype=np.uint32),
                      np.array(to_links, dtype=np.uint32), turn_type)
 

@@ -9,8 +9,9 @@
 from dtapy.core.jitclasses import Nodes, Links, Turns, ILTMLinks, ILTMNetwork, ILTMNodes
 import numpy as np
 from numba import int32, float32
+from numba.typed import List
 from dtapy.assignment import Assignment
-
+from datastructures.csr import UI8CSRMatrix, csr_prep
 
 def i_ltm_setup(assignment: Assignment):
     # link properties
@@ -29,49 +30,31 @@ def i_ltm_setup(assignment: Assignment):
     iltm_links = ILTMLinks(assignment.network.links, cvn_up, cvn_down, vf_index, vw_index, vf_ratio, vw_ratio)
 
     # node properties
+    # getting turn_based_in_links, turn_based_out_links for node model see jitclass and dtapy/core/technical.md for details
+    # assuming inLinks and OutLinks are topped at 256 for each Node
 
-    position_first_in = np.empty(assignment.number_of_nodes, dtype=np.uint32)
-    position_first_out = np.empty(assignment.number_of_nodes, dtype=np.uint32)
-    position_first_out[0] = 1
-    position_first_in[0] = 1
-
-    # turning fractions
-    tot_time_steps=assignment.time.tot_time_steps
-    incoming_links_tf_index =  np.empty(tot_time_steps, dtype=np.uint32)
-    outgoing_links_tf_index = np.empty(tot_time_steps, dtype=np.uint32)
-    nb_tf= np.empty(assignment.number_of_nodes, dtype=np.uint32)
-    position_first_tf=np.empty(assignment.number_of_nodes, dtype=np.uint32)
-    l_pos=np.uint32(1)
+    tot_time_steps = assignment.time.tot_time_steps
+    index_array_in_links = np.empty((assignment.number_of_turns,2), dtype=np.uint32)
+    index_array_out_links = np.empty_like(index_array_in_links)
+    val_in_links = np.empty(assignment.number_of_turns, dtype=np.uint8)
+    val_out_links = np.empty_like(val_in_links)
+    turn_counter=0
     for node in np.arange(assignment.number_of_nodes, dtype=np.uint32):
-        node_turns=np.where(assignment.network.turns.via_node==node)[0]
-        nb_tf[node]=np.uint32(len(node_turns))
-        position_first_tf[node]=l_pos
-
-
-    lpos = 1;
-    for n=1:totNodes
-    node_turns = np.where(assignment.)
-    node_prop.nbTF(n) = length(node_turns);
-    node_prop.positionFirstTF(n) = lpos;
-    IncomingLinks = node_prop.IncomingLinksList(node_prop.positionFirstIn(n):node_prop.positionFirstIn(
-        n) + node_prop.nbIncomingLinks(n) - 1);
-    OutgoingLinks = node_prop.OutgoingLinksList(node_prop.positionFirstOut(n):node_prop.positionFirstOut(
-        n) + node_prop.nbOutgoingLinks(n) - 1);
-    for turn=node_turns'
-    lin = find(IncomingLinks == Network.Turns.FromLink(turn));
-    lout = find(OutgoingLinks == Network.Turns.ToLink(turn));
-    node_prop.IncomingLinksTFindex(lpos) = lin;
-    node_prop.OutgoingLinksTFindex(lpos) = lout;
-    lpos = lpos + 1;
-
-
-end
-end
-
-for node in np.arange(assignment.number_of_nodes)[1:]:
-        position_first_in[node] = position_first_in[node - 1] + assignment.network.nodes.tot_in_links[node - 1]
-        position_first_out[node] = position_first_out[node - 1] + assignment.network.nodes.tot_out_links[node - 1]
-    iltm_nodes=ILTMNodes(assignment.network.nodes, position_first_in, position_first_out)
+        tot_in_links = assignment.network.nodes.tot_in_links[node]
+        node_turns = np.where(assignment.network.turns.via_node == node)[0]
+        node_in_links = assignment.network.nodes.in_links.get_nnz(node)
+        node_out_links = assignment.network.nodes.out_links.get_nnz(node)
+        for turn in node_turns:
+            from_link = assignment.network.turns.from_link[turn]
+            to_link = assignment.network.turns.to_link[turn]
+            index_array_in_links[turn_counter]=node, from_link
+            index_array_out_links[turn_counter]=node, to_link
+            val_in_links[turn_counter]=np.uint8(np.where(node_in_links == from_link)[0])
+            val_out_links[turn_counter]=np.uint8(np.where(node_out_links == to_link)[0])
+            turn_counter+=1
+    turn_based_in_links=UI8CSRMatrix(*csr_prep(index_array_in_links, val_in_links, (assignment.number_of_nodes, assignment.number_of_turns)))
+    turn_based_out_links=UI8CSRMatrix(*csr_prep(index_array_out_links, val_out_links, (assignment.number_of_nodes, assignment.number_of_turns)))
+    iltm_nodes=ILTMNodes(assignment.network.nodes, turn_based_in_links, turn_based_out_links)
     assignment.network = ILTMNetwork(assignment.network, iltm_links, iltm_nodes,
-                                     assignment.network.turns)
+          assignment.network.turns)
 

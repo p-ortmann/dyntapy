@@ -108,10 +108,12 @@ The node model needs as its input the global sending and receiving flows of the 
  ![Node Turns](img%20src/node_model_mapping.png)*On the right hand side of the figure you see an input vector of the 
  node model, here sending flow. This is gathered from a larger array that contains the homogeneous sending flows for all
   links for one time step. The respective indexes are given through the sparse in_link and out_link structures for the 
-  nodes, on the right hand side you see the solution to the mapping issue described in the section above. We store a 
+  nodes, on the left hand side you see the solution to the mapping issue described in the section above. We store a 
   sparse matrix which gives the index of the in_link as it is received by the node model. This allows us to connect 
-  with each turn its in_link and out_link attributes without repeatedly querying our global mappings. Note that an
-  equivalent sparse matrix is required for the out links to map the receiving flows, see ILTMNode class.*
+  with each turn its in_link and out_link attributes without repeatedly querying our global mappings. For example we know 
+  that Turn 1 & 2 (starting from 0) share the same incoming link as they point to the same index in the sending flow 
+  array. Note that an equivalent sparse matrix is required for the out links to map 
+  the receiving flows, see ILTMNode class.*
 
  
  
@@ -123,7 +125,7 @@ The node model needs as its input the global sending and receiving flows of the 
  use of the data structure inside the algorithms.
  
  ###What's still coming?
- do check trello and reach out to us at itscrealab@kuleuven.be.
+ do check trello 
  https://trello.com/invite/b/JJe3F5H3/84248383af0033e19119df8fa817da65/dta-implementation
  
 

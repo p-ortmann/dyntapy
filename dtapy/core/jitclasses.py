@@ -145,7 +145,7 @@ class Nodes(object):
         out_links and in_links are sparse matrices in csr format that indicate connected links and their nodes
         both are nodes x nodes with f(i,j) = link_id and essentially carry the same information. There's duplication to
         avoid on-the-fly transformations.
-        out_links is fromNode x toNode and in_links toNode x fromNode in dim with link_ids as val.
+        out_links is fromNode x Link and in_links toNode x Link in dim with toNode and fromNode as val, respectively.
         Parameters
         ----------
         out_links : I64CSRMatrix <uint32>
@@ -189,10 +189,8 @@ class UncompiledNodes(object):
 
 
 spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
-                  ('position_first_in', uint32[:]),
-                  ('position_first_out', uint32[:]),
-                  ('turn_based_in_links', uint8[:]),
-                  ('turn_based_out_links', uint8[:]),
+                  ('turn_based_in_links', ui8csr_type),
+                  ('turn_based_out_links', ui8csr_type)
                   ]
 
 
@@ -200,14 +198,12 @@ spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
 class ILTMNodes(UncompiledNodes):
     __init__Nodes = UncompiledNodes.__init__
 
-    def __init__(self, nodes, position_first_in, position_first_out, turn_based_in_links, turn_based_out_links):
+    def __init__(self, nodes, turn_based_in_links, turn_based_out_links):
         """
 
         Parameters
         ----------
         nodes : Nodes.class_type.instance_type, baseline node object
-        position_first_in :
-        position_first_out :
         turn_based_in_links : csr matrix node x turns
         turn_based_out_links : csr matrix node x turns
 
@@ -215,11 +211,9 @@ class ILTMNodes(UncompiledNodes):
         of the corresponding sending and receiving flow vector that the node model receives, capacities are also given
         ordered by in- and out links, see technical.md.
         """
-        self.__init__Nodes(nodes.out_turns, nodes.in_turns, nodes.tot_out_links, nodes.tot_in_links, nodes.control_type,
+        self.__init__Nodes(nodes.out_links, nodes.in_links, nodes.tot_out_links, nodes.tot_in_links, nodes.control_type,
                            nodes.capacity)
 
-        self.position_first_in = position_first_in
-        self.position_first_out = position_first_out
         self.turn_based_in_links = turn_based_in_links
         self.turn_based_out_links = turn_based_out_links
 
