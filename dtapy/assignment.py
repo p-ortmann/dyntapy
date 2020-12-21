@@ -12,27 +12,29 @@ import networkx as nx
 from scipy.sparse import lil_matrix
 from stapy.demand import build_demand_structs
 from numba.typed import List, Dict
+from numba import typeof
 from numba.core.types import uint32, float32, int32
 from datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
-from dtapy.core.jitclasses import Links, Nodes, Network, Turns, Demand
+from dtapy.core.jitclasses import Links, Nodes, Network, Turns, StaticDemand, DemandSimulation, SimulationTime
 from dtapy.parameters import v_wave_default, turn_capacity_default, turn_type_default, node_capacity_default, \
     node_control_default, turn_t0_default
+from dtapy.parameters import network_loading_method
 
 
 class Assignment:
     """This class has no value when instantiated on its own,
-     it merely sets up the state variables/interfaces to networkx"""
+     it merely sets up the state variables/interfaces to networkx and the demand generation"""
 
-    def __init__(self, g: nx.DiGraph, od_matrix):
+    def __init__(self, g: nx.DiGraph, demand, time):
         """
 
         Parameters
         ----------
         g : nx.DiGraph
-        od_matrix : array like object
-            Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment object
+        demand : StaticDemand
         """
         self.g = g
+        self.time: SimulationTime = time
         self.node_label, self.link_label, self.node_adjacency = self.set_internal_labels(self.g)
         self.number_of_nodes = np.uint32(self.g.number_of_nodes())
         self.number_of_links = np.uint32(self.g.number_of_edges())
@@ -40,19 +42,28 @@ class Assignment:
         self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
         self.network = self.build_network()
+        if typeof(demand) !=DemandSimulation.class_type.instance_type:
+            raise TypeError
+        self.demand_simulation : DemandSimulation=demand
+        self.network_loading_data_structs(method=network_loading_method)
+        #replacing network object with specialized version for network loading method
+
+
         print('network build, lets see')
-        print()
         # dict of dict with outer dict keyed by edges (u,v) and inner dict as data
         # to be dumped into the nx.DiGraph as key value pairs
         # self.set_od_matrix(od_matrix)
 
-    def build_demand(self, od_matrix, g: nx.DiGraph):
-        origins, destinations, number_of_timesteps = None, None, None
-        return Demand(od_matrix, origins, destinations, number_of_timesteps)
+    def network_loading_data_structs(self, method:str):
+        if method=='iltm':
+            from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
+            i_ltm_setup(self)
 
     def build_network(self):
         nodes = self.__build_nodes()
+        print("nodes passed")
         turns = self.__build_turns(nodes)
+        print("turns passed")
         links = self.__build_links(turns)
         return Network(links, nodes, turns, self.number_of_nodes, self.number_of_links, self.number_of_turns)
 
@@ -65,7 +76,11 @@ class Assignment:
         backward = UI32CSRMatrix(values, col, row)
         capacity = np.full(self.number_of_nodes, node_capacity_default, dtype=np.float32)
         control_type = np.full(self.number_of_nodes, node_control_default, dtype=np.int8)
-        return Nodes(forward, backward, control_type, capacity)
+        forward_sizes=[len(forward.get_row(row)) for row in np.arange(self.g.number_of_nodes(), dtype=np.uint32)]
+        backward_sizes=[len(backward.get_row(row)) for row in np.arange(self.g.number_of_nodes(), dtype=np.uint32)]
+        forward_sizes=np.array(forward_sizes, dtype=np.uint32)
+        backward_sizes=np.array(backward_sizes, dtype=np.uint32)
+        return Nodes(forward, backward, forward_sizes, backward_sizes, control_type, capacity)
 
     def __build_turns(self, nodes: Nodes):
         to_nodes = List()
@@ -76,10 +91,10 @@ class Assignment:
         turn_counter = 0
         for via_node in np.arange(self.number_of_nodes):
             # named here _attribute to indicate all the to nodes/links that are associated with the via_node
-            _to_nodes = nodes.forward.get_nnz(via_node)
-            _from_nodes = nodes.backward.get_nnz(via_node)
-            _from_links = nodes.backward.get_row(via_node)
-            _to_links = nodes.forward.get_row(via_node)
+            _to_nodes = nodes.out_links.get_nnz(via_node)
+            _from_nodes = nodes.in_links.get_nnz(via_node)
+            _from_links = nodes.in_links.get_row(via_node)
+            _to_links = nodes.out_links.get_row(via_node)
             for to_node, from_node, from_link, to_link in zip(_to_nodes, _from_nodes, _from_links, _to_links):
                 turn_id.append(turn_counter)
                 to_nodes.append(to_node)
@@ -92,9 +107,10 @@ class Assignment:
         capacity = np.full(number_of_turns, turn_capacity_default, dtype=np.float32)
         turn_type = np.full(number_of_turns, turn_type_default, dtype=np.int8)
         t0 = np.full(number_of_turns, turn_t0_default, dtype=np.float32)
-        return Turns(t0, capacity, np.array(from_nodes, dtype=np.uint32), np.arange(self.number_of_nodes, dtype=np.uint32),
-              np.array(to_nodes, dtype=np.uint32), np.array(from_links, dtype=np.uint32),
-              np.array(to_links, dtype=np.uint32), turn_type)
+        return Turns(t0, capacity, np.array(from_nodes, dtype=np.uint32),
+                     np.arange(self.number_of_nodes, dtype=np.uint32),
+                     np.array(to_nodes, dtype=np.uint32), np.array(from_links, dtype=np.uint32),
+                     np.array(to_links, dtype=np.uint32), turn_type)
 
     def __build_links(self, turns):
         """
@@ -114,25 +130,23 @@ class Assignment:
         link_ids = np.arange(self.g.number_of_edges())
         for _id, arr in zip(link_ids, self.link_label):
             u, v = arr
-            print(f'{u=}{v=}{_id=}')
             length[_id] = self.g[u][v]['length']
             capacity[_id] = self.g[u][v]['capacity']
             v0_prt[_id] = self.g[u][v]['maxspeed']
             lanes[_id] = self.g[u][v]['lanes']
         costs = np.empty((self.number_of_time_steps, self.number_of_links), dtype=np.float32)
-        cvn_up = np.empty((self.number_of_time_steps, self.number_of_links), dtype=np.float32)
-        cvn_down = np.empty((self.number_of_time_steps, self.number_of_links), dtype=np.float32)
         v_wave = np.full(self.number_of_links, v_wave_default, dtype=np.float32)
         number_of_turns = np.uint32(len(turns.to_link))
         fw_index_array = np.column_stack((turns.from_link, turns.to_link))
         bw_index_array = np.column_stack((turns.to_link, turns.from_link))
         val = np.arange(number_of_turns, dtype=np.uint32)
-        val, col, row = csr_prep(fw_index_array, val, self.number_of_links)
+        val, col, row = csr_prep(fw_index_array, val, (self.number_of_links, self.number_of_links))
         forward = UI32CSRMatrix(val, col, row)
-        val, col, row = csr_prep(bw_index_array, val, self.number_of_links)
+        val, col, row = csr_prep(bw_index_array, val, (self.number_of_links, self.number_of_links))
         backward = UI32CSRMatrix(val, col, row)
 
-        return Links(length, from_node, to_node, capacity, v_wave, costs,v0_prt, cvn_up, cvn_down, forward, backward,lanes)
+        return Links(length, from_node, to_node, capacity, v_wave, costs, v0_prt, forward, backward,
+                     lanes)
 
     @staticmethod
     def set_internal_labels(g: nx.DiGraph):
@@ -150,7 +164,6 @@ class Assignment:
                 link_labels[link_id][0], link_labels[link_id][1] = u, v
         node_adjacency = np.empty((g.number_of_edges(), 2), dtype=np.uint32)
         for u, v, data in g.edges.data():
-
             _id = data['_id']
             node1 = g.nodes[u]['_id']
             node2 = g.nodes[v]['_id']
@@ -188,17 +201,11 @@ class Assignment:
             if d > 0:
                 self.node_data[i]['destination_traffic'] = float(d)
 
-# my_array = np.arange(50000).reshape(10000, 5)
-# my_network = Network(link_matrix=my_array)
-# print(my_network.links.capacity[5])
-
 # remapping of od from different time granularity to computation time steps
 # node or link event which triggers a change in otherwise staionary characteristics
 # example ramp metering event capacity choke, relative and absolute events
 
 
-# TODO: jeroen which attributes are dynamic
-# TODO: which ordering to use instar, outstar - ideally use both depending on your lagorithm yes both
 # TODO: how high a priority is visualization.. - one time, interval visualization
 # arrays for different things separately by node id
 # what does the node data structure look like, turning fraction matrix

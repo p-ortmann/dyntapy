@@ -8,7 +8,10 @@
 from scipy.sparse import lil_matrix
 from stapy.setup import float_dtype, int_dtype
 from numba.typed import List, Dict
+from collections import namedtuple
 import numpy as np
+from dtapy.core.jitclasses import SimulationTime, StaticDemand, DemandSimulation
+from datastructures.csr import csr_prep, F32CSRMatrix
 
 
 def build_demand_structs(od_matrix):
@@ -33,44 +36,10 @@ def build_demand_structs(od_matrix):
     return demand_dict, od_flow_vector
 
 
-def generate_od(number_of_nodes, origins_to_nodes_ratio, origins_to_destinations_connection_ratio=0.15, seed=0):
-    """
-
-    Parameters
-    ----------
-    number_of_nodes : number of nodes (potential origins)
-    origins_to_nodes_ratio : float, indicates what fraction of nodes are assumed to be origins
-    seed : seed for numpy random
-    origins_to_destinations_connection_ratio :
-
-    Returns
-    -------
-    od_matrix
-
-    """
-    rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=str(int_dtype))
-    np.random.seed(seed)
-    od_connections = int(origins_to_destinations_connection_ratio)
-    number_of_origins = int(origins_to_nodes_ratio * number_of_nodes)
-    origins = np.random.choice(np.arange(number_of_nodes), size=number_of_origins, replace=False)
-    destinations = np.random.choice(np.arange(number_of_nodes), size=number_of_origins, replace=False)
-    for origin in origins:
-        # randomly sample how many and which destinations this origin is connected to
-        number_of_destinations = int(np.random.gumbel(loc=origins_to_destinations_connection_ratio,
-                                                      scale=origins_to_destinations_connection_ratio / 2) * len(
-            destinations))
-        if number_of_destinations < 0: continue
-        if number_of_destinations > len(destinations): number_of_destinations = len(destinations)
-        destinations_by_origin = np.random.choice(destinations, size=number_of_destinations, replace=False)
-        rand_od.rows[origin] = list(destinations_by_origin)
-        rand_od.data[origin] = [int(np.random.random() * 2000) for _ in destinations_by_origin]
-    return rand_od
-
-
 def generate_od_fixed(number_of_nodes, number_of_od_values, seed=0):
-    rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=str(int_dtype))
+    rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=np.uint32)
     np.random.seed(seed)
-    arr = np.arange(number_of_nodes * number_of_nodes)
+    arr = np.arange(number_of_nodes * number_of_nodes, dtype=np.uint32)
     vals = np.random.choice(arr, size=number_of_od_values, replace=False)
     ids = [np.where(arr.reshape((number_of_nodes, number_of_nodes)) == val) for val in vals]
     for i, j in ids:
@@ -99,5 +68,39 @@ def generate_random_bush(number_of_nodes, number_of_branches, seed=0):
             rand_od.rows[i] = list(j)
             rand_od.data[i] = list((int(np.random.random() * 2000)))
     return rand_od
-#TODO: add a generic way of handling demand from and to geographical locations, willem update method
 
+
+# TODO: add a generic way of handling demand from and to geographical locations, willem update method
+
+
+def build_demand(demand_data, insertion_times, simulation_time: SimulationTime, number_of_nodes):
+    """
+    
+    Parameters
+    ----------
+    simulation_time : time object, see class def
+    demand_data : List <scipy.lil_matrix> # node x node demand, each element is added demand for a particular moment in time
+    insertion_times : Array, times at which the demand is loaded
+
+    Returns
+    -------
+
+    """
+    if not np.all(insertion_times[1:] - insertion_times[:-1] > simulation_time.step_size):
+        raise ValueError('insertion times are assumed to be monotonously increasing. The minimum difference between '
+                         'two '
+                         'insertions is the internal simulation time step')
+    times = np.arange(simulation_time.start, simulation_time.end, simulation_time.step_size)
+    loading_time_steps = [(np.abs(insertion_time - times)).argmin() for insertion_time in insertion_times]
+    static_demands = List()
+    for internal_time, lil_demand in zip(loading_time_steps, demand_data):
+        col = np.asarray(lil_demand.nonzero()[1], dtype=np.uint32)
+        row = np.asarray(lil_demand.nonzero()[0], dtype=np.uint32)
+        vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
+        index_array_to_d = np.column_stack((row, col))
+        index_array_to_o = np.column_stack((col, row))
+        to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (number_of_nodes, number_of_nodes)))
+        to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (number_of_nodes, number_of_nodes)))
+        static_demands.append(StaticDemand(to_destinations, to_origins, to_destinations.get_nnz_rows(),
+                                           to_origins.get_nnz_rows(), internal_time))
+    return DemandSimulation(static_demands, simulation_time.tot_time_steps)

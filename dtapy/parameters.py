@@ -7,6 +7,7 @@
 #
 # file containing all the parameters used in the assignment procedures for DTA
 # ids for event handling
+network_loading_method='iltm'
 link_capacity_id=2
 registered_events=[True, False]
 max_capacity=10000
@@ -16,6 +17,7 @@ turn_type_default=0
 turn_t0_default=0
 node_capacity_default=9999
 node_control_default=0
+
 #0: capacity
 config_dict = {
                'traffic_keys': {'capacity', 'length', 'maxspeed', 'flow'}

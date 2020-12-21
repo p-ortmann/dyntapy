@@ -11,11 +11,10 @@
 import numba as nb
 import numpy as np
 from collections import OrderedDict
-from numba.core.types import float32, uint32, uint64
+from numba.core.types import float32, uint32, uint64, uint8
 from heapq import heappush, heappop
 
-numba_csr_val_types = [float32[:], uint32[:]]
-numpy_csr_val_types = [np.float32, np.uint32]
+numba_csr_val_types = [float32[:], uint32[:], uint8[:]]
 
 
 @nb.njit
@@ -66,7 +65,6 @@ def __build_csr_cls(nb_type):
     Parameters
     ----------
     nb_type : numba array type of value array, e.g. uint32[:] or float32[:]
-    np_type : corresponding numpy type, e.g. np.uint32, np.float32
 
     Returns
     -------
@@ -134,8 +132,6 @@ def csr_prep(index_array, values, shape, unsorted=True):
     """
     if unsorted:
         index_array, values = __csr_sort(index_array, values, shape[1])
-    print(index_array[:10])
-    print(values[:10])
     col, row = __csr_format(index_array, shape[0])
     return values, col, row
 
@@ -154,7 +150,7 @@ def __csr_format(index_array, number_of_rows):
 
     """
     # index_array with the position of the elements (i,j), i being the row and j the column
-    # sorted by rows with ties settled by column. Values sorted accordingly, see csr_sort
+    # sorted by rows with ties settled by column. Values sorted accordingly, see __csr_sort
     col, row = nb.typed.List(), nb.typed.List()
     row.append(np.uint32(0))
     row_value_counter = np.uint32(0)
@@ -184,6 +180,7 @@ def __csr_format(index_array, number_of_rows):
 
 F32CSRMatrix = __build_csr_cls(nb.float32[:])
 UI32CSRMatrix = __build_csr_cls(nb.uint32[:])
+UI8CSRMatrix = __build_csr_cls(nb.uint8[:])
 
 # empty initilization below, be aware of missing boundscheck in numba .., unless the
 # wdir has a specified .numba_config_yaml with NUMBA_BOUNDSCHECK set they will not work.

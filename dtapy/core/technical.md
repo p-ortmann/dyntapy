@@ -93,3 +93,18 @@ At this point it's not entirely clear how it would work. We hope that, after imp
 versions of LTM, this can be revisited. 
 Nevertheless, we will include a simple controller class which takes its control actions in sync with the
 network loading because it is a straight forward extension of the dealing with the static events.
+##Node model data structures
+The node model needs as its input the global sending and receiving flows of the node's incoming and outgoing links,
+ global turning fractions for the different turns, and the capacity of the incoming links. With global we mean 
+ homogeneous flow that is not destination based. Turning fractions and Link characteristics are sorted by their 
+ respective Turn- and Link IDs [^1]. Internally, the node model needs to be able to associate with each Turn its incoming 
+ and outgoing Link. 
+ 
+ 
+ [^1]: This may not always be the case with sparse matrices where entities like links are often associate with more than
+ one topological ordering. E.g. we could keep a FromNode x ToNode matrix with the respective link IDs as values or a 
+ FromNode x Link matrix with the toNode IDs as values. Each option yields a different topological order when retrieving
+ the values/NNZs for each FromNode.
+ Choices are made based on what seems efficient for the
+ use of the data structure inside the algorithms.
+ 

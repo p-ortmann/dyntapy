@@ -10,10 +10,10 @@
 import numpy as np
 import networkx as nx
 from bokeh.io import show, output_file, output_notebook
-from bokeh.models import HoverTool, CustomJS, TapTool, OpenURL, Label
+from bokeh.models import HoverTool, TapTool, OpenURL, Label
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models.glyphs import MultiLine, Circle, X, Asterisk, Patches
+from bokeh.models.glyphs import Circle, Asterisk, Patches
 from shapely.geometry import LineString
 from stapy.settings import visualization_keys_edges, visualization_keys_nodes
 from utilities import log, __create_green_to_red_cm
@@ -28,7 +28,7 @@ traffic_cm = __create_green_to_red_cm('hex')
 def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
                  title=None, plot_size=1300,
                  mode='assignment', iteration=None, notebook=False, max_links_visualized=None,
-                 show_unloaded_links=False, show_internal_ids=True):
+                 show_unloaded_links=False, show_internal_ids=True, time=None):
     """
 
     Parameters
@@ -146,7 +146,7 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     show(plot)
 
 
-def debug_plot(obj, costs, flows, t=None):
+def debug_plot(g, costs, flows,link_labels, t=None):
     """
     convenience function for plotting in dynamic and static assignment
     Parameters
@@ -164,8 +164,11 @@ def debug_plot(obj, costs, flows, t=None):
     if t is not None:
         costs = costs[t]
         flows = flows[t]
-    obj.write_back(costs, flows)
-    plot_network(obj.g)
+    for label, flow, cost in zip(link_labels, flows, costs):
+        u, v = label
+        g[u][v]['flow'] = flow
+        g[u][v]['cost'] = cost
+    plot_network(g)
 
 
 def show_desire_lines(obj: StaticAssignment, plot_size=1300, notebook=False):
