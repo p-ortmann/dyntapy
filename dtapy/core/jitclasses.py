@@ -82,15 +82,12 @@ class UncompiledLinks(object):
 
 
 spec_iltm_link = [('links', Links.class_type.instance_type),
-                  ('kjam', float32[:]),
-                  ('kcrit', float32[:]),
-                  ('cvn_up', float32[:, :]),
-                  ('cvn_down', float32[:, :]),
+                  ('k_jam', float32[:]),
+                  ('k_crit', float32[:]),
                   ('vf_index', int32[:]),
                   ('vf_ratio', float32[:]),
                   ('vw_index', int32[:]),
                   ('vw_ratio', float32[:])]
-
 
 # spec_iltm_link = OrderedDict(spec_iltm_link)
 
@@ -99,27 +96,33 @@ spec_iltm_link = [('links', Links.class_type.instance_type),
 class ILTMLinks(UncompiledLinks):
     __init__Links = UncompiledLinks.__init__
 
-    def __init__(self, links, cvn_up, cvn_down, vf_index, vw_index, vf_ratio, vw_ratio):
+    def __init__(self, links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam, k_crit):
         self.__init__Links(links.length, links.from_node, links.to_node, links.capacity, links.v_wave, links.costs,
                            links.v0, links.out_turns, links.in_turns, links.lanes)
-        self.cvn_up = cvn_up
-        self.cvn_down = cvn_down
         self.vf_index = vf_index
         self.vw_index = vw_index
         self.vf_ratio = vf_ratio
         self.vw_ratio = vw_ratio
+        self.k_jam = k_jam
+        self.k_crit = k_crit
 
 
-# spec_results = [('',), ]
-#
-#
-# @jitclass(spec_results)
-# class Results(object):
-#     def __init__(self, turning_fractions, flows):
-#         self.turning_fractions
-#         self.flows
-#         self.path_set  # list of all used paths by od pair
-#         self.controller_strategy
+spec_results = [('turning_fractions',ListType(f32csr_type)),
+                ('cvn_up', float32[:, :,:]),
+                ('cvn_down', float32[:, :,:]),
+                ('con_up', boolean[:,:]),
+                ('con_down', boolean[:,:])
+                ]
+
+
+@jitclass(spec_results)
+class ILTMResults(object):
+    def __init__(self, turning_fractions, cvn_up, cvn_down,con_up, con_down ):
+        self.turning_fractions= turning_fractions
+        self.cvn_up=cvn_up
+        self.cvn_down=cvn_down
+        self.con_up=con_up
+        self.con_down=con_down
 
 
 spec_node = [('out_links', ui32csr_type),
@@ -292,7 +295,9 @@ spec_simulation = [('next', StaticDemand.class_type.instance_type),
                    ('__time_step', uint32),
                    ('all_destinations', uint32[:]),
                    ('all_origins', uint32[:]),
-                   ('tot_time_steps', uint32)]
+                   ('tot_time_steps', uint32),
+                   ('tot_destinations', uint32),
+                   ('tot_origins', uint32)]
 
 
 @jitclass(spec_simulation)
@@ -306,6 +311,8 @@ class DemandSimulation(object):
         self.all_destinations = get_all_destinations(demands)  # for destination/origin based labels
         self.all_origins = get_all_origins(demands)
         self.tot_time_steps = tot_time_steps
+        self.tot_origins = self.all_destinations.size
+        self.tot_destinations= self.all_destinations.size
 
     def update(self):
         self.__time_step += uint32(1)
