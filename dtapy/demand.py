@@ -10,7 +10,7 @@ from stapy.setup import float_dtype, int_dtype
 from numba.typed import List, Dict
 from collections import namedtuple
 import numpy as np
-from dtapy.core.jitclasses import SimulationTime, StaticDemand, DemandSimulation
+from dtapy.core.jitclasses import SimulationTime, StaticDemand, DynamicDemand
 from datastructures.csr import csr_prep, F32CSRMatrix
 
 
@@ -103,4 +103,4 @@ def build_demand(demand_data, insertion_times, simulation_time: SimulationTime, 
         to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (number_of_nodes, number_of_nodes)))
         static_demands.append(StaticDemand(to_destinations, to_origins, to_destinations.get_nnz_rows(),
                                            to_origins.get_nnz_rows(), internal_time))
-    return DemandSimulation(static_demands, simulation_time.tot_time_steps)
+    return DynamicDemand(static_demands, simulation_time.tot_time_steps)

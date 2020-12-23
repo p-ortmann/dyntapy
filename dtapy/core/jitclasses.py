@@ -111,18 +111,22 @@ spec_results = [('turning_fractions',ListType(f32csr_type)),
                 ('cvn_up', float32[:, :,:]),
                 ('cvn_down', float32[:, :,:]),
                 ('con_up', boolean[:,:]),
-                ('con_down', boolean[:,:])
+                ('con_down', boolean[:,:]),
+                ('marg_comp', boolean),
+                ('nodes_2_update', boolean[:,:])
                 ]
 
 
 @jitclass(spec_results)
 class ILTMResults(object):
-    def __init__(self, turning_fractions, cvn_up, cvn_down,con_up, con_down ):
+    def __init__(self, turning_fractions, cvn_up, cvn_down,con_up, con_down, marg_comp, nodes_2_update):
         self.turning_fractions= turning_fractions
         self.cvn_up=cvn_up
         self.cvn_down=cvn_down
         self.con_up=con_up
         self.con_down=con_down
+        self.marg_comp=marg_comp
+        self.nodes_2_update=nodes_2_update
 
 
 spec_node = [('out_links', ui32csr_type),
@@ -301,7 +305,7 @@ spec_simulation = [('next', StaticDemand.class_type.instance_type),
 
 
 @jitclass(spec_simulation)
-class DemandSimulation(object):
+class DynamicDemand(object):
     def __init__(self, demands, tot_time_steps):
         self.demands = demands
         self.next = demands[0]

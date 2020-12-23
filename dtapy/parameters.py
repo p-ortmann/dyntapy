@@ -7,6 +7,8 @@
 #
 # file containing all the parameters used in the assignment procedures for DTA
 # ids for event handling
+from math import pow
+import numpy as np
 network_loading_method='iltm'
 link_capacity_id=2
 registered_events=[True, False]
@@ -18,6 +20,9 @@ turn_t0_default=0
 node_capacity_default=9999
 node_control_default=0
 
+
+i_ltm_gap= np.float32(pow(10,-7))
+i_ltm_max_it = np.uint32(5000)
 #0: capacity
 config_dict = {
                'traffic_keys': {'capacity', 'length', 'maxspeed', 'flow'}

@@ -124,6 +124,18 @@ The node model needs as its input the global sending and receiving flows of the 
  Choices are made based on what seems efficient for the
  use of the data structure inside the algorithms.
  
+ ### on Memory layout
+ To understand the decisions made here do check the numpy documentation or 
+ this excellent article: https://eli.thegreenplace.net/2015/memory-layout-of-multi-dimensional-arrays .
+ Basically, we can choose between storing our matrices 2- and 3 D matrices in row- (numpy & C default) or column
+ major orders (Matlab, Fortran) which has implications for the access speed to different dimensions.
+ We've tried to implement all arrays in a way that the first dimension (rows) is always the fastest,
+ this can be achieved by using row major order for 2D arrays and column major for 3D.
+ One can verify the order of a numpy array via the ndarray.flags attribute and we
+ can check the stride size (inversely correlated with access speed) for each dimension by looking at the ndarry.strides.
+ This matters because we're often looping over these arrays in numba, we want the dimensions that we 
+ vary the most to be the fastest.
+ 
  ###What's still coming?
  do check trello 
  https://trello.com/invite/b/JJe3F5H3/84248383af0033e19119df8fa817da65/dta-implementation

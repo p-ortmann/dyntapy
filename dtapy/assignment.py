@@ -15,7 +15,7 @@ from numba.typed import List, Dict
 from numba import typeof
 from numba.core.types import uint32, float32, int32
 from datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
-from dtapy.core.jitclasses import Links, Nodes, Network, Turns, StaticDemand, DemandSimulation, SimulationTime
+from dtapy.core.jitclasses import Links, Nodes, Network, Turns, StaticDemand, DynamicDemand, SimulationTime
 from dtapy.parameters import v_wave_default, turn_capacity_default, turn_type_default, node_capacity_default, \
     node_control_default, turn_t0_default
 from dtapy.parameters import network_loading_method
@@ -45,9 +45,9 @@ class Assignment:
         # self.demand = self.build_demand()
         self.network = self.build_network()
         print('network build')
-        if typeof(demand) != DemandSimulation.class_type.instance_type:
+        if typeof(demand) != DynamicDemand.class_type.instance_type:
             raise TypeError
-        self.demand_simulation: DemandSimulation = demand
+        self.demand_simulation: DynamicDemand = demand
         print('demand simulation registered')
         self.network_loading_data_structs(method=network_loading_method)
         print('DNL data structures build')

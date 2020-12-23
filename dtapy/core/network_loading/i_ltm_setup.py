@@ -63,10 +63,13 @@ def i_ltm_setup(assignment: Assignment):
     iltm_nodes = ILTMNodes(assignment.network.nodes, turn_based_in_links, turn_based_out_links)
     assignment.network = ILTMNetwork(assignment.network, iltm_links, iltm_nodes,
                                      assignment.network.turns)
+
     # setting up results object
     if not assignment.results:
         # cold start
+        marg_comp=False
         tot_origins = assignment.demand_simulation.tot_origins
+        all_origins = assignment.demand_simulation.next
         tot_destinations = assignment.demand_simulation.tot_destinations
         tot_links = assignment.tot_links
         tot_nodes = assignment.tot_nodes
@@ -93,4 +96,5 @@ def i_ltm_setup(assignment: Assignment):
             index_array_tf = np.column_stack((assignment.network.turns.via_node, np.arange(tot_turns, dtype=np.uint32)))
             values = np.full(tot_turns, 0.0, dtype=np.float32)
             turning_fractions.append(F32CSRMatrix(*csr_prep(index_array_tf, values, (tot_nodes, tot_turns))))
-        assignment.results = ILTMResults(turning_fractions, cvn_up, cvn_down, con_up, con_down)
+        assignment.results = ILTMResults(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp, nodes_2_update)
+
