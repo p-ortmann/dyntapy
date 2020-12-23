@@ -125,16 +125,19 @@ The node model needs as its input the global sending and receiving flows of the 
  use of the data structure inside the algorithms.
  
  ### on Memory layout
- To understand the decisions made here do check the numpy documentation or 
+ To understand the decisions made here do check the numpy documentation: 
+ https://numpy.org/doc/stable/reference/internals.html#multidimensional-array-indexing-order-issues or 
  this excellent article: https://eli.thegreenplace.net/2015/memory-layout-of-multi-dimensional-arrays .
+ 
  Basically, we can choose between storing our matrices 2- and 3 D matrices in row- (numpy & C default) or column
  major orders (Matlab, Fortran) which has implications for the access speed to different dimensions.
- We've tried to implement all arrays in a way that the first dimension (rows) is always the fastest,
- this can be achieved by using row major order for 2D arrays and column major for 3D.
- One can verify the order of a numpy array via the ndarray.flags attribute and we
- can check the stride size (inversely correlated with access speed) for each dimension by looking at the ndarry.strides.
- This matters because we're often looping over these arrays in numba, we want the dimensions that we 
- vary the most to be the fastest.
+ For C ordered arrays the memory strides are always largest for the first dimension and smallest for the last.
+ For F ordered arrays the inverse is true. We stick here with with F order to make the transition from matlab easier.
+ At times we may use numpy's transpose() to get a view which is optimized for strides in C Order. Note that this does 
+ *not* imply copying the array. It simply tells numpy to stride over it in a different manner.
+ You can verify this by analyzing .flags and .strides on a given array and it's transpose.
+ We need to care about this because it's crucial that we loop over the array in a way that is in line with the way that 
+ underlying data lies in memory.
  
  ###What's still coming?
  do check trello 
