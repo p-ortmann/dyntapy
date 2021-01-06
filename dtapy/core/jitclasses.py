@@ -89,6 +89,7 @@ spec_iltm_link = [('links', Links.class_type.instance_type),
                   ('vw_index', int32[:]),
                   ('vw_ratio', float32[:])]
 
+
 # spec_iltm_link = OrderedDict(spec_iltm_link)
 
 
@@ -107,26 +108,26 @@ class ILTMLinks(UncompiledLinks):
         self.k_crit = k_crit
 
 
-spec_results = [('turning_fractions',ListType(f32csr_type)),
-                ('cvn_up', float32[:, :,:]),
-                ('cvn_down', float32[:, :,:]),
-                ('con_up', boolean[:,:]),
-                ('con_down', boolean[:,:]),
+spec_results = [('turning_fractions', ListType(f32csr_type)),
+                ('cvn_up', float32[:, :, :]),
+                ('cvn_down', float32[:, :, :]),
+                ('con_up', boolean[:, :]),
+                ('con_down', boolean[:, :]),
                 ('marg_comp', boolean),
-                ('nodes_2_update', boolean[:,:])
+                ('nodes_2_update', boolean[:, :])
                 ]
 
 
 @jitclass(spec_results)
 class ILTMResults(object):
-    def __init__(self, turning_fractions, cvn_up, cvn_down,con_up, con_down, marg_comp, nodes_2_update):
-        self.turning_fractions= turning_fractions
-        self.cvn_up=cvn_up
-        self.cvn_down=cvn_down
-        self.con_up=con_up
-        self.con_down=con_down
-        self.marg_comp=marg_comp
-        self.nodes_2_update=nodes_2_update
+    def __init__(self, turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp, nodes_2_update):
+        self.turning_fractions = turning_fractions
+        self.cvn_up = cvn_up
+        self.cvn_down = cvn_down
+        self.con_up = con_up
+        self.con_down = con_down
+        self.marg_comp = marg_comp
+        self.nodes_2_update = nodes_2_update
 
 
 spec_node = [('out_links', ui32csr_type),
@@ -279,17 +280,22 @@ spec_demand = [('to_destinations', f32csr_type),
                ('to_origins', f32csr_type),
                ('origins', uint32[:]),
                ('destinations', uint32[:]),
+               ('origin_node_ids', uint32[:]),
+               ('destination_node_ids', uint32[:]),
                ('time_step', uint32)]
 spec_demand = OrderedDict(spec_demand)
 
 
 @jitclass(spec_demand)
 class StaticDemand(object):
-    def __init__(self, to_destinations, to_origins, origins, destinations, time_step):
+    def __init__(self, to_origins,to_destinations, origins, destinations, origin_node_ids, destination_node_ids,
+                 time_step):
         self.to_destinations = to_destinations  # csr matrix origins x destinations
         self.to_origins = to_origins  # csr destinations x origins
-        self.origins = origins  # array of node id's that are origins
-        self.destinations = destinations  # array of node id's destinations
+        self.origins = origins  # array of active origin id's
+        self.destinations = destinations  # array of active destination id's
+        self.origin_node_ids = origin_node_ids
+        self.destination_node_ids = destination_node_ids
         self.time_step = time_step  # time at which this demand is added to the network
 
 
@@ -299,6 +305,8 @@ spec_simulation = [('next', StaticDemand.class_type.instance_type),
                    ('__time_step', uint32),
                    ('all_destinations', uint32[:]),
                    ('all_origins', uint32[:]),
+                   ('all_destination_node_ids', uint32[:]),
+                   ('all_origin_node_ids', uint32[:]),
                    ('tot_time_steps', uint32),
                    ('tot_destinations', uint32),
                    ('tot_origins', uint32)]
@@ -306,7 +314,7 @@ spec_simulation = [('next', StaticDemand.class_type.instance_type),
 
 @jitclass(spec_simulation)
 class DynamicDemand(object):
-    def __init__(self, demands, tot_time_steps):
+    def __init__(self, demands, tot_time_steps, all_origin_node_ids, all_destination_node_ids):
         self.demands = demands
         self.next = demands[0]
         self.__time_step = uint32(0)  # current simulation time in time step reference
@@ -316,7 +324,7 @@ class DynamicDemand(object):
         self.all_origins = get_all_origins(demands)
         self.tot_time_steps = tot_time_steps
         self.tot_origins = self.all_destinations.size
-        self.tot_destinations= self.all_destinations.size
+        self.tot_destinations = self.all_destinations.size
 
     def update(self):
         self.__time_step += uint32(1)

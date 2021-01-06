@@ -67,7 +67,7 @@ def i_ltm_setup(assignment: Assignment):
     # setting up results object
     if not assignment.results:
         # cold start
-        marg_comp=False
+        marg_comp = False
         tot_origins = assignment.demand_simulation.tot_origins
         all_origins = assignment.demand_simulation.next
         tot_destinations = assignment.demand_simulation.tot_destinations
@@ -75,11 +75,11 @@ def i_ltm_setup(assignment: Assignment):
         tot_nodes = assignment.tot_nodes
         tot_turns = assignment.tot_turns
 
-        cvn_up = np.zeros((tot_links, tot_destinations, tot_time_steps), dtype=np.float32)
+        cvn_up = np.zeros((tot_links, tot_destinations, tot_time_steps), dtype=np.float32, order='F')
         cvn_down = np.empty_like(cvn_up)
-        con_up = np.full((tot_links, tot_time_steps), False, dtype=np.bool_)
-        con_down = np.full((tot_links, tot_time_steps), False, dtype=np.bool_)
-        nodes_2_update = np.full((tot_nodes, tot_time_steps), False, dtype=np.bool_)
+        con_up = np.full((tot_links, tot_time_steps), False, dtype=np.bool_, order='F')
+        con_down = np.full((tot_links, tot_time_steps), False, dtype=np.bool_, order='F')
+        nodes_2_update = np.full((tot_nodes, tot_time_steps), False, dtype=np.bool_, order='F')
 
         # in matlab all are active all the time .. however in our case this is not necessary, we'll see if it causes
         # issues down the line ..
@@ -96,5 +96,5 @@ def i_ltm_setup(assignment: Assignment):
             index_array_tf = np.column_stack((assignment.network.turns.via_node, np.arange(tot_turns, dtype=np.uint32)))
             values = np.full(tot_turns, 0.0, dtype=np.float32)
             turning_fractions.append(F32CSRMatrix(*csr_prep(index_array_tf, values, (tot_nodes, tot_turns))))
-        assignment.results = ILTMResults(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp, nodes_2_update)
-
+        assignment.results = ILTMResults(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
+                                         nodes_2_update)

@@ -8,7 +8,7 @@
 #
 from dtapy.core.jitclasses import ILTMNetwork, DynamicDemand, SimulationTime, ILTMResults, StaticDemand
 from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
-from dtapy.parameters import i_ltm_gap,i_ltm_max_it
+from dtapy.parameters import i_ltm_gap, i_ltm_max_it
 import numpy as np
 
 
@@ -21,9 +21,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     tot_links = network.tot_links
     tot_nodes = network.tot_nodes
     tot_destinations = len(all_destinations)
-    max_out_links =np.max(network.nodes.tot_out_links)
+    max_out_links = np.max(network.nodes.tot_out_links)
     max_in_links = np.max(network.nodes.tot_in_links)
-
 
     # local rename of link properties, sticking with matlab conventions here
 
@@ -46,7 +45,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     # local rename results properties
     # check for warm and cold starting is done in i_ltm_setup.py
 
-
     nodes_2_update = results.nodes_2_update
     cvn_up, cvn_down = results.cvn_up, results.cvn_down
     con_up, con_down = results.con_up, results.con_down
@@ -54,7 +52,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     # allocate memory to local variables
     rf_down_cvn_db = np.zeros(tot_links)
     sf_down_cvn_db = np.zeros(tot_links, tot_destinations)
-
 
     # % allocate
     # memory
@@ -70,8 +67,11 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     # temp_capacities_out = zeros(maxOutgoingLinks, 1);
     # receivingFlow = zeros(maxOutgoingLinks, 1);
     # sendingFlow = zeros(maxIncomingLinks, totDestinations);
-    temp_sending_flow = np.empty(max_in_links, tot_destinations);
-    temp_receiving_flow = np.emtpy(max_out_links, tot_destinations);
+    temp_sending_flow = np.empty(max_in_links, tot_destinations, order='F');
+    temp_receiving_flow = np.emtpy(max_out_links, tot_destinations, order='F');
+    temp_sending_flow_T =temp_sending_flow.transpose()
+    temp_receiving_flow_T = temp_receiving_flow.transpose()
+    # deviating from Matlab here with 'C' order, access happens usually per link and for all destinations
     # outgoingFlow = zeros(maxOutgoingLinks, totDestinations);
     #
     # origins_t = union(origins, find(nin == 0)
@@ -85,27 +85,25 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     # turningFractions = zeros(maxIncomingLinks, maxOutgoingLinks);
     # turningFlows = zeros(maxIncomingLinks, maxOutgoingLinks);
     # forward implicit scheme
-    #go sequentially over each time step
+    # go sequentially over each time step
     mean_it_iltm = 0
     max_it_iltm = 0
     tot_nodes_updates = 0
 
-
-# part of these assignments may be added eventually, let's see what we actually need with our TF notation
+    # part of these assignments may be added eventually, let's see what we actually need with our TF notation
     for t in range(tot_time_steps):
-        if not nodes_2_update[:,t].any():
+        if not nodes_2_update[:, t].any():
             continue
         rf_down_cvn_bool = np.full(tot_links, True)
-        rf_up_cvn_bool= np.full(tot_links, True)
-        if dynamic_demand.is_loading: #check if any origins are sending flow into the network this time step
-            current_demand:StaticDemand=dynamic_demand.next
+        rf_up_cvn_bool = np.full(tot_links, True)
+        if dynamic_demand.is_loading:  # check if any origins are sending flow into the network this time step
+            current_demand: StaticDemand = dynamic_demand.next
             for origin in current_demand.origins:
-                if nodes_2_update[origin,t]:
-                    tot_nodes_updates+=1
+                if nodes_2_update[origin, t]:
+                    tot_nodes_updates += 1
                     out_links = network.nodes.out_links.get_nnz(origin)
-                    for link in np.enumout_links:
-
-
+                    for index, link in np.ndenumerate(out_links):
+                        temp_sending_flow_T[:, link]= cvn_up[link,:,t-1]
 
 
 

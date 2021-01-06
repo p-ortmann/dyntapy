@@ -16,7 +16,7 @@ from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
 print(f'number of nodes{g.number_of_nodes()}')
 start_time = 6  # time of day in hrs
 end_time = 12
-demands = [generate_od_fixed(g.number_of_nodes(), 20), generate_od_fixed(g.number_of_nodes(), 20)]
+demands = [generate_od_fixed(g.number_of_nodes(), 20), generate_od_fixed(g.number_of_nodes(), 800, seed=1)]
 insertion_times = np.array([6, 7])
 ltm_dt = 0.25  # ltm timestep in hrs
 simulation_time = SimulationTime(start_time, end_time, ltm_dt)

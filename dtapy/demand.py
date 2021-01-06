@@ -86,6 +86,10 @@ def build_demand(demand_data, insertion_times, simulation_time: SimulationTime, 
     -------
 
     """
+    # internally we maintain different labels for origins and destinations starting at zero,
+    # the corresponding node ids are stored in the static demand object
+    # this makes it easier to work with destination based flows ( keeping the label space small)
+
     if not np.all(insertion_times[1:] - insertion_times[:-1] > simulation_time.step_size):
         raise ValueError('insertion times are assumed to be monotonously increasing. The minimum difference between '
                          'two '
@@ -93,14 +97,29 @@ def build_demand(demand_data, insertion_times, simulation_time: SimulationTime, 
     times = np.arange(simulation_time.start, simulation_time.end, simulation_time.step_size)
     loading_time_steps = [(np.abs(insertion_time - times)).argmin() for insertion_time in insertion_times]
     static_demands = List()
-    for internal_time, lil_demand in zip(loading_time_steps, demand_data):
-        col = np.asarray(lil_demand.nonzero()[1], dtype=np.uint32)
-        row = np.asarray(lil_demand.nonzero()[0], dtype=np.uint32)
+    rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
+    row_sizes = np.array([lil_demand.nonzero()[0].size for lil_demand in demand_data], dtype=np.uint32)
+    cols = [np.asarray(lil_demand.nonzero()[1], dtype=np.uint32) for lil_demand in demand_data]
+    col_sizes = np.array([lil_demand.nonzero()[1].size for lil_demand in demand_data], dtype=np.uint32)
+    all_destinations, cols = np.unique(np.concatenate(cols), return_inverse=True)
+    all_origins, rows = np.unique(np.concatenate(rows), return_inverse=True)
+    cols = np.array_split(cols, np.cumsum(col_sizes))
+    rows = np.array_split(rows, np.cumsum(row_sizes))
+    tot_destinations = all_destinations.size
+    tot_origins = all_origins.size
+    row_counter = 0
+    col_counter = 0
+
+    for internal_time, lil_demand, row, col in zip(loading_time_steps, demand_data, rows, cols):
         vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
         index_array_to_d = np.column_stack((row, col))
         index_array_to_o = np.column_stack((col, row))
         to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (number_of_nodes, number_of_nodes)))
         to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (number_of_nodes, number_of_nodes)))
-        static_demands.append(StaticDemand(to_destinations, to_origins, to_destinations.get_nnz_rows(),
-                                           to_origins.get_nnz_rows(), internal_time))
-    return DynamicDemand(static_demands, simulation_time.tot_time_steps)
+        origin_node_ids = np.array([all_origins[i] for i in to_destinations.get_nnz_rows()], dtype=np.uint32)
+        destination_node_ids = np.array([all_destinations[i] for i in to_origins.get_nnz_rows()], dtype=np.uint32)
+        static_demands.append(StaticDemand(to_origins, to_destinations,
+                                           to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(), origin_node_ids,
+                                           destination_node_ids, internal_time))
+
+    return DynamicDemand(static_demands, simulation_time.tot_time_steps, all_origins, all_destinations)

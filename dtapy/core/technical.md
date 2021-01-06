@@ -132,10 +132,12 @@ The node model needs as its input the global sending and receiving flows of the 
  Basically, we can choose between storing our matrices 2- and 3 D matrices in row- (numpy & C default) or column
  major orders (Matlab, Fortran) which has implications for the access speed to different dimensions.
  For C ordered arrays the memory strides are always largest for the first dimension and smallest for the last.
- For F ordered arrays the inverse is true. We stick here with with F order to make the transition from matlab easier.
- At times we may use numpy's transpose() to get a view which is optimized for strides in C Order. Note that this does 
- *not* imply copying the array. It simply tells numpy to stride over it in a different manner.
+ For F ordered arrays the inverse is true. We (mostly) stick here with with F order to make the transition from Matlab easier.
+ Deviations are noted.
+ At times we may use numpy's transpose() to get a view which is striding in the opposing Order. Note that this does 
+ *not* imply copying the array. It simply tells numpy to stride over the memory in a different manner.
  You can verify this by analyzing .flags and .strides on a given array and it's transpose.
+ We'll denote transposed arrays by adding a '_T' at the end of the variable name. 
  We need to care about this because it's crucial that we loop over the array in a way that is in line with the way that 
  underlying data lies in memory.
  
