@@ -14,7 +14,7 @@ from visualization import plot_network, show_desire_lines
 from stapy.assignment import StaticAssignment
 from stapy.settings import assignment_parameters
 (g, deleted) = get_from_ox_and_save('Gent')
-rand_od = generate_random_bush(g.number_of_nodes(), 3, seed=2)  # initiating bush with 3 random branches
+rand_od = generate_random_bush(g.tot_nodes(), 3, seed=2)  # initiating bush with 3 random branches
 obj = StaticAssignment(g, rand_od)
 show_desire_lines(obj)
 SUN(g, od_matrix=rand_od)

@@ -15,9 +15,9 @@ from visualization import plot_network, show_desire_lines
 from stapy.assignment import  StaticAssignment
 (g,deleted)= get_from_ox_and_save('Gent', reload=True)
 #g = load_pickle('Gent')
-print(f'number of nodes{g.number_of_nodes()}')
+print(f'number of nodes{g.tot_nodes()}')
 # rand_od = generate_od(g.number_of_nodes(), origins_to_nodes_ratio=0.003)
-rand_od = generate_od_fixed(g.number_of_nodes(), 20)
+rand_od = generate_od_fixed(g.tot_nodes(), 20)
 #plot_network(deleted, mode='deleted elements')
 obj=StaticAssignment(g,rand_od)
 show_desire_lines(obj)

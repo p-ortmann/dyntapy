@@ -43,7 +43,7 @@ def __csr_sort(index_array, values, number_of_columns):
     sorted_values = np.empty_like(values)
     for index, edge in enumerate(index_array):
         i, j = edge
-        heappush(my_heap, (uint64(i*(number_of_columns+1)+j), uint64(i),uint64(j) , uint64(index)))
+        heappush(my_heap, (uint64(i * (number_of_columns + 1) + j), uint64(i), uint64(j), uint64(index)))
         # (2,3) -->
     c = 0
 
@@ -51,12 +51,10 @@ def __csr_sort(index_array, values, number_of_columns):
     while len(my_heap) > 0:
         tuple = heappop(my_heap)
         key, i, j, index = tuple[0], tuple[1], tuple[2], tuple[3]
-        sorted_index_array[c] = uint32(i),uint32(j)
+        sorted_index_array[c] = uint32(i), uint32(j)
         sorted_values[c] = values[uint32(index)]
         c += 1
     return sorted_index_array, sorted_values
-
-
 
 
 def __build_csr_cls(nb_type):
@@ -115,7 +113,7 @@ def __build_csr_cls(nb_type):
     return CSRMatrix
 
 
-@nb.njit
+#@nb.njit
 def csr_prep(index_array, values, shape, unsorted=True):
     """
 
@@ -130,11 +128,12 @@ def csr_prep(index_array, values, shape, unsorted=True):
     -------
 
     """
+    if np.max(index_array[:, 1]) > (shape[1] - 1) or np.max(index_array[:, 0]) > (shape[0] - 1):
+        raise ValueError('dimensions are smaller than respective cols and rows in index array')
     if unsorted:
         index_array, values = __csr_sort(index_array, values, shape[1])
     col, row = __csr_format(index_array, shape[0])
     return values, col, row
-
 
 
 @nb.njit

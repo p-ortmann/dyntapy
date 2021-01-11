@@ -88,7 +88,7 @@ def i_ltm_setup(assignment: Assignment):
         #     for origin in assignment.demand_simulation.demands[t].get_nnz_rows():
         #         nodes_2_update[origin][t]=True
         # we stick with the implementation where all are active and see if we can reduce later.
-        for origin in range(tot_origins):
+        for origin in assignment.demand_simulation.all_origins:
             nodes_2_update[origin] = True
 
         turning_fractions = List()

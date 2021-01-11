@@ -10,7 +10,7 @@ from stapy.demand import generate_od_fixed
 from stapy.network_data import get_from_ox_and_save
 import numpy as np
 (g, deleted) = get_from_ox_and_save('Gent')
-rand_od = generate_od_fixed(g.number_of_nodes(), 10)
+rand_od = generate_od_fixed(g.tot_nodes(), 10)
 obj = StaticAssignment(g, rand_od)  # initialization of the assignment object
 print('static assignment object generated')
 obj.link_travel_times, obj.link_flows, state = dial_b(obj)
