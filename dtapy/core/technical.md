@@ -95,7 +95,7 @@ At this point it's not entirely clear how it would work. We hope that, after imp
 versions of LTM, this can be revisited. 
 Nevertheless, we will include a simple controller class which takes its control actions in sync with the
 network loading because it is a straight forward extension of the dealing with the static events.
-###Node model data structures
+### Node model data structures
 The node model needs as its input the global sending and receiving flows of the node's incoming and outgoing links,
  global turning fractions for the different turns, and the capacity of the incoming links. With global we mean 
  homogeneous flow that is not destination based. Turning fractions and Link characteristics are sorted by their 
