@@ -124,28 +124,26 @@ def generate_od_xy(tot_ods, name: str, max_flow=2000):
     return dumps(fc)
 
 
-def create_connectors(data: str, g: nx.DiGraph, return_od=True, matching_dist=200, k=3):
+def create_connectors(data: str, g: nx.DiGraph, matching_dist=200, k=3):
     """
-
+    adds k connectors for each centroid to the graph, merges two centroids into one if their distance is smaller than
+    the matching distance
     Parameters
     ----------
-    return_od : set to true if lil matrix (node x node in nx ids) should also be returned,
-     serves as input for build_demand
     data : geojson that contains lineStrings (WGS84) as features, each line has an associated
     'flow' stored in the properties dict
     g : networkx DiGraph for the city under consideration, assumes set up as shown in the network_data files
     matching_dist : distance in meters under which centroids are merged into one another, the centroid which is retained
      depends on the order in which they were added to the graph
-    k : int, number of connectors to be added to each centroid
+    k : int, number of connectors to be added for each centroid
 
     There's no checking on whether the data and the nx.Digraph correspond to the same geo-coded region.
     Returns
     -------
-    nx.Digraph with all the contents of g, connectors and centroids are added based on the data. Currently we just
-    snap to the nearest network nodes and create k connectors.
+    U :  array of origin ids in nx reference
+    V : array of destination ids in nx reference
+    flow : corresponding od flow between them
     """
-    print(data)
-    print('hello.')
     centroids = g.subgraph([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict])
     data = geojson.loads(data)
     gdf = gpd.GeoDataFrame.from_features(data['features'])
