@@ -143,6 +143,9 @@ def create_connectors(data: str, g: nx.DiGraph, matching_dist=200, k=3):
     U :  array of origin ids in nx reference
     V : array of destination ids in nx reference
     flow : corresponding od flow between them
+
+    Note that you can add nodes as fixed centroids before calling this function and set the matching distance
+    to infinity or some large number to ensure that demand is always mapped to existing centroids.
     """
     centroids = g.subgraph([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict])
     data = geojson.loads(data)

@@ -139,6 +139,9 @@ spec_node = [('out_links', ui32csr_type),
 
 
 # spec_node = OrderedDict(spec_node)
+class Node(object):
+    def __init__(self, out_links):
+        self.out_links=out_links # array of fixed size for each node object
 
 
 @jitclass(spec_node)
