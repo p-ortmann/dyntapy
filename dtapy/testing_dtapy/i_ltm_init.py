@@ -7,14 +7,14 @@
 #
 #
 from dtapy.core.jitclasses import SimulationTime
-from dtapy.demand import build_demand, generate_od_fixed, generate_od_xy, create_connectors
+from dtapy.demand import build_demand, generate_od_fixed, generate_od_xy, create_centroids
 from dtapy.network_data import get_from_ox_and_save
 import numpy as np
 from dtapy.assignment import Assignment
 from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
 (g, deleted) = get_from_ox_and_save('Gent')
 gjson=generate_od_xy(10, 'Gent')
-create_connectors(gjson, g)
+create_centroids(gjson, g)
 
 print(f'number of nodes{g.number_of_nodes()}')
 start_time = 6  # time of day in hrs
