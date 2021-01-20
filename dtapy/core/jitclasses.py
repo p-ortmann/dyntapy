@@ -24,8 +24,10 @@ ui8csr_type = UI8CSRMatrix.class_type.instance_type
 # respective class, so LTM has a special class for its links to store things like cvn .. the source code for the
 # baseline classes is replicated both in jitclass decorated and undecorated (uncompiled) form because inheritance
 # otherwise does not work at this point, see https://github.com/numba/numba/issues/1694 .
-# adding a new assignment algorithm to this is meant to be made simpler this way, nothing changes in the assignment object
-# one simply needs to define new extending network, turn, node and link objects as needed and write a setup file, as shown for i-ltm.
+# adding a new assignment algorithm to this is meant to be made simpler this way,
+# nothing changes in the assignment object
+# one simply needs to define new extending network, turn, node and link objects as needed and write a setup file,
+# as shown for i-ltm.
 
 spec_link = [('capacity', float32[:]),
              ('from_node', uint32[:]),
@@ -141,7 +143,7 @@ spec_node = [('out_links', ui32csr_type),
 # spec_node = OrderedDict(spec_node)
 class Node(object):
     def __init__(self, out_links):
-        self.out_links=out_links # array of fixed size for each node object
+        self.out_links = out_links  # array of fixed size for each node object
 
 
 @jitclass(spec_node)
@@ -276,7 +278,7 @@ class SimulationTime(object):
         self.start = start
         self.end = end
         self.step_size = step_size
-        self.tot_time_steps = uint32(len(np.arange(start, end, step_size)))
+        self.tot_time_steps = np.uint32(np.ceil((end - start) / step_size))
 
 
 spec_demand = [('to_destinations', f32csr_type),
@@ -291,7 +293,7 @@ spec_demand = OrderedDict(spec_demand)
 
 @jitclass(spec_demand)
 class StaticDemand(object):
-    def __init__(self, to_origins,to_destinations, origins, destinations, origin_node_ids, destination_node_ids,
+    def __init__(self, to_origins, to_destinations, origins, destinations, origin_node_ids, destination_node_ids,
                  time_step):
         self.to_destinations = to_destinations  # csr matrix origins x destinations
         self.to_origins = to_origins  # csr destinations x origins

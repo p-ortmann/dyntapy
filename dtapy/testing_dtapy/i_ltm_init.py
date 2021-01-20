@@ -7,23 +7,18 @@
 #
 #
 from dtapy.core.jitclasses import SimulationTime
-from dtapy.demand import build_demand, generate_od_fixed, generate_od_xy, create_centroids
+from dtapy.demand import _build_demand, generate_od_xy, parse_demand
 from dtapy.network_data import get_from_ox_and_save
 import numpy as np
 from dtapy.assignment import Assignment
 from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
-(g, deleted) = get_from_ox_and_save('Gent')
-gjson=generate_od_xy(10, 'Gent')
-create_centroids(gjson, g)
 
+(g, deleted) = get_from_ox_and_save('Gent')
 print(f'number of nodes{g.number_of_nodes()}')
-start_time = 6  # time of day in hrs
-end_time = 12
-demands = [generate_od_fixed(g.number_of_nodes(), 20), generate_od_fixed(g.number_of_nodes(),30, seed=1)]
-insertion_times = np.array([6, 7])
-ltm_dt = 0.25  # ltm timestep in hrs
-simulation_time = SimulationTime(start_time, end_time, ltm_dt)
-demand_simulation = build_demand(demands, insertion_times, simulation_time, g.number_of_nodes())
-assignment=Assignment(g, demand_simulation, simulation_time)
+gjsons = [generate_od_xy(20, 'Gent',seed=seed) for seed in np.arange(3)*3]
+for gjson in gjsons:
+    parse_demand(gjson, g, matching_dist=3000)
+print(f'number of nodes{g.number_of_nodes()} incl connectors')
+assignment = Assignment(g)
 print('init passed successfully')
 print('hi')

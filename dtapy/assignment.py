@@ -12,30 +12,31 @@ import networkx as nx
 from scipy.sparse import lil_matrix
 from stapy.demand import build_demand_structs
 from numba.typed import List, Dict
-from numba import typeof
-from numba.core.types import uint32, float32, int32
 from datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
 from dtapy.core.jitclasses import Links, Nodes, Network, Turns, StaticDemand, DynamicDemand, SimulationTime
 from dtapy.parameters import v_wave_default, turn_capacity_default, turn_type_default, node_capacity_default, \
     node_control_default, turn_t0_default
 from dtapy.parameters import network_loading_method
+from dtapy.demand import _build_demand, _check_centroid_connectivity
+from dtapy.parameters import ltm_dt
 
 
 class Assignment:
     """This class has no value when instantiated on its own,
      it merely sets up the state variables/interfaces to networkx and the demand generation"""
 
-    def __init__(self, g: nx.DiGraph, demand, time):
+    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 86400, ltm_dt)):
         """
 
         Parameters
         ----------
         g : nx.DiGraph
-        demand : StaticDemand
+        time : SimulationTime object, specifies start and end of the simulation and the time step to be used
         """
+        _check_centroid_connectivity(g)
         self.g = g
         self.time: SimulationTime = time
-        self.node_label, self.link_label, self.node_adjacency = self.set_internal_labels(self.g)
+        self.node_label, self.link_label, self.node_adjacency = set_internal_labels(self.g)
         self.tot_nodes = np.uint32(self.g.number_of_nodes())
         self.tot_links = np.uint32(self.g.number_of_edges())
         self.tot_turns = None
@@ -43,12 +44,10 @@ class Assignment:
 
         self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
-        self.network = self.build_network()
+        self.network = self.__build_network()
         print('network build')
-        if typeof(demand) != DynamicDemand.class_type.instance_type:
-            raise TypeError
-        self.demand_simulation: DynamicDemand = demand
-        print('demand simulation registered')
+        self.demand_simulation: DynamicDemand = self.__build_demand()
+        print('demand simulation build')
         self.network_loading_data_structs(method=network_loading_method)
         print('DNL data structures build')
         # replacing network object with specialized version for network loading method
@@ -62,8 +61,8 @@ class Assignment:
             from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
             i_ltm_setup(self)
 
-    def build_network(self):
-        nodes = self.__build_nodes()
+    def __build_network(self):
+        nodes = self.__build_nodes
         print("nodes passed")
         turns = self.__build_turns(nodes)
         print("turns passed")
@@ -81,6 +80,7 @@ class Assignment:
         in_links = UI32CSRMatrix(values, col, row)
         capacity = np.full(self.tot_nodes, node_capacity_default, dtype=np.float32)
         control_type = np.full(self.tot_nodes, node_control_default, dtype=np.int8)
+        # add boolean centroid array, alter control type(?) (if necessary)
         number_of_out_links = [len(in_links.get_row(row)) for row in
                                np.arange(self.g.number_of_nodes(), dtype=np.uint32)]
         number_of_in_links = [len(out_links.get_row(row)) for row in
@@ -136,6 +136,7 @@ class Assignment:
         from_node = self.node_adjacency[:, 0]
         to_node = self.node_adjacency[:, 1]
         link_ids = np.arange(self.g.number_of_edges())
+        # fix for connectors here, add link types
         for _id, arr in zip(link_ids, self.link_label):
             u, v = arr
             length[_id] = self.g[u][v]['length']
@@ -156,58 +157,51 @@ class Assignment:
         return Links(length, from_node, to_node, capacity, v_wave, costs, v0_prt, forward, backward,
                      lanes)
 
-    @staticmethod
-    def set_internal_labels(g: nx.DiGraph):
-        # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the
-        # IDs used in nx
-        node_labels = np.empty(g.number_of_nodes(), np.uint64)
-        link_labels = np.empty((g.number_of_edges(), 2), np.uint64)
-        counter = count()
-        for node_id, u in enumerate(g.nodes):
-            g.nodes[u]['_id'] = node_id
-            node_labels[node_id] = u
-            for v in g.succ[u]:
-                link_id = next(counter)
-                g[u][v]['_id'] = link_id
-                link_labels[link_id][0], link_labels[link_id][1] = u, v
-        node_adjacency = np.empty((g.number_of_edges(), 2), dtype=np.uint32)
-        for u, v, data in g.edges.data():
-            _id = data['_id']
-            node1 = g.nodes[u]['_id']
-            node2 = g.nodes[v]['_id']
-            node_adjacency[_id] = node1, node2
+    def __build_demand(self):
+        g = self.g
+        if 'od_graph' not in g.graph:
+            raise ValueError('No od_graph registered on the road graph, see demand.py for required format')
+        if 'time' not in g.graph:
+            raise ValueError('No time registered on the road graph, see demand.py for required format')
+        od_graph = g.graph['od_matrix']
+        demand_data = [c.to_scipy_sparse_matrix() for c in od_graph]
+        insertion_time = od_graph.graph['time']
+        _build_demand(demand_data, insertion_time, simulation_time=self.time)
 
-        return node_labels, link_labels, node_adjacency
 
-    def set_od_matrix(self, od_matrix):
-        """
-        sets OD matrix for assignment object, calculates production and attraction of nodes
-        and writes results into node_data (to be written back)
-        Parameters
-        ----------
-        od_matrix : array like object
-            Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment object
+def set_internal_labels(g: nx.DiGraph):
+    # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the
+    # IDs used in nx
+    # if there is an od_graph registered for g node ids are filled with centroid first, so that nodes 0,..., C-1 are
+    # centroids with C being the total number of centroids, avoids having a mapping between centroid and node ids for
+    # origin/destination based flows
+    # no restrictions are set on connector IDs
+    node_labels = np.empty(g.number_of_nodes(), np.uint64)
+    link_labels = np.empty((g.number_of_edges(), 2), np.uint64)
+    counter = count()
+    if 'od_graph' in g.graph:
+        centroids = np.array(g.graph['od_graph'].nodes.data('nx_id'))[:, 1]
+        all_nodes = np.array(g.nodes)
+        all_nodes = np.concatenate((centroids, all_nodes))  # duplicated centroids
+        uniq, idx = np.unique(all_nodes, return_inverse=True)  # removing duplicates
+        ordered_nodes = uniq[idx.argsort()]  # restore original order, centroids first..
+    else:
+        ordered_nodes = g.nodes
+    for node_id, u in enumerate(ordered_nodes):
+        g.nodes[u]['_id'] = node_id
+        node_labels[node_id] = u
+        for v in g.succ[u]:
+            link_id = next(counter)
+            g[u][v]['_id'] = link_id
+            link_labels[link_id][0], link_labels[link_id][1] = u, v
+    node_adjacency = np.empty((g.number_of_edges(), 2), dtype=np.uint32)
+    for u, v, data in g.edges.data():
+        _id = data['_id']
+        node1 = g.nodes[u]['_id']
+        node2 = g.nodes[v]['_id']
+        node_adjacency[_id] = node1, node2
 
-        Returns
-        -------
-
-        """
-        assert isinstance(od_matrix, lil_matrix)
-        assert od_matrix.sum() > 0
-        assert od_matrix.shape == (self.g.number_of_nodes(), self.g.number_of_nodes())
-        self.demand_dict, self.od_flow_vector = build_demand_structs(od_matrix)
-        self.od_matrix = od_matrix.tocsr(copy=True)
-        self.sparse_od_matrix = csr_matrix(self.od_matrix)
-        originating_traffic = self.sparse_od_matrix.sum(axis=1)  # summing all rows
-        destination_traffic = self.sparse_od_matrix.sum(axis=0).transpose()  # summing all columns
-        for i, d in enumerate(originating_traffic):
-            d = float(d)
-            if d > 0:
-                self.node_data[i]['originating_traffic'] = float(d)
-        for i, d in enumerate(destination_traffic):
-            d = float(d)
-            if d > 0:
-                self.node_data[i]['destination_traffic'] = float(d)
+    return node_labels, link_labels, node_adjacency
 
 # remapping of od from different time granularity to computation time steps
 # node or link event which triggers a change in otherwise staionary characteristics

@@ -23,6 +23,7 @@ node_control_default=0
 
 i_ltm_gap= np.float32(pow(10,-7))
 i_ltm_max_it = np.uint32(5000)
+ltm_dt=0.25
 #0: capacity
 config_dict = {
                'traffic_keys': {'capacity', 'length', 'maxspeed', 'flow'}
