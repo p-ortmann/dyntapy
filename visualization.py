@@ -49,10 +49,11 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     tmp = nx.MultiDiGraph(g)
     tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
     tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
-    g = nx.DiGraph(tmp)
+    edges =[(u, v,k) for u, v,k in tmp.edges if u != v]
+    tmp=tmp.edge_subgraph(edges)
     if title == None:
         try:
-            title = mode + ' ' + g.graph['name']
+            title = mode + ' ' + tmp.graph['name']
         except KeyError:
             # no name provided ..
             title = mode + ' ' + '... provide city name in graph and it will show here..'
@@ -67,33 +68,33 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
                   aspect_ratio=1, toolbar_location='below')
     if iteration is not None:
         assert isinstance(iteration, int)
-        assert 'iterations' in g.graph
-        assert 'gaps' in g.graph
-        flows = g.graph['iterations'][iteration]
-        gap = g.graph['gaps'][iteration]
+        assert 'iterations' in tmp.graph
+        assert 'gaps' in tmp.graph
+        flows = tmp.graph['iterations'][iteration]
+        gap = tmp.graph['gaps'][iteration]
         citation = Label(x=30, y=30, x_units='screen', y_units='screen',
                          text=f'Iteration {iteration}, Remaining Gap: {gap} ', render_mode='css',
                          border_line_color='black', border_line_alpha=1.0,
                          background_fill_color='white', background_fill_alpha=1.0)
         plot.add_layout(citation)
-        for flow, (_, _, data) in zip(flows, g.edges.data()):
+        for flow, (_, _, data) in zip(flows, tmp.edges.data()):
             data['flow'] = flow
     if mode in ['assignment', 'desire lines']:
         if max_links_visualized is None:
             from stapy.settings import max_links_visualized
-        g = filter_links(g, max_links_visualized, show_unloaded_links)
-        max_flow = max([float(f) for _, _, f in g.edges.data('flow') if f is not None])
+        tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
+        max_flow = max([float(f) for _, _, f in tmp.edges.data('flow') if f is not None])
     else:
         max_flow = 0
 
-    node_x = [x for _, x in g.nodes.data('x')]
-    node_y = [y for _, y in g.nodes.data('y')]
+    node_x = [x for _, x in tmp.nodes.data('x')]
+    node_y = [y for _, y in tmp.nodes.data('y')]
     min_x, max_x, min_y, max_y = min(node_x), max(node_x), min(node_y), max(node_y)
     max_width_coords = scaling * (0.5 * (max_x - min_x) + 0.5 * (max_y - min_y))
     max_width_bokeh = plot_size * scaling
 
-    edge_source = _edge_cds(g, max_width_coords, max_flow)
-    node_source = _node_cds(g, mode == 'assignment')
+    edge_source = _edge_cds(tmp, max_width_coords, max_flow)
+    node_source = _node_cds(tmp, mode == 'assignment')
 
     if background_map:
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)

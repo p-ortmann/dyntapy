@@ -6,12 +6,9 @@
 #
 #
 import numpy as np
-from scipy.sparse import csr_matrix
 from itertools import count
 import networkx as nx
-from scipy.sparse import lil_matrix
-from stapy.demand import build_demand_structs
-from numba.typed import List, Dict
+from numba.typed import List
 from datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
 from dtapy.core.jitclasses import Links, Nodes, Network, Turns, StaticDemand, DynamicDemand, SimulationTime
 from dtapy.parameters import v_wave_default, turn_capacity_default, turn_type_default, node_capacity_default, \

@@ -6,6 +6,7 @@
 #
 #
 from scipy.spatial import cKDTree
+from scipy.spatial.distance import cdist
 from numba.typed import List, Dict
 import pandas as pd
 import numpy as np
@@ -135,7 +136,7 @@ def add_centroids_from_grid(name: str, g, D=2000, k=3):
         raise ValueError('grid generation assumes that no centroids are present in the graph')
     u0 = max(g.nodes) + 1
     centroids = __create_centroid_grid(name, D)
-    new_centroids = [(u, {'x': p[0], 'y': p[1], 'centroid': True, 'centroid_id': c}) for u, p, c in
+    new_centroids = [(u, {'x': p.x, 'y': p.y, 'centroid': True, 'centroid_id': c}) for u, p, c in
                      zip(range(u0, u0 + len(centroids)), centroids, range(len(centroids)))]
     for u, data in new_centroids:
         g.add_node(u, **data)
@@ -154,8 +155,8 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
     """
     Maps travel demand to existing closest centroids in g.
     The demand pattern is added in the graph as its own directed graph and can be retrieved via g.graph['od_graph'],
-    it contains edges with a 'weight' entry that indicates the movements from centroid to centroid.
-    The corresponding OD tables can be retrieved through calling .to_scipy_sparse_matrix() on the graphs.
+    it contains edges with a 'flow' entry that indicates the movements from centroid to centroid.
+    The corresponding OD tables can be retrieved through calling nx.to_scipy_sparse_matrix(od_graph,weight='flow' )
 
     Parameters
     ----------
@@ -185,17 +186,35 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
                                                   Y,
                                                   centroid_subgraph)  # snapped centroids are in nx node id space,
     # and not their respective internal centroid ids
-    tot_ods = len(X1)
     new_centroid_ids = np.array([centroid_subgraph.nodes[u]['centroid_id'] for u in snapped_centroids], dtype=np.uint32)
     flows = np.array(gdf['flow'])
     od_graph = nx.DiGraph()
     od_graph.add_nodes_from(
-        [(data['centroid_id'], {'nx_id': u}) for u, data in g.nodes(data=True) if 'centroid' in data])
-    O, D = np.array_split(new_centroid_ids, 2)
-    od_edges = [(i, j, {'weight': flow}) for i, j, flow in zip(O, D, flows)]
+        [(data['centroid_id'], {'nx_id': u, 'x': data['x'], 'y': data['y']}) for u, data in g.nodes(data=True) if
+         'centroid' in data])
+    ods = new_centroid_ids.reshape((int(new_centroid_ids.size / 2), 2), order='F')
+    uniq,inv,counts =  np.unique(ods, axis=0,return_inverse=True,return_counts=True)
+
+    if uniq.shape[0] != ods.shape[0]:
+        new_flows = []
+        for val, c, i in zip(uniq, counts, inv):
+            if c > 1:
+                idx = np.where(np.all(ods == val, axis=1))
+                new_flows.append(np.sum(flows[idx]))
+                #  amalgamate duplicates
+            else:
+                new_flows.append(flows[i])
+        ods = uniq
+
+    od_edges = [(od[0], od[1], {'flow': flow}) for od, flow in zip(ods, flows)]
     od_graph.add_edges_from(od_edges)
     od_graph.graph['time'] = time
+    od_graph.graph['crs'] = 'epsg:4326'
+    name = g.graph['name']
+    od_graph.graph['name'] = f'mobility flows in {name} at {time} s'
     if 'od_graph' in g.graph:
+        if type(g.graph['od_graph']) != list:
+            raise ValueError('od_graph needs to be a list')
         g.graph['od_graph'].append(od_graph)
     else:
         g.graph['od_graph'] = [od_graph]
@@ -270,6 +289,8 @@ def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
     -------
 
    """
+    if centroid_graph.number_of_nodes() == 0:
+        raise ValueError('graph does not contain any centroids')
     tot_ods = len(X)
     assert centroid_graph.graph['crs'] == 'epsg:4326'
     centroids = pd.DataFrame(
@@ -280,13 +301,7 @@ def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
     # query the tree for nearest node to each origin
     points = np.array([X, Y]).T
     centroid_dists, centroid_idx = tree.query(points, k=1)
-    try:
-        snapped_centroids = centroids.iloc[centroid_idx].index
-
-    except IndexError:
-        assert centroid_graph.number_of_nodes() == 0
-        snapped_centroids = np.full(tot_ods, -1)  # never accessed, only triggered if centroids is empty.
-        # - all distances are inf
+    snapped_centroids = centroids.iloc[centroid_idx].index
     return snapped_centroids, centroid_dists
 
 
@@ -305,3 +320,4 @@ def _merge_gjsons(geojsons):
     feature_lists = [loads(my_string)['features'] for my_string in geojsons]
     features = list(itertools.chain(*feature_lists))
     return {'type': 'FeatureCollection', 'features': features}
+
