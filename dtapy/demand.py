@@ -6,8 +6,7 @@
 #
 #
 from scipy.spatial import cKDTree
-from scipy.spatial.distance import cdist
-from numba.typed import List, Dict
+from numba.typed import List
 import pandas as pd
 import numpy as np
 from dtapy.core.jitclasses import SimulationTime, StaticDemand, DynamicDemand
@@ -24,6 +23,9 @@ from collections import deque
 from json import loads
 import itertools
 
+DEFAULT_CONNECTOR_SPEED=10000
+DEFAULT_CONNECTOR_CAPACITY=300000
+DEFAULT_CONNECTOR_LANES = 10
 
 def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
     """
@@ -63,6 +65,18 @@ def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
                    zip(line_strings, tmp)]
     fc = FeatureCollection(my_features)
     return dumps(fc)
+
+
+def __set_connector_default_attr(g):
+    connectors=[(u, v) for u, v, data in g.edges.data() if 'connector' in data]
+    connector_sg=nx.edge_subgraph(g,connectors)
+    for edge in connector_sg.edges:
+        u,v=edge
+        g[u][v]['maxspeed'] = DEFAULT_CONNECTOR_SPEED
+        g[u][v]['capacity'] = DEFAULT_CONNECTOR_CAPACITY
+        g[u][v]['lanes'] = DEFAULT_CONNECTOR_LANES
+
+
 
 
 def _check_centroid_connectivity(g: nx.DiGraph):
@@ -149,6 +163,7 @@ def add_centroids_from_grid(name: str, g, D=2000, k=3):
             connector_data = {'connector': True, 'length': length}
             g.add_edge(u, v, **connector_data)
             g.add_edge(v, u, **connector_data)
+    __set_connector_default_attr(g)
 
 
 def parse_demand(data: str, g: nx.DiGraph, time=0):
@@ -193,7 +208,7 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
         [(data['centroid_id'], {'nx_id': u, 'x': data['x'], 'y': data['y']}) for u, data in g.nodes(data=True) if
          'centroid' in data])
     ods = new_centroid_ids.reshape((int(new_centroid_ids.size / 2), 2), order='F')
-    uniq,inv,counts =  np.unique(ods, axis=0,return_inverse=True,return_counts=True)
+    uniq, inv, counts = np.unique(ods, axis=0, return_inverse=True, return_counts=True)
 
     if uniq.shape[0] != ods.shape[0]:
         new_flows = []
@@ -220,7 +235,7 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
         g.graph['od_graph'] = [od_graph]
 
 
-def _build_demand(demand_data, insertion_time, simulation_time: SimulationTime):
+def _build_demand(demand_data, insertion_times, simulation_time: SimulationTime):
     """
     
     Parameters
@@ -228,19 +243,22 @@ def _build_demand(demand_data, insertion_time, simulation_time: SimulationTime):
     simulation_time : time object, see class def
     demand_data : List <scipy.lil_matrix> origins x destinations,
      matrix k corresponds to the demand inserted at time[k]
-    insertion_time : Array, times at which the demand is loaded
+    insertion_times: Array, times at which the demand is loaded assumed to be in hours
 
     Returns
     -------
 
     """
-
-    if not np.all(insertion_time[1:] - insertion_time[:-1] > simulation_time.step_size):
+    print(' we all made it')
+    if not np.all(insertion_times[1:] - insertion_times[:-1] > simulation_time.step_size):
         raise ValueError('insertion times are assumed to be monotonously increasing. The minimum difference between '
                          'two '
                          'insertions is the internal simulation time step')
+    if max(insertion_times>24):
+        raise ValueError('internally time is restricted to 24 hours')
     time = np.arange(simulation_time.start, simulation_time.end, simulation_time.step_size)
-    loading_time_steps = [(np.abs(insertion_time - time)).argmin() for insertion_time in time]
+    loading_time_steps = [(np.abs(insertion_time - time)).argmin() for insertion_time in insertion_times]
+    print('just before list call')
     static_demands = List()
     rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
     row_sizes = np.array([lil_demand.nonzero()[0].size for lil_demand in demand_data], dtype=np.uint32)
@@ -252,7 +270,7 @@ def _build_demand(demand_data, insertion_time, simulation_time: SimulationTime):
     rows = np.array_split(rows, np.cumsum(row_sizes))
     tot_destinations = max(all_destinations)
     tot_origins = max(all_origins)
-
+    print('before parsing')
     for internal_time, lil_demand, row, col in zip(loading_time_steps, demand_data, rows, cols):
         vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
         index_array_to_d = np.column_stack((row, col))
@@ -264,7 +282,7 @@ def _build_demand(demand_data, insertion_time, simulation_time: SimulationTime):
         static_demands.append(StaticDemand(to_origins, to_destinations,
                                            to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(), origin_node_ids,
                                            destination_node_ids, internal_time))
-
+    print('we stuck where')
     return DynamicDemand(static_demands, simulation_time.tot_time_steps, all_origins, all_destinations)
 
 
@@ -320,4 +338,3 @@ def _merge_gjsons(geojsons):
     feature_lists = [loads(my_string)['features'] for my_string in geojsons]
     features = list(itertools.chain(*feature_lists))
     return {'type': 'FeatureCollection', 'features': features}
-

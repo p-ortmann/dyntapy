@@ -21,7 +21,7 @@ gjsons = [generate_od_xy(20, 'Gent', seed=seed) for seed in np.arange(3) * 3]
 time = 0
 for gjson in gjsons:
     parse_demand(gjson, g, time)
-    time = time + 3600
+    time = time + 1
 assignment = Assignment(g)
 print('init passed successfully')
 print('hi')

@@ -7,8 +7,6 @@
 #
 #
 from dtapy.core.jitclasses import ILTMNetwork, DynamicDemand, SimulationTime, ILTMResults, StaticDemand
-from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
-from dtapy.parameters import i_ltm_gap, i_ltm_max_it
 import numpy as np
 
 

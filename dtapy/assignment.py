@@ -22,7 +22,7 @@ class Assignment:
     """This class has no value when instantiated on its own,
      it merely sets up the state variables/interfaces to networkx and the demand generation"""
 
-    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 86400, ltm_dt)):
+    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 24, ltm_dt)):
         """
 
         Parameters
@@ -59,7 +59,7 @@ class Assignment:
             i_ltm_setup(self)
 
     def __build_network(self):
-        nodes = self.__build_nodes
+        nodes = self.__build_nodes()
         print("nodes passed")
         turns = self.__build_turns(nodes)
         print("turns passed")
@@ -158,12 +158,11 @@ class Assignment:
         g = self.g
         if 'od_graph' not in g.graph:
             raise ValueError('No od_graph registered on the road graph, see demand.py for required format')
-        if 'time' not in g.graph:
-            raise ValueError('No time registered on the road graph, see demand.py for required format')
-        od_graph = g.graph['od_matrix']
-        demand_data = [c.to_scipy_sparse_matrix() for c in od_graph]
-        insertion_time = od_graph.graph['time']
-        _build_demand(demand_data, insertion_time, simulation_time=self.time)
+        od_graphs=g.graph['od_graph']
+        insertion_time = np.array([od_graph.graph['time'] for od_graph in od_graphs])
+        demand_data = [nx.to_scipy_sparse_matrix(c, weight='flow', format='lil') for c in od_graphs]
+        # change to csr for consistency ..
+        return _build_demand(demand_data, insertion_time, simulation_time=self.time)
 
 
 def set_internal_labels(g: nx.DiGraph):
@@ -176,8 +175,9 @@ def set_internal_labels(g: nx.DiGraph):
     node_labels = np.empty(g.number_of_nodes(), np.uint64)
     link_labels = np.empty((g.number_of_edges(), 2), np.uint64)
     counter = count()
-    if 'od_graph' in g.graph:
-        centroids = np.array(g.graph['od_graph'].nodes.data('nx_id'))[:, 1]
+    centroids = [u for u, data in g.nodes.data() if 'centroid' in data]
+    if len(centroids)==0:
+        centroids= [u for u, data in g.nodes.data() if 'centroid' in data]
         all_nodes = np.array(g.nodes)
         all_nodes = np.concatenate((centroids, all_nodes))  # duplicated centroids
         uniq, idx = np.unique(all_nodes, return_inverse=True)  # removing duplicates
