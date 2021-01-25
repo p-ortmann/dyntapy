@@ -79,8 +79,8 @@ def set_free_flow_travel_times(g: nx.DiGraph):
                 speed = data['maxspeed']
             if isinstance(data['length'], str):
                 # print(f' u: {u} v: {v} and data: {data}')
-                data['length'] = float(data['length'])
-            g[u][v]['travel_time'] = np.float(data['length'] / (speed / 3.6))
+                data['length'] = float(data['length']/1000)
+            g[u][v]['travel_time'] = np.float(data['length'] / (speed))
             # print(g[u][v]['travel_time'])
         except KeyError:
             print(f"insufficient data for edge {u} {v} data: {data};length not provided..")

@@ -40,7 +40,8 @@ spec_link = [('capacity', float32[:]),
              ('v_wave', float32[:]),
              ('v0', float32[:]),
              ('type', int8[:]),
-             ('lanes', int8[:])]
+             ('lanes', int8[:]),
+             ('link_type', int8[:])]
 
 
 # spec_link = OrderedDict(spec_link)
@@ -51,7 +52,7 @@ class Links(object):
     """
 
     def __init__(self, length, from_node, to_node, capacity, v_wave, costs, v0,
-                 out_turns, in_turns, lanes):
+                 out_turns, in_turns, lanes, link_type):
         self.capacity = capacity
         self.length = length
         self.to_node = to_node
@@ -62,6 +63,7 @@ class Links(object):
         self.out_turns = out_turns  # csr linkxlink row is outgoing turns
         self.in_turns = in_turns  # csr incoming turns
         self.lanes = lanes
+        self.link_type = link_type
 
 
 class UncompiledLinks(object):
@@ -70,7 +72,7 @@ class UncompiledLinks(object):
     """
 
     def __init__(self, length, from_node, to_node, capacity, v_wave, costs, v0,
-                 out_turns, in_turns, lanes):
+                 out_turns, in_turns, lanes, link_type):
         self.capacity = capacity
         self.length = length
         self.to_node = to_node
@@ -81,6 +83,7 @@ class UncompiledLinks(object):
         self.out_turns = out_turns  # csr linkxlink row is outgoing turns
         self.in_turns = in_turns  # csr incoming turns
         self.lanes = lanes
+        self.link_type = link_type
 
 
 spec_iltm_link = [('links', Links.class_type.instance_type),
@@ -101,7 +104,7 @@ class ILTMLinks(UncompiledLinks):
 
     def __init__(self, links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam, k_crit):
         self.__init__Links(links.length, links.from_node, links.to_node, links.capacity, links.v_wave, links.costs,
-                           links.v0, links.out_turns, links.in_turns, links.lanes)
+                           links.v0, links.out_turns, links.in_turns, links.lanes, links.link_type)
         self.vf_index = vf_index
         self.vw_index = vw_index
         self.vf_ratio = vf_ratio
@@ -140,10 +143,7 @@ spec_node = [('out_links', ui32csr_type),
              ('tot_in_links', uint32[:])]
 
 
-# spec_node = OrderedDict(spec_node)
-class Node(object):
-    def __init__(self, out_links):
-        self.out_links = out_links  # array of fixed size for each node object
+
 
 
 @jitclass(spec_node)

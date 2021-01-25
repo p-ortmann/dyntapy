@@ -8,6 +8,8 @@
 #
 from dtapy.core.jitclasses import ILTMNetwork, DynamicDemand, SimulationTime, ILTMResults, StaticDemand
 import numpy as np
+from dtapy.parameters import LTM_GAP as gap
+import warnings
 
 
 def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResults, time: SimulationTime):
@@ -24,19 +26,21 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
 
     # local rename of link properties, sticking with matlab conventions here
 
-    str_n = network.links.from_node
-    end_n = network.links.to_node
+    # str_n = network.links.from_node
+    # end_n = network.links.to_node
+    to_node = network.links.to_node
+    from_node = network.links.from_node
     cap = network.links.capacity
-    kjm = network.links.kjam
+    kjm = network.links.k_jam
     length = network.links.length
-    vind = network.links.vf_ratio
+    vind = network.links.vf_index
     vrt = network.links.vf_ratio
     wind = network.links.vw_index
     wrt = network.links.vw_ratio
 
     # local rename node properties
-    in_l_csr = network.nodes.in_turns
-    out_l_csr = network.nodes.out_turns
+    in_l_csr = network.nodes.in_links
+    out_l_csr = network.nodes.out_links
     n_in = network.nodes.tot_out_links
     n_out = network.nodes.tot_in_links
 
@@ -49,7 +53,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     marg_comp = results.marg_comp
     # allocate memory to local variables
     rf_down_cvn_db = np.zeros(tot_links)
-    sf_down_cvn_db = np.zeros(tot_links, tot_destinations)
+    sf_down_cvn_db = np.zeros((tot_links, tot_destinations))
 
     # % allocate
     # memory
@@ -65,10 +69,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     # temp_capacities_out = zeros(maxOutgoingLinks, 1);
     # receivingFlow = zeros(maxOutgoingLinks, 1);
     # sendingFlow = zeros(maxIncomingLinks, totDestinations);
-    temp_sending_flow = np.empty(max_in_links, tot_destinations, order='F');
-    temp_receiving_flow = np.emtpy(max_out_links, tot_destinations, order='F');
-    temp_sending_flow_T =temp_sending_flow.transpose()
-    temp_receiving_flow_T = temp_receiving_flow.transpose()
+    temp_sending_flow = np.empty((tot_destinations, max_in_links), order='F')
+    temp_receiving_flow = np.empty((tot_destinations, max_out_links), order='F')
     # deviating from Matlab here with 'C' order, access happens usually per link and for all destinations
     # outgoingFlow = zeros(maxOutgoingLinks, totDestinations);
     #
@@ -89,7 +91,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
     tot_nodes_updates = 0
 
     # part of these assignments may be added eventually, let's see what we actually need with our TF notation
-    for t in range(tot_time_steps):
+
+    for t in range(1, tot_time_steps):
         if not nodes_2_update[:, t].any():
             continue
         rf_down_cvn_bool = np.full(tot_links, True)
@@ -101,7 +104,31 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResu
                     tot_nodes_updates += 1
                     out_links = network.nodes.out_links.get_nnz(origin)
                     for index, link in np.ndenumerate(out_links):
-                        temp_sending_flow_T[:, link]= cvn_up[link,:,t-1]
+                        temp_sending_flow[:, 0] = cvn_up[:, link, t - 1]
+                        for dest, val in zip(current_demand.to_destinations.get_nnz(origin),
+                                             current_demand.to_destinations.get_row(origin)):
+                            temp_sending_flow[dest, 0] += val
 
+                        if np.sum(np.abs(temp_sending_flow[:, 0] - cvn_up[:, link, t - 1])) > gap:
+                            nodes_2_update[origin, min(tot_time_steps, t + 1)] = True
+                            cvn_up[:, link, t] = temp_sending_flow[0, :]
+                            if np.sum(cvn_up[:, link, t] - cvn_up[:, link, t - 1]) < cap[link] * step_size:
+                                con_up[out_links, t] = False
+                            else:
+                                con_up[out_links, t] = True
 
-
+                        if vind[link] == -1:
+                            nodes_2_update[to_node[link], t] = True
+                        else:
+                            try:
+                                nodes_2_update[to_node[link], t - vind[link] - 1] = True
+                                nodes_2_update[to_node[link], t - vind[link]] = True
+                            except Exception:
+                                assert t - vind[link] > tot_time_steps
+                                if t - vind[link] - 1 == tot_time_steps:
+                                    nodes_2_update[to_node[link], tot_time_steps] = True
+                                else:
+                                    print('Simulation time period is too short for given demand.'
+                                              ' Not all vehicles are able to exit the network')
+    print('origin loading sucessful')
+    print('boooooooo')

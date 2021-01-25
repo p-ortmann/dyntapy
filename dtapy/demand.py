@@ -160,7 +160,7 @@ def add_centroids_from_grid(name: str, g, D=2000, k=3):
             v, length = ox.get_nearest_node(tmp, (data['y'], data['x']), return_dist=True)
             og_nodes.remove(v)
             tmp = tmp.subgraph(og_nodes)
-            connector_data = {'connector': True, 'length': length}
+            connector_data = {'connector': True, 'length': length/1000} #length in km
             g.add_edge(u, v, **connector_data)
             g.add_edge(v, u, **connector_data)
     __set_connector_default_attr(g)
@@ -249,7 +249,6 @@ def _build_demand(demand_data, insertion_times, simulation_time: SimulationTime)
     -------
 
     """
-    print(' we all made it')
     if not np.all(insertion_times[1:] - insertion_times[:-1] > simulation_time.step_size):
         raise ValueError('insertion times are assumed to be monotonously increasing. The minimum difference between '
                          'two '
@@ -258,7 +257,6 @@ def _build_demand(demand_data, insertion_times, simulation_time: SimulationTime)
         raise ValueError('internally time is restricted to 24 hours')
     time = np.arange(simulation_time.start, simulation_time.end, simulation_time.step_size)
     loading_time_steps = [(np.abs(insertion_time - time)).argmin() for insertion_time in insertion_times]
-    print('just before list call')
     static_demands = List()
     rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
     row_sizes = np.array([lil_demand.nonzero()[0].size for lil_demand in demand_data], dtype=np.uint32)
@@ -270,7 +268,6 @@ def _build_demand(demand_data, insertion_times, simulation_time: SimulationTime)
     rows = np.array_split(rows, np.cumsum(row_sizes))
     tot_destinations = max(all_destinations)
     tot_origins = max(all_origins)
-    print('before parsing')
     for internal_time, lil_demand, row, col in zip(loading_time_steps, demand_data, rows, cols):
         vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
         index_array_to_d = np.column_stack((row, col))
@@ -282,7 +279,6 @@ def _build_demand(demand_data, insertion_times, simulation_time: SimulationTime)
         static_demands.append(StaticDemand(to_origins, to_destinations,
                                            to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(), origin_node_ids,
                                            destination_node_ids, internal_time))
-    print('we stuck where')
     return DynamicDemand(static_demands, simulation_time.tot_time_steps, all_origins, all_destinations)
 
 

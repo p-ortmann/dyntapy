@@ -44,7 +44,7 @@ def i_ltm_setup(assignment: Assignment):
     val_out_links = np.empty_like(val_in_links)
     turn_counter = 0
     for node in range(assignment.tot_nodes):
-        tot_in_links = assignment.network.nodes.tot_in_links[node]
+        #tot_in_links = assignment.network.nodes.tot_in_links[node]
         node_turns = np.where(assignment.network.turns.via_node == node)[0]
         node_in_links = assignment.network.nodes.in_links.get_nnz(node)
         node_out_links = assignment.network.nodes.out_links.get_nnz(node)
@@ -68,14 +68,14 @@ def i_ltm_setup(assignment: Assignment):
     if not assignment.results:
         # cold start
         marg_comp = False
-        tot_origins = assignment.demand_simulation.tot_origins
-        all_origins = assignment.demand_simulation.next
-        tot_destinations = assignment.demand_simulation.tot_destinations
+        tot_origins = assignment.dynamic_demand.tot_origins
+        all_origins = assignment.dynamic_demand.next
+        tot_destinations = assignment.dynamic_demand.tot_destinations
         tot_links = assignment.tot_links
         tot_nodes = assignment.tot_nodes
         tot_turns = assignment.tot_turns
 
-        cvn_up = np.zeros((tot_links, tot_destinations, tot_time_steps), dtype=np.float32, order='F')
+        cvn_up = np.zeros((tot_destinations,tot_links , tot_time_steps), dtype=np.float32, order='F')
         cvn_down = np.empty_like(cvn_up)
         con_up = np.full((tot_links, tot_time_steps), False, dtype=np.bool_, order='F')
         con_down = np.full((tot_links, tot_time_steps), False, dtype=np.bool_, order='F')
@@ -88,7 +88,7 @@ def i_ltm_setup(assignment: Assignment):
         #     for origin in assignment.demand_simulation.demands[t].get_nnz_rows():
         #         nodes_2_update[origin][t]=True
         # we stick with the implementation where all are active and see if we can reduce later.
-        for origin in assignment.demand_simulation.all_origins:
+        for origin in assignment.dynamic_demand.all_origins:
             nodes_2_update[origin] = True
 
         turning_fractions = List()

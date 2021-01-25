@@ -94,7 +94,7 @@ temporal granularity than LTM remains to be further investigated.
 At this point it's not entirely clear how it would work. We hope that, after implementing some control flavored
 versions of LTM, this can be revisited. 
 Nevertheless, we will include a simple controller class which takes its control actions in sync with the
-network loading because it is a straight forward extension of the dealing with the static events.
+network loading because it is a straight forward extension of handling static events.
 ### Node model data structures
 The node model needs as its input the global sending and receiving flows of the node's incoming and outgoing links,
  global turning fractions for the different turns, and the capacity of the incoming links. With global we mean 
@@ -126,21 +126,16 @@ The node model needs as its input the global sending and receiving flows of the 
  
  ### on Memory layout
  To understand the decisions made here do check the numpy documentation: 
- https://numpy.org/doc/stable/reference/internals.html#multidimensional-array-indexing-order-issues or 
- this excellent article: https://eli.thegreenplace.net/2015/memory-layout-of-multi-dimensional-arrays .
+ https://numpy.org/doc/stable/reference/internals.html#multidimensional-array-indexing-order-issues,
+ this excellent article: https://eli.thegreenplace.net/2015/memory-layout-of-multi-dimensional-arrays
  
  Basically, we can choose between storing our matrices 2- and 3 D matrices in row- (numpy & C default) or column
  major orders (Matlab, Fortran) which has implications for the access speed to different dimensions.
  For C ordered arrays the memory strides are always largest for the first dimension and smallest for the last.
  For F ordered arrays the inverse is true. We (mostly) stick here with with F order to make the transition from Matlab easier.
- Deviations are noted.
- At times we may use numpy's transpose() to get a view which is striding in the opposing Order. Note that this does 
- *not* imply copying the array. It simply tells numpy to stride over the memory in a different manner.
- You can verify this by analyzing .flags and .strides on a given array and it's transpose.
- We'll denote transposed arrays by adding a '_T' at the end of the variable name. 
- We need to care about this because it's crucial that we loop over the array in a way that is in line with the way that 
- underlying data lies in memory.
- 
+ Deviations are noted and copies are stored as var_name_C.
+ Striding over an array in a way that is not aligned with the memory layout has serious performance implications for code that heavily
+ relies on loops. The articles cited above show the differences.
  ###What's still coming?
  do check trello 
  https://trello.com/invite/b/JJe3F5H3/84248383af0033e19119df8fa817da65/dta-implementation

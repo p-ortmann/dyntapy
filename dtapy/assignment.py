@@ -43,7 +43,7 @@ class Assignment:
         # self.demand = self.build_demand()
         self.network = self.__build_network()
         print('network build')
-        self.demand_simulation: DynamicDemand = self.__build_demand()
+        self.dynamic_demand: DynamicDemand = self.__build_demand()
         print('demand simulation build')
         self.network_loading_data_structs(method=network_loading_method)
         print('DNL data structures build')
@@ -126,6 +126,9 @@ class Assignment:
         -------
 
         """
+        link_type = np.zeros(self.g.number_of_edges(), dtype=np.int8) # 0 indicates regular road network link
+        # 1 is for sources (connectors leading out of a centroid)
+        # -1 for sinks (connectors leading towards a centroid)
         length = np.empty(self.g.number_of_edges(), dtype=np.float32)
         capacity = np.empty(self.g.number_of_edges(), dtype=np.float32)
         v0_prt = np.empty(self.g.number_of_edges(), dtype=np.float32)
@@ -140,6 +143,11 @@ class Assignment:
             capacity[_id] = self.g[u][v]['capacity']
             v0_prt[_id] = self.g[u][v]['maxspeed']
             lanes[_id] = self.g[u][v]['lanes']
+            if 'connector' in self.g[u][v] and 'centroid' in self.g.nodes[v]:
+                link_type[_id] = -1  # sink
+            if 'connector' in self.g[u][v] and 'centroid' in self.g.nodes[v]:
+                link_type[_id] = 1  # source
+
         costs = np.empty((self.number_of_time_steps, self.tot_links), dtype=np.float32)
         v_wave = np.full(self.tot_links, v_wave_default, dtype=np.float32)
         number_of_turns = np.uint32(len(turns.to_link))
@@ -152,13 +160,13 @@ class Assignment:
         backward = UI32CSRMatrix(val, col, row)
 
         return Links(length, from_node, to_node, capacity, v_wave, costs, v0_prt, forward, backward,
-                     lanes)
+                     lanes, link_type)
 
     def __build_demand(self):
         g = self.g
         if 'od_graph' not in g.graph:
             raise ValueError('No od_graph registered on the road graph, see demand.py for required format')
-        od_graphs=g.graph['od_graph']
+        od_graphs = g.graph['od_graph']
         insertion_time = np.array([od_graph.graph['time'] for od_graph in od_graphs])
         demand_data = [nx.to_scipy_sparse_matrix(c, weight='flow', format='lil') for c in od_graphs]
         # change to csr for consistency ..
@@ -176,8 +184,8 @@ def set_internal_labels(g: nx.DiGraph):
     link_labels = np.empty((g.number_of_edges(), 2), np.uint64)
     counter = count()
     centroids = [u for u, data in g.nodes.data() if 'centroid' in data]
-    if len(centroids)==0:
-        centroids= [u for u, data in g.nodes.data() if 'centroid' in data]
+    if len(centroids) == 0:
+        centroids = [u for u, data in g.nodes.data() if 'centroid' in data]
         all_nodes = np.array(g.nodes)
         all_nodes = np.concatenate((centroids, all_nodes))  # duplicated centroids
         uniq, idx = np.unique(all_nodes, return_inverse=True)  # removing duplicates
