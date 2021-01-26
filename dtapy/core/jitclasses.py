@@ -327,9 +327,9 @@ class DynamicDemand(object):
         # time step traffic is loaded into the network
         self.all_destinations = get_all_destinations(demands)  # for destination/origin based labels
         self.all_origins = get_all_origins(demands)
-        self.tot_time_steps = tot_time_steps
-        self.tot_origins = self.all_destinations.size
-        self.tot_destinations = self.all_destinations.size
+        self.tot_time_steps = np.uint32(tot_time_steps)
+        self.tot_origins = np.uint32(self.all_destinations.size)
+        self.tot_destinations = np.uint32(self.all_destinations.size)
 
     def update(self):
         self.__time_step += uint32(1)

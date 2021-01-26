@@ -132,8 +132,8 @@ The node model needs as its input the global sending and receiving flows of the 
  Basically, we can choose between storing our matrices 2- and 3 D matrices in row- (numpy & C default) or column
  major orders (Matlab, Fortran) which has implications for the access speed to different dimensions.
  For C ordered arrays the memory strides are always largest for the first dimension and smallest for the last.
- For F ordered arrays the inverse is true. We (mostly) stick here with with F order to make the transition from Matlab easier.
- Deviations are noted and copies are stored as var_name_C.
+ For F ordered arrays the inverse is true. 
+ We stick here with C order as F is not currently supported by numba.
  Striding over an array in a way that is not aligned with the memory layout has serious performance implications for code that heavily
  relies on loops. The articles cited above show the differences.
  ###What's still coming?

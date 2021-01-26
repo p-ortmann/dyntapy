@@ -128,6 +128,7 @@ def __clean_up_data(g: nx.DiGraph):
                 print(data)
                 data['maxspeed'] = 50
         assert 'length' in data
+        data['length']=data['length']/1000
         try:
             lanes = int(data['lanes'])
         except (KeyError, TypeError, ValueError) as e:

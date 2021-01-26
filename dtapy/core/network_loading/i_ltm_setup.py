@@ -75,11 +75,11 @@ def i_ltm_setup(assignment: Assignment):
         tot_nodes = assignment.tot_nodes
         tot_turns = assignment.tot_turns
 
-        cvn_up = np.zeros((tot_destinations,tot_links , tot_time_steps), dtype=np.float32, order='F')
+        cvn_up = np.zeros((tot_time_steps,tot_links , tot_destinations), dtype=np.float32)
         cvn_down = np.empty_like(cvn_up)
-        con_up = np.full((tot_links, tot_time_steps), False, dtype=np.bool_, order='F')
-        con_down = np.full((tot_links, tot_time_steps), False, dtype=np.bool_, order='F')
-        nodes_2_update = np.full((tot_nodes, tot_time_steps), False, dtype=np.bool_, order='F')
+        con_up = np.full((tot_time_steps,tot_links), False, dtype=np.bool_)
+        con_down = np.full(( tot_time_steps,tot_links), False, dtype=np.bool_)
+        nodes_2_update = np.full(( tot_time_steps, tot_nodes), False, dtype=np.bool_ )
 
         # in matlab all are active all the time .. however in our case this is not necessary, we'll see if it causes
         # issues down the line ..
