@@ -60,7 +60,7 @@ class Links(object):
         self.v_wave = v_wave
         self.costs = costs
         self.v0 = v0
-        self.out_turns = out_turns  # csr linkxlink row is outgoing turns
+        self.out_turns = out_turns  # csr link x link row is outgoing turns
         self.in_turns = in_turns  # csr incoming turns
         self.lanes = lanes
         self.link_type = link_type
@@ -68,11 +68,14 @@ class Links(object):
 
 class UncompiledLinks(object):
     """
-    A simple class that carries various arrays and CSR Matrices that have link ids as their index
+   See Links class for docs
     """
 
     def __init__(self, length, from_node, to_node, capacity, v_wave, costs, v0,
                  out_turns, in_turns, lanes, link_type):
+        """
+        See Links class for docs
+        """
         self.capacity = capacity
         self.length = length
         self.to_node = to_node
@@ -113,7 +116,7 @@ class ILTMLinks(UncompiledLinks):
         self.k_crit = k_crit
 
 
-spec_results = [('turning_fractions', ListType(f32csr_type)),
+spec_results = [('turning_fractions', float32[:,:,:]),
                 ('cvn_up', float32[:, :, :]),
                 ('cvn_down', float32[:, :, :]),
                 ('con_up', boolean[:, :]),
@@ -156,7 +159,7 @@ class Nodes(object):
                  capacity):
         """
         out_links and in_links are sparse matrices in csr format that indicate connected links and their nodes
-        both are nodes x nodes with f(i,j) = link_id and essentially carry the same information. There's duplication to
+        both are nodes x nodes with f(i,link_id) = j and essentially carry the same information. There's duplication to
         avoid on-the-fly transformations.
         out_links is fromNode x Link and in_links toNode x Link in dim with toNode and fromNode as val, respectively.
         Parameters
@@ -165,7 +168,7 @@ class Nodes(object):
         in_links : I64CSRMatrix <uint32>
         """
         self.out_links: UI32CSRMatrix = out_links
-        self.in_links = in_links
+        self.in_links: UI32CSRMatrix = in_links
         self.tot_out_links = tot_out_links
         self.tot_in_links = tot_in_links
         # self.turn_fractions = turn_fractions  # node x turn_ids
@@ -175,25 +178,16 @@ class Nodes(object):
 
 class UncompiledNodes(object):
     """
-    A simple class that carries various arrays and CSR Matrices that have node ids as their index
+    See Nodes class for docs
     """
 
     def __init__(self, out_links: UI32CSRMatrix, in_links: UI32CSRMatrix, tot_out_links, tot_in_links, control_type,
                  capacity):
         """
-        forward and backward are sparse matrices in csr format that indicate connected links and their nodes
-        both are nodes x nodes with f(i,j) = link_id and essentially carry the same information. There's duplication to
-        avoid on-the-fly transformations.
-        forward is fromNode x toNode and backward toNode x fromNode
-        Parameters
-        ----------
-        out_links : I64CSRMatrix <uint32>
-        in_links : I64CSRMatrix <uint32>
-        turn_fractions : F64CSRMatrix <float32>
-
+        See Nodes class for docs
         """
         self.out_links: UI32CSRMatrix = out_links
-        self.in_links = in_links
+        self.in_links: UI32CSRMatrix = in_links
         self.tot_out_links = tot_out_links
         self.tot_in_links = tot_in_links
         # self.turn_fractions = turn_fractions  # node x turn_ids
@@ -203,7 +197,9 @@ class UncompiledNodes(object):
 
 spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
                   ('turn_based_in_links', ui8csr_type),
-                  ('turn_based_out_links', ui8csr_type)
+                  ('turn_based_out_links', ui8csr_type),
+                  ('in_link_capacity', f32csr_type),
+                  ('out_link_capacity', f32csr_type)
                   ]
 
 
@@ -211,7 +207,7 @@ spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
 class ILTMNodes(UncompiledNodes):
     __init__Nodes = UncompiledNodes.__init__
 
-    def __init__(self, nodes, turn_based_in_links, turn_based_out_links):
+    def __init__(self, nodes, turn_based_in_links, turn_based_out_links, in_link_cap, out_link_cap):
         """
 
         Parameters
@@ -229,6 +225,8 @@ class ILTMNodes(UncompiledNodes):
 
         self.turn_based_in_links = turn_based_in_links
         self.turn_based_out_links = turn_based_out_links
+        self.in_link_capacity = in_link_cap
+        self.out_link_capacity = out_link_cap
 
 
 spec_turn = [('db_restrictions', ui32csr_type),
@@ -441,7 +439,6 @@ spec_uncompiled_network = [
 
 
 class UncompiledNetwork(object):
-    # link mat
     def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_turns):
         self.links = links
         self.nodes = nodes

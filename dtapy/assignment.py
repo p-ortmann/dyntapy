@@ -71,6 +71,9 @@ class Assignment:
         link_ids = np.arange(self.g.number_of_edges(), dtype=np.uint32)
         values, col, row = csr_prep(np.column_stack((self.node_adjacency[:, 0], link_ids)), self.node_adjacency[:, 1],
                                     (self.tot_nodes, self.tot_links))
+        # Note: links are labelled consecutively in the order of their start nodes
+        # node 0 has outgoing link(s) [0]
+        # node 1 outgoing link(s)  [1,2] and so on
         out_links = UI32CSRMatrix(values, col, row)
         values, col, row = csr_prep(np.column_stack((self.node_adjacency[:, 1], link_ids)),
                                     self.node_adjacency[:, 0], (self.tot_nodes, self.tot_links))
@@ -212,7 +215,8 @@ def set_internal_labels(g: nx.DiGraph):
 # node or link event which triggers a change in otherwise staionary characteristics
 # example ramp metering event capacity choke, relative and absolute events
 
-
+# TODO: maybe different link labelling orders that can be set based on the algorithm at hand
+# some have an outlink pattern like Algorithm B and others have an inlink outlink pattern like LTM ..
 # TODO: how high a priority is visualization.. - one time, interval visualization
 # arrays for different things separately by node id
 # what does the node data structure look like, turning fraction matrix
