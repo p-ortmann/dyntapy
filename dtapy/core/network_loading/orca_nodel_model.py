@@ -32,20 +32,21 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     S = turning_flows  # initialized externally
     s = sending_flow  # differs from paper
     c = in_link_capacity  # differs from paper
+    C = _calc_oriented_capacities(turning_fractions, in_link_capacity,
+                                  turn_capacity.reshape(turning_fractions.shape), use_turn_cap=True)
     q = np.zeros((tot_in_links, tot_out_links), dtype=np.float32)
     # J being the set of out_links with demand towards them
     J = np.where(np.sum(turning_fractions, 0) > 0)[0]
     # U is a list of lists with U[j] being the current contenders (in_links i) of out_link j
     U = List()
-    a = np.full(tot_out_links, 1, dtype=np.float32)  # init of a with fixed size
-
     for j in range(tot_out_links):
         U[j] = List(np.where(turning_fractions[:, j] > 0)[0])
-    C = _calc_oriented_capacities(turning_fractions, in_link_capacity,
-                                  turn_capacity.reshape(turning_fractions.shape), use_turn_cap=True)
+    a = np.full(tot_out_links, 1, dtype=np.float32)  # init of a with fixed size
+
+
     while len(J) > 0:
         a, min_a, _j = __find_most_restrictive_constraint(R, U, C, a)
-        __impose_constraint(_j, min_a, a, U, c, s, q, tot_out_links, J, R, C)
+        __impose_constraint(_j, min_a, a, U, c, s,S, q, tot_out_links, J, R, C)
 
 
 @njit
@@ -87,7 +88,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, tot_out_links, J, R, C):
 
 
 @njit
-def __find_most_restrictive_constraint(R, U, oriented_capacity, a):
+def __find_most_restrictive_constraint(R, U, C, a):
     # loosely corresponds to step 3, pg 301
     for j, R_j in enumerate(R):
         if len(U[j]) == 0:
@@ -96,7 +97,7 @@ def __find_most_restrictive_constraint(R, U, oriented_capacity, a):
         else:
             sum_c_ij = np.int(0)
             for i in U[j]:
-                sum_c_ij += oriented_capacity[i, j]
+                sum_c_ij += C[i, j]
             a[j] = R_j / sum_c_ij
     _j = np.argmin(a)
     return a, a[_j], _j,  # determine most restrictive out_link j
