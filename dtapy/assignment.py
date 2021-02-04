@@ -98,6 +98,8 @@ class Assignment:
         turn_counter = 0
         for via_node in np.arange(self.tot_nodes):
             # named here _attribute to indicate all the to nodes/links that are associated with the via_node
+            # turns are labelled here topologically by their respective in_link labels, out_links are tiebreakers.
+
             _to_nodes = nodes.out_links.get_row(via_node)
             _from_nodes = nodes.in_links.get_row(via_node)
             _from_links = nodes.in_links.get_nnz(via_node)
