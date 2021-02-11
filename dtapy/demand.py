@@ -23,9 +23,10 @@ from collections import deque
 from json import loads
 import itertools
 
-DEFAULT_CONNECTOR_SPEED=10000
-DEFAULT_CONNECTOR_CAPACITY=300000
+DEFAULT_CONNECTOR_SPEED = 10000
+DEFAULT_CONNECTOR_CAPACITY = 300000
 DEFAULT_CONNECTOR_LANES = 10
+
 
 def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
     """
@@ -68,15 +69,13 @@ def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
 
 
 def __set_connector_default_attr(g):
-    connectors=[(u, v) for u, v, data in g.edges.data() if 'connector' in data]
-    connector_sg=nx.edge_subgraph(g,connectors)
+    connectors = [(u, v) for u, v, data in g.edges.data() if 'connector' in data]
+    connector_sg = nx.edge_subgraph(g, connectors)
     for edge in connector_sg.edges:
-        u,v=edge
+        u, v = edge
         g[u][v]['maxspeed'] = DEFAULT_CONNECTOR_SPEED
         g[u][v]['capacity'] = DEFAULT_CONNECTOR_CAPACITY
         g[u][v]['lanes'] = DEFAULT_CONNECTOR_LANES
-
-
 
 
 def _check_centroid_connectivity(g: nx.DiGraph):
@@ -160,7 +159,7 @@ def add_centroids_from_grid(name: str, g, D=2000, k=3):
             v, length = ox.get_nearest_node(tmp, (data['y'], data['x']), return_dist=True)
             og_nodes.remove(v)
             tmp = tmp.subgraph(og_nodes)
-            connector_data = {'connector': True, 'length': length/1000} #length in km
+            connector_data = {'connector': True, 'length': length / 1000}  # length in km
             g.add_edge(u, v, **connector_data)
             g.add_edge(v, u, **connector_data)
     __set_connector_default_attr(g)
@@ -253,7 +252,7 @@ def _build_demand(demand_data, insertion_times, simulation_time: SimulationTime)
         raise ValueError('insertion times are assumed to be monotonously increasing. The minimum difference between '
                          'two '
                          'insertions is the internal simulation time step')
-    if max(insertion_times>24):
+    if max(insertion_times > 24):
         raise ValueError('internally time is restricted to 24 hours')
     time = np.arange(simulation_time.start, simulation_time.end, simulation_time.step_size)
     loading_time_steps = [(np.abs(insertion_time - time)).argmin() for insertion_time in insertion_times]

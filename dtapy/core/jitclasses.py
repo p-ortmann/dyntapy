@@ -122,13 +122,15 @@ spec_results = [('turning_fractions', float32[:,:,:]),
                 ('con_up', boolean[:, :]),
                 ('con_down', boolean[:, :]),
                 ('marg_comp', boolean),
-                ('nodes_2_update', boolean[:, :])
+                ('nodes_2_update', boolean[:, :]),
+                ('costs', float32[:,:])
                 ]
 
 
 @jitclass(spec_results)
 class ILTMResults(object):
-    def __init__(self, turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp, nodes_2_update):
+    #in the future this may also be replaced and inherit from a parent Results class
+    def __init__(self, turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp, nodes_2_update, costs):
         self.turning_fractions = turning_fractions
         self.cvn_up = cvn_up
         self.cvn_down = cvn_down
@@ -136,6 +138,7 @@ class ILTMResults(object):
         self.con_down = con_down
         self.marg_comp = marg_comp
         self.nodes_2_update = nodes_2_update
+        self.costs =  costs
 
 
 spec_node = [('out_links', ui32csr_type),

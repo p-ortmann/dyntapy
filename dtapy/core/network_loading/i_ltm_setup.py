@@ -29,7 +29,6 @@ def i_ltm_setup(assignment: Assignment):
     vw_index = -vw_index - 1
     k_crit = capacity / v0
     k_jam = capacity / v_wave + k_crit
-
     iltm_links = ILTMLinks(assignment.network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 
@@ -87,7 +86,11 @@ def i_ltm_setup(assignment: Assignment):
         tot_links = assignment.tot_links
         tot_nodes = assignment.tot_nodes
         tot_turns = assignment.tot_turns
-
+        costs = np.empty(( tot_links, tot_time_steps), dtype=np.float32) #order of arguments is changed here, for route choice
+        # iterate over multiple time steps for a single link ..
+        t0= length/v0
+        for t in range(tot_time_steps):
+            costs[:, t] = t0
         cvn_up = np.zeros((tot_time_steps, tot_links, tot_destinations), dtype=np.float32)
         cvn_down = np.empty_like(cvn_up)
         con_up = np.full((tot_time_steps, tot_links), False, dtype=np.bool_)
@@ -104,7 +107,7 @@ def i_ltm_setup(assignment: Assignment):
         for origin in assignment.dynamic_demand.all_origins:
             nodes_2_update[origin] = True
 
-        turning_fractions = np.zeros((tot_time_steps,tot_turns, tot_destinations))
+        turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations))
         # may investigate use of sparse structure for turning fractions
         assignment.results = ILTMResults(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
-                                         nodes_2_update)
+                                         nodes_2_update, costs)
