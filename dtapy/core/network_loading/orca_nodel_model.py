@@ -1,6 +1,5 @@
 import numpy as np
-from numba import njit
-from numba.typed import List, Dict
+from numba.typed import List
 from numba.core.types.containers import ListType
 from numba import int8
 
@@ -46,7 +45,7 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     i_bucket = List(lsttype=ListType(int8))
     for j in range(tot_out_links):
         U.append(List(np.where(turning_fractions[:, j] > 0)[0]))
-    a = np.full(tot_out_links, 1000, dtype=np.float32)  # init of a with fixed size
+    a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size
     while len(J) > 0:
         a, min_a, _j = __find_most_restrictive_constraint(J, R, U, C, a)
         print(f'new {_j}')
@@ -97,12 +96,13 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket,j_bucket 
                     # therefore, it drops out of all competition sets U[j]
                     U[j].remove(i)
                     if len(U[j]) == 0:
-                        a[j] = 1000
+                        a[j] = np.inf
                         j_bucket.append(j)
         a[_j]=np.inf
         J.remove(_j)
     while len(j_bucket)>0:
         j = j_bucket.pop(0)
+        a[j] =  np.inf
         J.remove(j)
 
 

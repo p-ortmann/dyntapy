@@ -6,7 +6,7 @@
 #
 #
 #
-from dtapy.core.jitclasses import Nodes, Links, Turns, ILTMLinks, ILTMNetwork, ILTMNodes, ILTMResults
+from dtapy.core.jitclasses import Nodes, Links, Turns, ILTMLinks, ILTMNetwork, ILTMNodes, ILTMState
 import numpy as np
 from numba import int32, float32
 from numba.typed import List
@@ -109,5 +109,5 @@ def i_ltm_setup(assignment: Assignment):
 
         turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations))
         # may investigate use of sparse structure for turning fractions
-        assignment.results = ILTMResults(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
-                                         nodes_2_update, costs)
+        assignment.results = ILTMState(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
+                                       nodes_2_update, costs)

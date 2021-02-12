@@ -6,7 +6,7 @@
 #
 #
 #
-from dtapy.core.jitclasses import ILTMNetwork, DynamicDemand, SimulationTime, ILTMResults, StaticDemand
+from dtapy.core.jitclasses import ILTMNetwork, DynamicDemand, SimulationTime, ILTMState, StaticDemand
 import numpy as np
 from dtapy.parameters import LTM_GAP as gap
 from numba import njit
@@ -14,7 +14,7 @@ from numba.typed import List
 
 
 @njit
-def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMResults, time: SimulationTime):
+def i_ltm(network: ILTMNetwork, dynamic_demand: DynamicDemand, results: ILTMState, time: SimulationTime):
     all_destinations = dynamic_demand.all_destinations
     all_origins = dynamic_demand.all_origins
     tot_time_steps = time.tot_time_steps

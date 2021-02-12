@@ -287,23 +287,3 @@ def __linestring_from_node_cords(coord_list, width_coords):
     ls = LineString(coord_list)
     return ls, ls.parallel_offset(1 * width_coords)
 
-    # for x1, y1, x2, y2, width in zip(x1s, y1s, x2s, y2s, 0.5*widths):
-    #     atan_x = x2 - x1
-    #     atan_y = y2 - y1
-    #     if atan_y >= 0:
-    #         if atan_x >= 0:
-    #             dx = width * cos(atan2(atan_x, atan_y))
-    #             dy = width * sin(atan2(atan_x, atan_y))
-    #         else:
-    #             dx = width * sin(atan2(atan_x, atan_y))
-    #             dy = width * cos(atan2(atan_x, atan_y))
-    #     else:
-    #         if atan_x >= 0:
-    #             dx = width * sin(atan2(atan_x, atan_y))
-    #             dy = width * cos(atan2(atan_x, atan_y))
-    #         else:
-    #             dx = width * cos(atan2(atan_x, atan_y))
-    #             dy = width * sin(atan2(atan_x, atan_y))
-    #             new_x.append([x1 + dx,x2 + dx])
-    #             new_y.append([y1 + dy,y2 + dy])
-    #     return new_x, new_y

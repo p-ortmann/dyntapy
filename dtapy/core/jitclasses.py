@@ -128,7 +128,7 @@ spec_results = [('turning_fractions', float32[:,:,:]),
 
 
 @jitclass(spec_results)
-class ILTMResults(object):
+class ILTMState(object):
     #in the future this may also be replaced and inherit from a parent Results class
     def __init__(self, turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp, nodes_2_update, costs):
         self.turning_fractions = turning_fractions
@@ -139,6 +139,12 @@ class ILTMResults(object):
         self.marg_comp = marg_comp
         self.nodes_2_update = nodes_2_update
         self.costs =  costs
+spec_route_choice =  [('turning_fractions', float32[:,:,:])]
+
+@jitclass(spec_route_choice)
+class RouteChoiceState(object):
+    def __init__(self, turning_fractions):
+        self.turning_fractions = turning_fractions
 
 
 spec_node = [('out_links', ui32csr_type),
