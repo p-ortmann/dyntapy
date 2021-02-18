@@ -6,12 +6,15 @@
 #
 #
 #
-from dtapy.core.jitclasses import Nodes, Links, Turns, ILTMLinks, ILTMNetwork, ILTMNodes, ILTMState
+from dtapy.core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMNodes, ILTMState, ILTMLinks
 import numpy as np
-from numba import int32, float32
-from numba.typed import List
+from numba import int32, float32, boolean
 from dtapy.assignment import Assignment
 from datastructures.csr import UI8CSRMatrix, csr_prep, F32CSRMatrix
+
+
+
+
 
 
 def i_ltm_setup(assignment: Assignment):

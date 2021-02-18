@@ -21,7 +21,7 @@ random_og= np.random.choice(np.arange(g.number_of_nodes()))
 random_dest= np.random.choice(np.arange(g.number_of_nodes()))
 og_nx, dest_nx=obj.node_map_to_nx[random_og], obj.node_map_to_nx[random_dest]
 targetts=np.empty(0)
-__shortest_path(obj.link_travel_times, obj.forward_star, obj.edge_map,random_og, targetts, obj.node_order)
+__shortest_path(obj.link_costs, obj.forward_star, obj.edge_map, random_og, targetts, obj.node_order)
 my_igraph=ig.Graph(obj.edge_map.keys(), directed=True)
 my_igraph.shortest_paths(source=random_og,weights=obj.link_ff_times, mode='OUT')
 nx.shortest_path(g, source= og_nx, weight='weight')

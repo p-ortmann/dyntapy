@@ -14,10 +14,12 @@ from bokeh.models import HoverTool, TapTool, OpenURL, Label
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models.glyphs import Circle, Asterisk, Patches
+from bokeh.models import CustomJS, Slider
 from shapely.geometry import LineString
 from stapy.settings import visualization_keys_edges, visualization_keys_nodes
 from utilities import log, __create_green_to_red_cm
 from stapy.assignment import StaticAssignment
+from dtapy.core.network_objects_cls import SimulationTime
 import osmnx as ox
 from pyproj import CRS
 from stapy.__init__ import data_folder, results_folder
@@ -28,7 +30,7 @@ traffic_cm = __create_green_to_red_cm('hex')
 def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
                  title=None, plot_size=1300,
                  mode='assignment', iteration=None, notebook=False, max_links_visualized=None,
-                 show_unloaded_links=False, show_internal_ids=True, time=None):
+                 show_unloaded_links=False, show_internal_ids=True, time=SimulationTime):
     """
 
     Parameters
@@ -48,8 +50,9 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     """
     tmp = nx.MultiDiGraph(g)
     tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
+    #TODO: register and process iteration data, allow access thru the slider ..
     tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
-    edges =[(u, v,k) for u, v,k in tmp.edges if u != v]
+    edges =[(u, v,k) for u, v,k in tmp.edges if u != v] #  removing duplicate edges
     tmp=tmp.edge_subgraph(edges)
     if title == None:
         try:
@@ -62,30 +65,14 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
         plot_size = 600
     else:
         output_file(results_folder + f'/{title}.html')
-    assert mode in ['assignment', 'desire lines', 'deleted elements']
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
-    if iteration is not None:
-        assert isinstance(iteration, int)
-        assert 'iterations' in tmp.graph
-        assert 'gaps' in tmp.graph
-        flows = tmp.graph['iterations'][iteration]
-        gap = tmp.graph['gaps'][iteration]
-        citation = Label(x=30, y=30, x_units='screen', y_units='screen',
-                         text=f'Iteration {iteration}, Remaining Gap: {gap} ', render_mode='css',
-                         border_line_color='black', border_line_alpha=1.0,
-                         background_fill_color='white', background_fill_alpha=1.0)
-        plot.add_layout(citation)
-        for flow, (_, _, data) in zip(flows, tmp.edges.data()):
-            data['flow'] = flow
-    if mode in ['assignment', 'desire lines']:
-        if max_links_visualized is None:
-            from stapy.settings import max_links_visualized
-        tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
-        max_flow = max([float(f) for _, _, f in tmp.edges.data('flow') if f is not None])
-    else:
-        max_flow = 0
+
+    if max_links_visualized is None:
+        from stapy.settings import max_links_visualized
+    tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
+    max_flow = max([float(f) for _, _, f in tmp.edges.data('flow') if f is not None])
 
     node_x = [x for _, x in tmp.nodes.data('x')]
     node_y = [y for _, y in tmp.nodes.data('y')]
@@ -143,9 +130,27 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     url = "https://www.openstreetmap.org/way/@osmid/"
     edgetaptool = TapTool(renderers=[edge_renderer])
     edgetaptool.callback = OpenURL(url=url)
-    plot.add_tools(node_hover, edge_hover, edgetaptool, nodetaptool)
-    show(plot)
 
+    time_slider = Slider(start=0, end=10, value=0, step=1, title="time")
+    callback = CustomJS(args=dict(source=edge_source, time=time_slider, dynamic_x=None, dynamic_y=None, dynamic_color=None, dynamic_flow=None ),
+                        code="""
+        const data = source.data;
+        const t = time.value;
+        data['flow'] = dynamic_flow[t]
+        data['x'] = dynamic_x[t]
+        data['y'] = dynamic_y[t]
+        data['color'] = dynamic_color[t]
+        source.change.emit();
+    """)
+    time_slider.js_on_change('value', callback)
+    #layout with multiple convergence plots
+    layout = row(
+        plot,
+        column(time_slider),
+    )
+    plot.add_tools(node_hover, edge_hover, edgetaptool, nodetaptool)
+
+    show(plot)
 
 def debug_plot(g, costs, flows,link_labels, t=None):
     """

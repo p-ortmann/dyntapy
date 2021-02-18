@@ -6,5 +6,6 @@ private.py
 /.vscode/
 /results/
 /data/
-
+slider.py
+visualization_test.py
 

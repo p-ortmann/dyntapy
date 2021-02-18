@@ -6,12 +6,11 @@
 #
 #
 #
-from dtapy.core.jitclasses import SimulationTime
 from dtapy.demand import generate_od_xy, parse_demand, add_centroids_from_grid
 from dtapy.network_data import get_from_ox_and_save
 import numpy as np
 from dtapy.assignment import Assignment
-from dtapy.core.network_loading.i_ltm import i_ltm
+from dtapy.core.network_loading.link_models.i_ltm import i_ltm
 
 (g, deleted) = get_from_ox_and_save('Gent', reload=True)
 print(f'number of nodes{g.number_of_nodes()}')

@@ -7,16 +7,14 @@
 #
 #
 from collections import OrderedDict
-from datastructures.csr import UI32CSRMatrix, F32CSRMatrix, UI8CSRMatrix
+from datastructures.csr import UI32CSRMatrix, F32CSRMatrix, UI8CSRMatrix, ui32csr_type, f32csr_type, ui8csr_type
 from numba.core.types import float32, uint32, int32, int8, uint8, boolean
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
 from numba import njit
 import numpy as np
 
-ui32csr_type = UI32CSRMatrix.class_type.instance_type
-f32csr_type = F32CSRMatrix.class_type.instance_type
-ui8csr_type = UI8CSRMatrix.class_type.instance_type
+
 
 # We differentiate here between the generic Links Nodes and Turns object and more specialized objects that inherit
 # from these classes Dynamic Traffic Assignment algorithms all use a base line of attributes that are kept in these
@@ -89,62 +87,18 @@ class UncompiledLinks(object):
         self.link_type = link_type
 
 
-spec_iltm_link = [('links', Links.class_type.instance_type),
-                  ('k_jam', float32[:]),
-                  ('k_crit', float32[:]),
-                  ('vf_index', int32[:]),
-                  ('vf_ratio', float32[:]),
-                  ('vw_index', int32[:]),
-                  ('vw_ratio', float32[:])]
 
 
-# spec_iltm_link = OrderedDict(spec_iltm_link)
 
 
-@jitclass(spec_link + spec_iltm_link)
-class ILTMLinks(UncompiledLinks):
-    __init__Links = UncompiledLinks.__init__
+spec_arrival_map =  [('turning_fractions', float32[:, :, :]),
+                     ('marg_comp', boolean)]
 
-    def __init__(self, links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam, k_crit):
-        self.__init__Links(links.length, links.from_node, links.to_node, links.capacity, links.v_wave, links.costs,
-                           links.v0, links.out_turns, links.in_turns, links.lanes, links.link_type)
-        self.vf_index = vf_index
-        self.vw_index = vw_index
-        self.vf_ratio = vf_ratio
-        self.vw_ratio = vw_ratio
-        self.k_jam = k_jam
-        self.k_crit = k_crit
-
-
-spec_results = [('turning_fractions', float32[:,:,:]),
-                ('cvn_up', float32[:, :, :]),
-                ('cvn_down', float32[:, :, :]),
-                ('con_up', boolean[:, :]),
-                ('con_down', boolean[:, :]),
-                ('marg_comp', boolean),
-                ('nodes_2_update', boolean[:, :]),
-                ('costs', float32[:,:])
-                ]
-
-
-@jitclass(spec_results)
-class ILTMState(object):
-    #in the future this may also be replaced and inherit from a parent Results class
-    def __init__(self, turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp, nodes_2_update, costs):
+@jitclass(spec_arrival_map)
+class ArrivalMap(object):
+    def __init__(self, turning_fractions, marg_comp):
         self.turning_fractions = turning_fractions
-        self.cvn_up = cvn_up
-        self.cvn_down = cvn_down
-        self.con_up = con_up
-        self.con_down = con_down
-        self.marg_comp = marg_comp
-        self.nodes_2_update = nodes_2_update
-        self.costs =  costs
-spec_route_choice =  [('turning_fractions', float32[:,:,:])]
-
-@jitclass(spec_route_choice)
-class RouteChoiceState(object):
-    def __init__(self, turning_fractions):
-        self.turning_fractions = turning_fractions
+        self.marg_comp = marg_comp # whether results can be used for warm starting
 
 
 spec_node = [('out_links', ui32csr_type),
@@ -204,38 +158,6 @@ class UncompiledNodes(object):
         self.capacity = capacity
 
 
-spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
-                  ('turn_based_in_links', ui8csr_type),
-                  ('turn_based_out_links', ui8csr_type),
-                  ('in_link_capacity', f32csr_type),
-                  ('out_link_capacity', f32csr_type)
-                  ]
-
-
-@jitclass(spec_node + spec_iltm_node)
-class ILTMNodes(UncompiledNodes):
-    __init__Nodes = UncompiledNodes.__init__
-
-    def __init__(self, nodes, turn_based_in_links, turn_based_out_links, in_link_cap, out_link_cap):
-        """
-
-        Parameters
-        ----------
-        nodes : Nodes.class_type.instance_type, baseline node object
-        turn_based_in_links : csr matrix node x turns
-        turn_based_out_links : csr matrix node x turns
-
-        the values of the turn_based - in and out_link csr matrices are the index
-        of the corresponding sending and receiving flow vector that the node model receives, capacities are also given
-        ordered by in- and out links, see technical.md.
-        """
-        self.__init__Nodes(nodes.out_links, nodes.in_links, nodes.tot_out_links, nodes.tot_in_links, nodes.control_type,
-                           nodes.capacity)
-
-        self.turn_based_in_links = turn_based_in_links
-        self.turn_based_out_links = turn_based_out_links
-        self.in_link_capacity = in_link_cap
-        self.out_link_capacity = out_link_cap
 
 
 spec_turn = [('db_restrictions', ui32csr_type),
@@ -471,18 +393,6 @@ class UncompiledNetwork(object):
             return self.links.capacity
 
 
-spec_iltm_network = [('network', Network.class_type.instance_type),
-                     ('links', ILTMLinks.class_type.instance_type),
-                     ('nodes', ILTMNodes.class_type.instance_type),
-                     ('turns', Turns.class_type.instance_type)]
-
-
-@jitclass(spec_uncompiled_network + spec_iltm_network)
-class ILTMNetwork(UncompiledNetwork):
-    __init__Network = UncompiledNetwork.__init__
-
-    def __init__(self, network, links, nodes, turns):
-        self.__init__Network(links, nodes, turns, network.tot_links, network.tot_nodes, network.tot_turns)
 
 # dt current time step
 # T time horizon

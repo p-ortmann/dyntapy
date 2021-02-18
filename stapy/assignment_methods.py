@@ -52,11 +52,11 @@ def DUE(g, od_matrix, method=None):
         raise NotImplementedError
     obj = StaticAssignment(g, od_matrix)
     if method == 'bpr,flow_avg':
-        obj.link_travel_times, obj.link_flows = msa_flow_averaging(obj)
+        obj.link_costs, obj.link_flows = msa_flow_averaging(obj)
     if method == 'frank_wolfe':
-        obj.link_travel_times, obj.link_flows = frank_wolfe(obj)
+        obj.link_costs, obj.link_flows = frank_wolfe(obj)
     if method == 'dial_b':
-        obj.link_travel_times, obj.link_flows, _ = dial_b(obj)
+        obj.link_costs, obj.link_flows, _ = dial_b(obj)
     obj.write_back()
     # add visualization
 
@@ -70,7 +70,7 @@ def SUN(g, od_matrix, method=None):
     obj = StaticAssignment(g, od_matrix)
     if method == 'dial_uncongested':
         obj.link_flows = uncongested_stochastic_assignment(obj)
-        obj.link_travel_times = obj.link_ff_times
+        obj.link_costs = obj.link_ff_times
         print('uncongested dial called')
     obj.write_back()
 

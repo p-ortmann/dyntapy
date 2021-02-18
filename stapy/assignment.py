@@ -31,7 +31,7 @@ class StaticAssignment:
             Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment object
         """
         self.adj_edge_list, self.node_map_to_nx, self.link_flows, \
-        self.link_ff_times, self.link_travel_times, self.link_capacities, self.sparse_od_matrix, self.destinations, \
+        self.link_ff_times, self.link_costs, self.link_capacities, self.sparse_od_matrix, self.destinations, \
         self.demand_dict, self.edge_map, self.od_flow_vector, self.inverse_edge_map, self.number_of_od_pairs = \
             None, None, None, None, None, None, None, None, None, None, None, None, None
         self.g = g
@@ -65,7 +65,7 @@ class StaticAssignment:
         self.edge_map, self.inverse_edge_map = Dict(), Dict()
         self.translation_link_ids_nx = [None for _ in range(self.edge_order)]
         self.node_map_to_nx = [None for _ in range(self.node_order)]
-        self.link_flows, self.link_capacities, self.link_ff_times, self.link_travel_times = \
+        self.link_flows, self.link_capacities, self.link_ff_times, self.link_costs = \
             (np.zeros(self.g.number_of_edges()) for _ in range(4))
         counter = count()
         for node_id, u in enumerate(self.g.nodes):
@@ -121,8 +121,8 @@ class StaticAssignment:
             for key, value in data.items():
                 self.g.nodes[t[_v]][f'{key}'] = float(value)
         self.node_data=Dict()
-        for (u, v), travel_time, flow in zip(self.translation_link_ids_nx, np.round_(self.link_travel_times, decimals=2), np.round_(self.link_flows, decimals=2)):
-            self.g[u][v]['travel_time'] = float(travel_time)
+        for (u, v), cost, flow in zip(self.translation_link_ids_nx, np.round_(self.link_costs, decimals=2), np.round_(self.link_flows, decimals=2)):
+            self.g[u][v]['costs'] = float(cost)
             self.g[u][v]['flow'] = float(flow)
 
     def store_iteration(self, flow_vector, gap):

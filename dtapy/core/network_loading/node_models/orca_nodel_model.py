@@ -1,11 +1,10 @@
 import numpy as np
 from numba.typed import List
 from numba.core.types.containers import ListType
-from numba import int8
+from numba import int8, njit
 
 
-
-# @njit
+@njit
 def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
                     turn_capacity, in_link_capacity):
     """

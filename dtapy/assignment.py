@@ -9,20 +9,24 @@ import numpy as np
 from itertools import count
 import networkx as nx
 from numba.typed import List
-from datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
-from dtapy.core.jitclasses import Links, Nodes, Network, Turns, StaticDemand, DynamicDemand, SimulationTime
+from datastructures.csr import csr_prep, UI32CSRMatrix
+from dtapy.core.network_objects_cls import Links, Nodes, Network, Turns, DynamicDemand, SimulationTime
 from dtapy.parameters import v_wave_default, turn_capacity_default, turn_type_default, node_capacity_default, \
     node_control_default, turn_t0_default
 from dtapy.parameters import network_loading_method
 from dtapy.demand import _build_demand, _check_centroid_connectivity
 from dtapy.parameters import ltm_dt
+from typing import NamedTuple
+from dtapy.core.assignment_methods import i_ltm_aon
 
+assignment_methods = NamedTuple('assignment_methods','Iterative_LTM_with_AON')
+assignment_methods =assignment_methods('')
 
 class Assignment:
     """This class has no value when instantiated on its own,
      it merely sets up the state variables/interfaces to networkx and the demand generation"""
 
-    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 24, ltm_dt)):
+    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 24, ltm_dt), method =i_ltm_aon):
         """
 
         Parameters
@@ -55,7 +59,7 @@ class Assignment:
 
     def network_loading_data_structs(self, method: str):
         if method == 'iltm':
-            from dtapy.core.network_loading.i_ltm_setup import i_ltm_setup
+            from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_setup
             i_ltm_setup(self)
 
     def __build_network(self):

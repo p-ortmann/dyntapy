@@ -16,11 +16,11 @@ from typing import NamedTuple
 
 class Parameters(NamedTuple):
     """container for categories of parameters"""
-    # visualization: NamedTuple
+    visualization: NamedTuple
     supply: NamedTuple
-    # demand: NamedTuple
-    # network_loading: NamedTuple
-    # route_choice: NamedTuple
+    demand: NamedTuple
+    network_loading: NamedTuple
+    route_choice: NamedTuple
 
 
 class Supply(NamedTuple):
@@ -86,6 +86,7 @@ node_capacity_default = 9999
 node_control_default = 0
 route_choice_agg = 1
 route_choice_dt = 1
+route_choice_delta =  0.01
 
 
 i_ltm_gap = np.float32(pow(10, -7))
