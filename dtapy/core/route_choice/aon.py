@@ -14,8 +14,8 @@ from dtapy.core.route_choice.dynamic_dijkstra import dijkstra
 from dtapy.core.route_choice.aon_cls import AONState
 import numpy as np
 from dtapy.parameters import route_choice_delta
-from heapq import heappop, heappush
 from numba.typed import List
+from numba import prange
 
 
 # TODO: add generic results object
@@ -30,23 +30,25 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
     state.prev_costs = state.cur_costs
     state.cur_costs = assignment.results.costs
     delta_costs = np.abs(state.cur_costs - state.prev_costs)
-    nodes_2_update = List() # list of nodes that have to be updated for the current time step
-    next_nodes_2_update = List() # for earlier time steps
+    nodes_2_update = List()  # list of nodes that have to be updated for the current time step
+    next_nodes_2_update = List()  # for earlier time steps
     arrival_maps = state.arrival_maps
     step_size = assignment.time.step_size
+    link_time = np.floor(state.cur_costs / step_size)
+    interpolation_frac = state.cur_costs / step_size - link_time
     # TODO: revisit structuring of the travel time arrays
     # could be worth while to copy and reverse the order depending on where you're at in these loops ..
-
+    # TODO: replace node2update  lists with fixed size arrays and pointers
     # the following implementation closely follows the solution presented in
     # Himpe, Willem. "Integrated Algorithms for Repeated Dynamic Traffic Assignments The Iterative
     # Link Transmission Model with Equilibrium Assignment Procedure."(2016).
     # refer to page 48, algorithm 6 for details.
     for destination in all_destinations:
         for t in range(tot_time_steps, 0, -1):
-            nodes_2_update = next_nodes_2_update
+            nodes_2_update = next_nodes_2_update.copy()
             for link, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
-                # to the heap of nodes to be updated
+                # to the list of nodes to be updated
                 if delta > route_choice_delta:
                     node = from_node[link]
                     nodes_2_update.append(node)
@@ -66,11 +68,10 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
                     if arrival_maps[destination, t, node] < min_dist:
                         min_idx = idx
                         min_dist = arrival_maps[destination, t, node]
-                node = nodes_2_update[min_idx]
+                node = nodes_2_update.pop(min_idx)
                 new_dist = np.inf
                 for link in out_links.get_nnz(node):
-                    link_time = np.floor(state.cur_costs[t, link] / step_size)
-                    interpolation_frac = state.cur_costs[t, link] / step_size - link_time
+
                     if t + link_time > tot_time_steps:
                         dist = arrival_maps[destination, tot_time_steps, to_node[link]] + state.cur_costs[t, link] \
                                - (tot_time_steps - t) * step_size
@@ -86,3 +87,60 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
                     for link in in_links.get_nnz(node):
                         nodes_2_update.append(from_node[link])
                         next_nodes_2_update.append(from_node[link])
+
+
+# TODO: test the @njit(parallel=True) option here
+@njit(parallel=True)
+def calc_turning_fractions(assignment: Assignment, state: AONState, departure_time_offset):
+    """
+
+    Parameters
+    ----------
+    assignment : Assignment, see def
+    state : AONState, see def
+    departure_time_offset : float32 in [0,1] , indicates which departure time to consider
+     in between two adjacent time intervals
+    0 indicates the very first vehicle is used to predict the choices of all in the interval,
+    0.5 the middle, and consequently 1 the last
+
+
+    Returns
+    -------
+
+    """
+    # calculation for the experienced travel times
+    update_arrival_maps(assignment, state)
+    arrival_maps = state.arrival_maps
+    step_size = assignment.time.step_size
+    path_time = np.float32(0)
+    new_path_time = np.float32(0)
+    local_link_time = np.uint32(0)
+    local_interpolation_fraction = np.float32(0)
+    next_link = np.int32(-1)
+    next_node = np.int32(-1)
+    turning_fractions = state.turning_fractions
+    for idx in prange(assignment.dynamic_demand.all_destinations.size):
+        destination = assignment.dynamic_demand.all_destinations[idx]
+        dists = state.arrival_maps[destination, :, :]
+        for t in assignment.time.tot_time_steps:
+            for node in assignment.network.nodes:
+                next_node = node.copy()
+                path_time = t + departure_time_offset
+                min_dist = np.inf
+                while next_node != destination:
+                    for link, to_node in zip(assignment.network.nodes.out_links.get_nnz(next_node),
+                                             assignment.network.nodes.out_links.get_row(next_node)):
+                        local_link_time = np.floor(
+                            path_time + state.link_time[t, link] + state.interpolation_frac[t, link])
+                        local_interpolation_fraction = path_time + state.link_time[t, link] + \
+                                                       state.interpolation_frac[t, link] - local_link_time
+                        dist = (1 - local_interpolation_fraction) * arrival_maps[
+                            destination, t + local_link_time, link] + local_interpolation_fraction * arrival_maps[
+                                   destination, t + local_link_time + 1, link]
+                        if dist < min_dist:
+                            next_node = to_node
+                            next_link = link
+                            new_path_time = local_link_time + local_interpolation_fraction + path_time
+                    for turn in assignment.network.turns.to_link[next_link]:
+                        turning_fractions[destination, t, turn] = 1
+                    path_time = new_path_time
