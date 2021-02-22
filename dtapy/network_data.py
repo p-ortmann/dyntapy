@@ -8,9 +8,13 @@ import os
 import networkx as nx
 import numpy as np
 import osmnx as ox
-from dtapy.parameters import speed_mapping, cap_mapping, default_capacity, default_speed
+from dtapy.parameters import parameters
 from dtapy import data_folder
 from utilities import log
+speed_mapping = parameters.supply.speed_mapping
+cap_mapping = parameters.supply.cap_mapping
+default_capacity = parameters.supply.cap_mapping
+default_speed = parameters.supply.default_speed
 
 
 def get_from_ox_and_save(name: str, plot_deleted=True, reload=False):

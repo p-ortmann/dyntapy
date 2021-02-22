@@ -6,3 +6,7 @@
 #
 #
 #
+log_to_file = True
+log_folder = 'logs'
+log_level = 20
+log_filename = 'dtapy'

@@ -30,7 +30,7 @@ traffic_cm = __create_green_to_red_cm('hex')
 def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
                  title=None, plot_size=1300,
                  mode='assignment', iteration=None, notebook=False, max_links_visualized=None,
-                 show_unloaded_links=False, show_internal_ids=True, time=SimulationTime):
+                 show_unloaded_links=False):
     """
 
     Parameters
@@ -50,12 +50,11 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     """
     tmp = nx.MultiDiGraph(g)
     tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
-    #TODO: register and process iteration data, allow access thru the slider ..
-    tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
     edges =[(u, v,k) for u, v,k in tmp.edges if u != v] #  removing duplicate edges
     tmp=tmp.edge_subgraph(edges)
     if title == None:
         try:
+            tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
             title = mode + ' ' + tmp.graph['name']
         except KeyError:
             # no name provided ..
@@ -184,7 +183,7 @@ def show_desire_lines(obj: StaticAssignment, plot_size=1300, notebook=False):
 
 def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links):
     if g.number_of_edges() > max_links_visualized:
-        tmp = sorted(((data['flow'] / data['capacity'], u, v) for u, v, data in g.edges.data()),
+        tmp = sorted(((np.max(data['flow']) / data['capacity'], u, v) for u, v, data in g.edges.data()),
                      reverse=True)
         if not show_unloaded_links:
             edges = [(u, v) for val, u, v in tmp[:max_links_visualized] if val > 0.00001]

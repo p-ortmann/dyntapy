@@ -6,5 +6,6 @@
 #
 #
 #
-def i_ltm_aon():
+from dtapy.assignment import Assignment
+def main(assignment:Assignment ):
     pass

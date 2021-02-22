@@ -11,22 +11,26 @@ import networkx as nx
 from numba.typed import List
 from datastructures.csr import csr_prep, UI32CSRMatrix
 from dtapy.core.network_objects_cls import Links, Nodes, Network, Turns, DynamicDemand, SimulationTime
-from dtapy.parameters import v_wave_default, turn_capacity_default, turn_type_default, node_capacity_default, \
-    node_control_default, turn_t0_default
-from dtapy.parameters import network_loading_method
 from dtapy.demand import _build_demand, _check_centroid_connectivity
-from dtapy.parameters import ltm_dt
-from typing import NamedTuple
+from dtapy.parameters import parameters
 from dtapy.core.assignment_methods import i_ltm_aon
+from dataclasses import dataclass
 
-assignment_methods = NamedTuple('assignment_methods','Iterative_LTM_with_AON')
-assignment_methods =assignment_methods('')
+v_wave_default = parameters.supply.v_wave_default
+turn_capacity_default = parameters.supply.turn_capacity_default
+turn_type_default = parameters.supply.turn_type_default
+node_capacity_default = parameters.supply.node_capacity_default
+turn_t0_default = parameters.supply.turn_t0_default
+node_control_default = parameters.supply.node_control_default
+network_loading_method = parameters.network_loading.method
+
 
 class Assignment:
     """This class has no value when instantiated on its own,
      it merely sets up the state variables/interfaces to networkx and the demand generation"""
 
-    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 24, ltm_dt), method =i_ltm_aon):
+    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 24, parameters.network_loading.time_step),
+                 method=i_ltm_aon):
         """
 
         Parameters
@@ -36,7 +40,7 @@ class Assignment:
         """
         _check_centroid_connectivity(g)
         self.g = g
-        self.time: SimulationTime = time
+        self.time = init_time_obj(time)
         self.node_label, self.link_label, self.node_adjacency = set_internal_labels(self.g)
         self.tot_nodes = np.uint32(self.g.number_of_nodes())
         self.tot_links = np.uint32(self.g.number_of_edges())
@@ -135,7 +139,7 @@ class Assignment:
         -------
 
         """
-        link_type = np.zeros(self.g.number_of_edges(), dtype=np.int8) # 0 indicates regular road network link
+        link_type = np.zeros(self.g.number_of_edges(), dtype=np.int8)  # 0 indicates regular road network link
         # 1 is for sources (connectors leading out of a centroid)
         # -1 for sinks (connectors leading towards a centroid)
         length = np.empty(self.g.number_of_edges(), dtype=np.float32)
@@ -180,7 +184,21 @@ class Assignment:
         demand_data = [nx.to_scipy_sparse_matrix(c, weight='flow', format='lil') for c in od_graphs]
         # change to csr for consistency ..
         return _build_demand(demand_data, insertion_time, simulation_time=self.time)
+def __init_time_obj(time:SimulationTime):
+    if time.step_size==parameters.route_choice.step_size:
+        route_choice_time=time
+        consistent_time =  np.bool_(True)
+    else:
+        route_choice_time = SimulationTime(time.start, time.end, parameters.route_choice.step_size)
+        consistent_time = np.bool_(False)
 
+    @dataclass
+    class DTATime:
+        network_loading = time
+        route_choice = route_choice_time
+        consistent :np.bool = consistent_time
+
+    return DTATime()
 
 def set_internal_labels(g: nx.DiGraph):
     # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the

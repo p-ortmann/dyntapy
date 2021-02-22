@@ -259,6 +259,8 @@ class DynamicDemand(object):
         self.tot_time_steps = np.uint32(tot_time_steps)
         self.tot_origins = np.uint32(self.all_destinations.size)
         self.tot_destinations = np.uint32(self.all_destinations.size)
+        self.tot_centroids = np.uint32(self.all_destinations.size)
+        #TODO: sort out the whole tot_centroid tot_destination conundrum, with the new notation it should be all the same...
 
     def update(self):
         self.__time_step += uint32(1)

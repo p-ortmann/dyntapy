@@ -22,10 +22,11 @@ from shapely.geometry import LineString
 from collections import deque
 from json import loads
 import itertools
+from dtapy.parameters import parameters
 
-DEFAULT_CONNECTOR_SPEED = 10000
-DEFAULT_CONNECTOR_CAPACITY = 300000
-DEFAULT_CONNECTOR_LANES = 10
+DEFAULT_CONNECTOR_SPEED = parameters.demand.default_connector_speed
+DEFAULT_CONNECTOR_CAPACITY = parameters.demand.default_connector_capacity
+DEFAULT_CONNECTOR_LANES = parameters.demand.default_connector_lanes
 
 
 def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):

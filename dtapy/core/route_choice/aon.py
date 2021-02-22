@@ -6,16 +6,14 @@
 #
 #
 from numba import njit
-from dtapy.core.network_loading.link_models.i_ltm_cls import ILTMState
-from dtapy.core.network_objects_cls import SimulationTime, Network
 from dtapy.assignment import Assignment
-from dtapy.parameters import route_choice_dt, route_choice_agg
-from dtapy.core.route_choice.dynamic_dijkstra import dijkstra
 from dtapy.core.route_choice.aon_cls import AONState
 import numpy as np
-from dtapy.parameters import route_choice_delta
-from numba.typed import List
+from dtapy.parameters import parameters
 from numba import prange
+
+route_choice_delta = parameters.route_choice.delta_cost
+route_choice_agg = parameters.route_choice.aggregation
 
 
 # TODO: add generic results object
@@ -30,8 +28,9 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
     state.prev_costs = state.cur_costs
     state.cur_costs = assignment.results.costs
     delta_costs = np.abs(state.cur_costs - state.prev_costs)
-    nodes_2_update = List()  # list of nodes that have to be updated for the current time step
-    next_nodes_2_update = List()  # for earlier time steps
+    nodes_2_update = np.full(assignment.network.tot_nodes, np.iinfo(np.uint32).max, dtype=np.uint32)
+    next_nodes_2_update = np.full(assignment.network.tot_nodes,np.iinfo(np.uint32).max, dtype=np.uint32)  # nodes to be
+    # activated for earlier time steps
     arrival_maps = state.arrival_maps
     step_size = assignment.time.step_size
     link_time = np.floor(state.cur_costs / step_size)
@@ -43,17 +42,26 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
     # Himpe, Willem. "Integrated Algorithms for Repeated Dynamic Traffic Assignments The Iterative
     # Link Transmission Model with Equilibrium Assignment Procedure."(2016).
     # refer to page 48, algorithm 6 for details.
+    next_nodes_2_update_pointer = 0  # first elements in the array that are not nodes
+    tot_nodes_2_update = 0  # number of valid entries in nodes_2_update
+    tot_next_nodes_2_update = 0
+    tot_active_nodes = 0  # number of nodes in this time step that still need to be considered
     for destination in all_destinations:
         for t in range(tot_time_steps, 0, -1):
-            nodes_2_update = next_nodes_2_update.copy()
+            nodes_2_update[:tot_next_nodes_2_update] = next_nodes_2_update[:tot_next_nodes_2_update].copy()
+            tot_nodes_2_update = tot_next_nodes_2_update.copy()
             for link, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
                 if delta > route_choice_delta:
                     node = from_node[link]
-                    nodes_2_update.append(node)
-
-            while len(nodes_2_update) > 0:
+                    nodes_2_update[tot_nodes_2_update] = node
+                    tot_nodes_2_update += 1
+            unique_nodes = np.unique(nodes_2_update[:tot_nodes_2_update])
+            tot_nodes_2_update = unique_nodes.size
+            nodes_2_update[:tot_nodes_2_update] = unique_nodes
+            tot_active_nodes = tot_nodes_2_update.size
+            while tot_active_nodes > 0:
                 # going through all the nodes that need updating for the current time step
                 # note that nodes_2_update changes dynamically as we traverse the graph ..
                 # finding the node with the minimal arrival time to the destination is meant
@@ -64,11 +72,18 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
 
                 min_dist = np.inf
                 min_idx = -1
-                for idx, node in enumerate(nodes_2_update):
-                    if arrival_maps[destination, t, node] < min_dist:
-                        min_idx = idx
-                        min_dist = arrival_maps[destination, t, node]
-                node = nodes_2_update.pop(min_idx)
+                for idx, node in enumerate(nodes_2_update[:tot_nodes_2_update]):
+                    try:
+                        if arrival_maps[destination, t, node] < min_dist:
+                            min_idx = idx
+                            min_dist = arrival_maps[destination, t, node]
+                    except Exception:
+                        # node ==  np.iinfo(np.uint32)
+                        # IndexError .. already queried.
+                        continue
+                node = nodes_2_update[min_idx]
+                nodes_2_update[min_idx] = np.iinfo(np.uint32)  # no longer considered
+                tot_active_nodes = tot_active_nodes - 1
                 new_dist = np.inf
                 for link in out_links.get_nnz(node):
 
@@ -84,9 +99,15 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
                 if np.abs(new_dist - arrival_maps[destination, t, node]) > route_choice_delta:
                     # new arrival time found
                     arrival_maps[destination, t, node] = new_dist
-                    for link in in_links.get_nnz(node):
-                        nodes_2_update.append(from_node[link])
-                        next_nodes_2_update.append(from_node[link])
+                    if node > assignment.dynamic_demand.tot_centroids:
+                        # only adds the in_links if it's not a centroid
+                        # the first nodes are centroids, see labelling in assignment.py
+                        for link in in_links.get_nnz(node):
+                            nodes_2_update[tot_nodes_2_update]=from_node[link]
+                            next_nodes_2_update[tot_next_nodes_2_update]=from_node[link]
+                            tot_next_nodes_2_update += 1
+                            tot_nodes_2_update += 1
+                            tot_active_nodes += 1
 
 
 # TODO: test the @njit(parallel=True) option here
