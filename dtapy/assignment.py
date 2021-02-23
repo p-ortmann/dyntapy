@@ -10,7 +10,7 @@ from itertools import count
 import networkx as nx
 from numba.typed import List
 from datastructures.csr import csr_prep, UI32CSRMatrix
-from dtapy.core.network_objects_cls import Links, Nodes, Network, Turns, DynamicDemand, SimulationTime
+from dtapy.core.assignment_cls import Links, Nodes, Network, Turns, DynamicDemand, SimulationTime
 from dtapy.demand import _build_demand, _check_centroid_connectivity
 from dtapy.parameters import parameters
 from dtapy.core.assignment_methods import i_ltm_aon
@@ -41,12 +41,11 @@ class Assignment:
         _check_centroid_connectivity(g)
         self.g = g
         self.time = self.__init_time_obj(time)
-        self.node_label, self.link_label, self.node_adjacency = set_internal_labels(self.g)
         self.tot_nodes = np.uint32(self.g.number_of_nodes())
         self.tot_links = np.uint32(self.g.number_of_edges())
         self.tot_turns = None
         self.results = None
-
+        #get adjacency from nx, and
         self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
         self.network = self.__build_network()
@@ -201,40 +200,12 @@ class Assignment:
 
         return DTATime()
 
-def set_internal_labels(g: nx.DiGraph):
-    # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the
-    # IDs used in nx
-    # if there is an od_graph registered for g node ids are filled with centroid first, so that nodes 0,..., C-1 are
-    # centroids with C being the total number of centroids, avoids having a mapping between centroid and node ids for
-    # origin/destination based flows
-    # no restrictions are set on connector IDs
-    node_labels = np.empty(g.number_of_nodes(), np.uint64)
-    link_labels = np.empty((g.number_of_edges(), 2), np.uint64)
-    counter = count()
-    centroids = [u for u, data in g.nodes.data() if 'centroid' in data]
-    if len(centroids) == 0:
-        centroids = [u for u, data in g.nodes.data() if 'centroid' in data]
-        all_nodes = np.array(g.nodes)
-        all_nodes = np.concatenate((centroids, all_nodes))  # duplicated centroids
-        uniq, idx = np.unique(all_nodes, return_inverse=True)  # removing duplicates
-        ordered_nodes = uniq[idx.argsort()]  # restore original order, centroids first..
-    else:
-        ordered_nodes = g.nodes
-    for node_id, u in enumerate(ordered_nodes):
-        g.nodes[u]['_id'] = node_id
-        node_labels[node_id] = u
-        for v in g.succ[u]:
-            link_id = next(counter)
-            g[u][v]['_id'] = link_id
-            link_labels[link_id][0], link_labels[link_id][1] = u, v
-    node_adjacency = np.empty((g.number_of_edges(), 2), dtype=np.uint32)
-    for u, v, data in g.edges.data():
-        _id = data['_id']
-        node1 = g.nodes[u]['_id']
-        node2 = g.nodes[v]['_id']
-        node_adjacency[_id] = node1, node2
 
-    return node_labels, link_labels, node_adjacency
+@dataclass()
+class AssignmentResults:
+    skims: np.ndarray
+    link_costs: np.ndarray
+    flows: np.ndarray
 
 # remapping of od from different time granularity to computation time steps
 # node or link event which triggers a change in otherwise staionary characteristics

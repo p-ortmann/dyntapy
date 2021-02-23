@@ -19,7 +19,7 @@ from shapely.geometry import LineString
 from stapy.settings import visualization_keys_edges, visualization_keys_nodes
 from utilities import log, __create_green_to_red_cm
 from stapy.assignment import StaticAssignment
-from dtapy.core.network_objects_cls import SimulationTime
+from dtapy.core.assignment_cls import SimulationTime
 import osmnx as ox
 from pyproj import CRS
 from stapy.__init__ import data_folder, results_folder

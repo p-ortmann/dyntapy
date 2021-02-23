@@ -7,7 +7,7 @@
 #
 #
 # testing initialization of all information needed for LTM
-from dtapy.core.network_objects_cls import SimulationTime
+from dtapy.core.assignment_cls import SimulationTime
 from dtapy.demand import _build_demand, generate_od_fixed
 from dtapy.network_data import get_from_ox_and_save
 import numpy as np

@@ -9,7 +9,7 @@ from scipy.spatial import cKDTree
 from numba.typed import List
 import pandas as pd
 import numpy as np
-from dtapy.core.network_objects_cls import SimulationTime, StaticDemand, DynamicDemand
+from dtapy.core.assignment_cls import SimulationTime, StaticDemand, DynamicDemand
 from datastructures.csr import csr_prep, F32CSRMatrix
 import osmnx as ox
 from osmnx.distance import great_circle_vec

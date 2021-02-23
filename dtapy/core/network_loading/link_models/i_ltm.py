@@ -6,7 +6,7 @@
 #
 #
 #
-from dtapy.core.network_objects_cls import ILTMNetwork, DynamicDemand, SimulationTime, ILTMState, StaticDemand
+from dtapy.core.assignment_cls import ILTMNetwork, DynamicDemand, SimulationTime, ILTMState, StaticDemand
 import numpy as np
 from dtapy.parameters import LTM_GAP as gap
 from numba import njit
