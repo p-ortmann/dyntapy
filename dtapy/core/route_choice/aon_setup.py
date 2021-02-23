@@ -27,12 +27,15 @@ def _init_arrival_maps(costs, out_links, destinations, step_size, tot_time_steps
 
 @njit()
 def setup_aon(assignment: Assignment):
-    cur_costs = assignment.network.links.length / assignment.network.links.v0
+    costs = assignment.network.links.length / assignment.network.links.v0
     step_size= assignment.time.step_size
+    cur_costs = np.empty((assignment.time.route_choice.tot_time_steps,assignment.network.tot_links), dtype=np.float32 )
+    for t in range (assignment.time.route_choice.tot_time_steps):
+        cur_costs[t,:] = costs
     prev_costs = np.copy(cur_costs)
-    tot_time_steps  = assignment.time.tot_time_steps
+    tot_time_steps = assignment.time.route_choice.tot_time_steps
     tot_turns = assignment.network.tot_turns
-    tot_destinations =  assignment.network.tot_turns
+    tot_destinations = assignment.network.tot_turns
     for destination in assignment.dynamic_demand.all_destinations:
         connectors = assignment.network.nodes.in_links.get_nnz(destination)
         for c in connectors:

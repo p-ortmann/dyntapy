@@ -291,3 +291,16 @@ def __linestring_from_node_cords(coord_list, width_coords):
     ls = LineString(coord_list)
     return ls, ls.parallel_offset(1 * width_coords)
 
+def build_flow_data(g):
+    """
+    gathers flow data for different time steps from the edge of the graph,
+    yields a matrix that can the be used for callbacks to allow sliders
+    Parameters
+    ----------
+    g :
+
+    Returns
+    -------
+
+    """
+

@@ -6,12 +6,7 @@
 #
 #
 # file containing all the parameters used in the assignment procedures for DTA
-# ids for event handling
-# TODO: Switch to named tuples as shown below
-# from collections import namedtuple
-# add docs as shown below!!
 import numpy as np
-from typing import NamedTuple
 from dataclasses import dataclass
 
 

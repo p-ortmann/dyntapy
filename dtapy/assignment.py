@@ -40,7 +40,7 @@ class Assignment:
         """
         _check_centroid_connectivity(g)
         self.g = g
-        self.time = init_time_obj(time)
+        self.time = self.__init_time_obj(time)
         self.node_label, self.link_label, self.node_adjacency = set_internal_labels(self.g)
         self.tot_nodes = np.uint32(self.g.number_of_nodes())
         self.tot_links = np.uint32(self.g.number_of_edges())
@@ -184,21 +184,22 @@ class Assignment:
         demand_data = [nx.to_scipy_sparse_matrix(c, weight='flow', format='lil') for c in od_graphs]
         # change to csr for consistency ..
         return _build_demand(demand_data, insertion_time, simulation_time=self.time)
-def __init_time_obj(time:SimulationTime):
-    if time.step_size==parameters.route_choice.step_size:
-        route_choice_time=time
-        consistent_time =  np.bool_(True)
-    else:
-        route_choice_time = SimulationTime(time.start, time.end, parameters.route_choice.step_size)
-        consistent_time = np.bool_(False)
+    @staticmethod
+    def __init_time_obj(time:SimulationTime):
+        if time.step_size==parameters.route_choice.step_size:
+            route_choice_time=time
+            consistent_time =  np.bool_(True)
+        else:
+            route_choice_time = SimulationTime(time.start, time.end, parameters.route_choice.step_size)
+            consistent_time = np.bool_(False)
 
-    @dataclass
-    class DTATime:
-        network_loading = time
-        route_choice = route_choice_time
-        consistent :np.bool = consistent_time
+        @dataclass
+        class DTATime:
+            network_loading = time
+            route_choice = route_choice_time
+            consistent :np.bool = consistent_time
 
-    return DTATime()
+        return DTATime()
 
 def set_internal_labels(g: nx.DiGraph):
     # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the

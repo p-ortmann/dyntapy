@@ -24,8 +24,8 @@ class AONState(object):
         """
         Parameters
         ----------
-        cur_costs : float32 array, links x time_steps
-        prev_costs : float32 array, links x time_steps
+        cur_costs : float32 array, time_steps x links
+        prev_costs : float32 array, time_steps x links
         arrival_maps : float32 array, destinations x time_steps x nodes
         parents : uint32 array, destination x time_steps x nodes
         """
