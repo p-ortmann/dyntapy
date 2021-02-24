@@ -8,7 +8,7 @@
 #
 # testing initialization of all information needed for LTM
 from core import SimulationTime
-from demand import _build_internal_dynamic_demand, generate_od_xy, add_centroids_from_grid, parse_demand
+from demand import _build_internal_dynamic_demand, generate_od_xy, add_centroids_to_graph, parse_demand
 from network_data import get_from_ox_and_save
 import numpy as np
 from assignment import Assignment
@@ -21,7 +21,7 @@ print(f'number of nodes{g.number_of_nodes()}')
 start_time = 6  # time of day in hrs
 end_time = 12
 insertion_times = np.array([6, 7])
-add_centroids_from_grid('Gent', g)
+add_centroids_to_graph('Gent', g)
 demands = [generate_od_xy(20,'Gent'), generate_od_xy(20,'Gent', seed=1)]
 [parse_demand(demand,g ,t) for demand,t in zip(demands, insertion_times) ]
 # demand is now stored under g.graph['od_graphs'], it's a dict of nx.DiGraphs with time as the key

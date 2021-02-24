@@ -10,7 +10,10 @@ The setting DISABLE_JIT in numba_config.yaml doesn't work properly for typed Lis
 dataclasses can be used as shown in the parameters.py file. However, global variables are not updated during 
 run time and are set 
 once compiled. Therefore you cannot just vary over the parameter sets without recompiling. This can be expensive, we've gotta see how
-this re-compilation overhead compares to the run time of the functions. Given that we often run them iteratively
+this re-compilation overhead compares to the run time of the functions. Given that we often run them iteratively 
+and will rarely try out different parameters on cheap functions it should be fine.
 I don't think it will matter much. See 
 https://numba.pydata.org/numba-doc/dev/user/faq.html for more details ..
+A hack around this is of course to pass the parameter as the default value to a function argument. We can always
+overwrite the argument itself.
 

@@ -21,6 +21,9 @@ default_capacity = parameters.supply.cap_mapping
 default_speed = parameters.supply.default_speed
 
 
+
+
+
 def get_from_ox_and_save(name: str, reload=False):
     file_path = __filepath(name)
     _ = file_path + '_pure_ox'
@@ -60,20 +63,51 @@ def get_from_ox_and_save(name: str, reload=False):
         deleted = nx.subgraph(dir_g, nodes_to_be_removed)
         dir_g = nx.subgraph(dir_g, largest).copy()
     __clean_up_data(dir_g)
-    set_free_flow_travel_times(dir_g)
+    convert_to_gmns(dir_g)
     nx.write_gpickle(dir_g, file_path)
     assert 'crs' in dir_g.graph
     dir_g.graph['name'] = name
-    deleted.graph['name'] = name
-    return relabel_graph(dir_g), deleted
+    return dir_g, deleted
+def convert_to_gmns(g):
+    # the attribute names are chosen in compliance with GMNS,
+    # see https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/node.schema.json
+    # and https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/link.schema.json
+    # potentially could be extended to handle time of day changes in the future, see
+    # https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/link_tod.schema.json
+    # and also lanes:
+    # https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/lane_tod.schema.json
+    edge_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'flow', 'cost', 'max_speed', 'osm_id',
+                 'name', 'facility_type']
+    node_keys = ['node_id', 'x_coord', 'y_coord', 'osm_id', 'node_type', 'ctrl_type']
 
-
-def relabel_graph(g, number_of_centroids):
+    for node in g.nodes:
+        data = g.nodes[node]
+        new_data = {}
+        new_data['node_id']=node
+        new_data['x_coord'] =data['x']
+        new_data['y_coord'] = data['y']
+        new_data['node_type']=None
+        new_data['ctrl_type']=None
+        g.nodes[node] =new_data
+    for u,v in g.edges:
+        data = g[u][v]
+        new_data = {}
+        new_data['link_id'] = data['osm_id']
+        new_data['from_node_id'] = u
+        new_data['to_node_id']= v
+        new_data['length'] = data['length']
+        new_data['free_speed'] = data['max_speed']
+        new_data['name'] = data['name']
+        new_data['facility_type']= data['highway']
+        new_data['lanes'] =data['lanes']
+        g[u][v]=new_data
+def relabel_graph(g, number_of_centroids, number_of_connectors):
     """
     osmnx labels the graph nodes and edges by their osm ids. These are neither stable nor continuous. We relabel nodes and edges
     with our internal ids.
     Parameters
     ----------
+    number_of_connectors : number of connectors in the graph
     g : nx.DiGraph
     number_of_centroids: int
     the first nodes are centroids, this is to reserve spots for them
@@ -84,15 +118,9 @@ def relabel_graph(g, number_of_centroids):
 
     """
 
-    # node- and link labels are both arrays in which the indexes refer to the internal IDs and the values to the
-    # IDs used in nx
-    # if there is an od_graph registered for g node ids are filled with centroid first, so that nodes 0,..., C-1 are
-    # centroids with C being the total number of centroids, avoids having a mapping between centroid and node ids for
-    # origin/destination based flows
-    # no restrictions are set on connector IDs
     new_g = nx.MultiDiGraph()
     new_g.graph = g.graph
-    counter = count()
+    link_counter = count(number_of_connectors)
     ordered_nodes = g.nodes
     for node_id, u in enumerate(ordered_nodes):
         _id = node_id + number_of_centroids
@@ -103,7 +131,7 @@ def relabel_graph(g, number_of_centroids):
     for start_node, u in enumerate(ordered_nodes):
         _start_node = start_node + number_of_centroids
         for v in g.succ[u]:
-            link_id = next(counter)
+            link_id = next(link_counter)
             end_node = g.nodes[v]['node_id']
             data = g[u][v]
             data['_id'] = link_id
@@ -111,32 +139,6 @@ def relabel_graph(g, number_of_centroids):
             g[u][v]['_id'] = link_id
         # Note that the out_links of a given node always have consecutive ids
     return new_g
-
-
-def set_free_flow_travel_times(g: nx.DiGraph):
-    """
-    free flow travel times in minutes stored as 'travel_time'
-
-    Returns
-    -------
-
-    """
-    for u, v, data in g.edges.data():
-        try:
-            if type(data['maxspeed']) == list:
-                speed = max(data['maxspeed'])
-            elif isinstance(data['maxspeed'], str):
-                # print(f' u: {u} v: {v} and data: {data}')
-                speed = int(data['maxspeed'])
-            else:
-                speed = data['maxspeed']
-            if isinstance(data['length'], str):
-                # print(f' u: {u} v: {v} and data: {data}')
-                data['length'] = float(data['length'] / 1000)
-            g[u][v]['travel_time'] = np.float(data['length'] / (speed))
-            # print(g[u][v]['travel_time'])
-        except KeyError:
-            print(f"insufficient data for edge {u} {v} data: {data};length not provided..")
 
 
 def __clean_up_data(g: nx.DiGraph):

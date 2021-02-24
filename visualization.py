@@ -36,22 +36,17 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
 
     Parameters
     ----------
-    plot_nodes : bool, whether nodes should also be plotted
     g : nx.Digraph
     scaling : width of the widest link in relation to plot_size
     background_map : bool, show the background map
     title : str, plot title
-    show_iterations : bool
     plot_size : height and width measurement in pixel
-    with_assignment : bool, indicates if each edge has flow variable
 
     Returns
     -------
 
     """
     tmp = ox.project_graph(g, CRS.from_user_input(3857))
-    edges = [(u, v, k) for u, v, k in tmp.edges if u != v]  # removing duplicate edges
-    tmp = tmp.edge_subgraph(edges)
     title = _check_title(title, tmp, 'assignment')
     _output(notebook, title)
     plot = figure(plot_height=plot_size,
@@ -59,7 +54,6 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
                   aspect_ratio=1, toolbar_location='below')
 
     if max_links_visualized is None:
-        from settings import parameters
         max_links_visualized = parameters.visualization.max_links
     tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
     max_flow = max([float(f) for _, _, f in tmp.edges.data('flow') if f is not None])
@@ -72,31 +66,25 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
 
     edge_source = _edge_cds(tmp, max_width_coords, max_flow)
     node_source = _node_cds(tmp, mode == 'assignment')
-
-    if background_map:
-        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-        plot.add_tile(tile_provider)
+    _background_map(background_map, plot)
     plot.title.text = title
 
-    # edge_renderer = plot.add_glyph(edge_source,
-    #                              glyph=MultiLine(xs='x', ys='y', line_width='width', line_color='color',
-    #                                             line_alpha=0.8))
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
                                                  line_alpha=0.8))
-    edge_tooltips = [(item, f'@{item}') for item in visualization_keys_edges if item != 'flow']
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if item != 'flow']
     edge_tooltips.append(('flow', '@flow{(0.0)}'))
     node_renderer = plot.add_glyph(node_source,
                                    glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
                                                   line_width=max_width_bokeh / 5))
-    node_tooltips = [(item, f'@{item}') for item in visualization_keys_nodes]
+    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
-    url = "https://www.openstreetmap.org/node/@osmid/"
+    url = "https://www.openstreetmap.org/node/@osm_id/"
     nodetaptool = TapTool(renderers=[node_renderer])
     nodetaptool.callback = OpenURL(url=url)
-    url = "https://www.openstreetmap.org/way/@osmid/"
+    url = "https://www.openstreetmap.org/way/@osm_id/"
     edgetaptool = TapTool(renderers=[edge_renderer])
     edgetaptool.callback = OpenURL(url=url)
 
@@ -125,6 +113,7 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
 
 
 def show_demand(g, plot_size=1300, notebook=False):
+    _check_title(t)
     if notebook:
         output_notebook(hide_banner=True)
         plot_size = 600
@@ -177,13 +166,10 @@ def show_convergence(g: nx.DiGraph, notebook=False):
     show(p)
 
 
-def _node_cds(g, with_assignment: bool):
+def _node_cds(g):
     node_dict = dict()
-    if with_assignment:
-        nodes = [u for u, data in g.nodes.data() if 'originating_traffic' in data or 'destination_traffic' in data]
-        g = g.subgraph(nodes)
     for attr_key in visualization_keys_nodes:
-        values = [node_attr[attr_key] if attr_key in node_attr.keys() else None
+        values = [node_attr[attr_key] if attr_key in node_attr.keys() else 'None'
                   for _, node_attr in g.nodes(data=True)]
         node_dict[attr_key] = values
     return ColumnDataSource(data=node_dict)
@@ -192,7 +178,7 @@ def _node_cds(g, with_assignment: bool):
 def _edge_cds(g, max_width_coords, max_flow):
     edge_dict = dict()
     for attr_key in visualization_keys_edges:
-        values = [edge_attr[attr_key] if attr_key in edge_attr.keys() else None
+        values = [edge_attr[attr_key] if attr_key in edge_attr.keys() else 'None'
                   for _, _, edge_attr in g.edges(data=True)]
         edge_dict[attr_key] = values
     edge_dict['compressed_osm_ids'] = []

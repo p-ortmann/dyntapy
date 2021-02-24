@@ -18,6 +18,7 @@ log_folder = 'logs'
 log_level = 20
 log_filename = 'dtapy'
 
+
 # Parameters for various methods
 @dataclass
 class _Supply:
@@ -72,6 +73,9 @@ class _Visualization:
     max_links: np.uint32 = np.uint32(1000)
     plot_size: int = 1300
     notebook_plot_size = 600
+    edge_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'flow', 'cost', 'max_speed', 'osm_id',
+                 'name', 'facility_type']
+    node_keys = ['node_id', 'x_coord', 'y_coord', 'osm_id', 'node_type', 'ctrl_type']
 
 
 @dataclass
