@@ -10,25 +10,22 @@
 import numpy as np
 import networkx as nx
 from bokeh.io import show, output_file, output_notebook
-from bokeh.models import HoverTool, TapTool, OpenURL, Label
+from bokeh.models import HoverTool, TapTool, OpenURL
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import figure, ColumnDataSource
-from bokeh.models.glyphs import Circle, Asterisk, Patches
+from bokeh.models.glyphs import Asterisk, Patches
 from bokeh.models import CustomJS, Slider
 from shapely.geometry import LineString
-from stapy.settings import visualization_keys_edges, visualization_keys_nodes
-from utilities import log, __create_green_to_red_cm
-from stapy.assignment import StaticAssignment
-from dtapy.core.assignment_cls import SimulationTime
+from utilities import __create_green_to_red_cm
 import osmnx as ox
 from pyproj import CRS
-from stapy.__init__ import data_folder, results_folder
+from __init__ import results_folder
 
 traffic_cm = __create_green_to_red_cm('hex')
-from dtapy.parameters import parameters
+from settings import parameters
 
 default_plot_size = parameters.visualization.plot_size
-default_notebook_plot_size =  parameters.visualization.notebook_plot_size
+default_notebook_plot_size = parameters.visualization.notebook_plot_size
 
 
 def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
@@ -53,17 +50,17 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
 
     """
     tmp = ox.project_graph(g, CRS.from_user_input(3857))
-    edges =[(u, v,k) for u, v,k in tmp.edges if u != v] #  removing duplicate edges
-    tmp=tmp.edge_subgraph(edges)
-    title=_check_title(title,tmp, 'assignment')
+    edges = [(u, v, k) for u, v, k in tmp.edges if u != v]  # removing duplicate edges
+    tmp = tmp.edge_subgraph(edges)
+    title = _check_title(title, tmp, 'assignment')
     _output(notebook, title)
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
 
     if max_links_visualized is None:
-        from dtapy.parameters import parameters
-        max_links_visualized=parameters.visualization.max_links
+        from settings import parameters
+        max_links_visualized = parameters.visualization.max_links
     tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
     max_flow = max([float(f) for _, _, f in tmp.edges.data('flow') if f is not None])
 
@@ -94,7 +91,6 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
                                                   line_width=max_width_bokeh / 5))
     node_tooltips = [(item, f'@{item}') for item in visualization_keys_nodes]
 
-
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
     url = "https://www.openstreetmap.org/node/@osmid/"
@@ -105,8 +101,10 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
     edgetaptool.callback = OpenURL(url=url)
 
     time_slider = Slider(start=0, end=10, value=0, step=1, title="time")
-    callback = CustomJS(args=dict(source=edge_source, time=time_slider, dynamic_x=None, dynamic_y=None, dynamic_color=None, dynamic_flow=None ),
-                        code="""
+    callback = CustomJS(
+        args=dict(source=edge_source, time=time_slider, dynamic_x=None, dynamic_y=None, dynamic_color=None,
+                  dynamic_flow=None),
+        code="""
         const data = source.data;
         const t = time.value;
         data['flow'] = dynamic_flow[t]
@@ -116,7 +114,7 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
         source.change.emit();
     """)
     time_slider.js_on_change('value', callback)
-    #layout with multiple convergence plots
+    # layout with multiple convergence plots
     layout = row(
         plot,
         column(time_slider),
@@ -124,7 +122,6 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
     plot.add_tools(node_hover, edge_hover, edgetaptool, nodetaptool)
 
     show(plot)
-
 
 
 def show_demand(g, plot_size=1300, notebook=False):
@@ -258,7 +255,8 @@ def __linestring_from_node_cords(coord_list, width_coords):
     ls = LineString(coord_list)
     return ls, ls.parallel_offset(1 * width_coords)
 
-def _check_title(title, tmp, plot_type:str):
+
+def _check_title(title, tmp, plot_type: str):
     if title is None:
         try:
             tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
@@ -267,15 +265,17 @@ def _check_title(title, tmp, plot_type:str):
             # no name provided ..
             title = plot_type + ' ' + '... provide city name in graph and it will show here..'
     return title
-def _output(notebook:bool, title, plot_size):
+
+
+def _output(notebook: bool, title, plot_size):
     if notebook:
         output_notebook(hide_banner=True)
         plot_size = 600
     else:
         output_file(results_folder + f'/{title}.html')
+
+
 def _background_map(background_map, plot):
     if background_map:
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
-
-

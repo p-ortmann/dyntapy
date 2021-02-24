@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.colors import to_hex
 import matplotlib.cm as cm
 import logging
-import stapy.settings
+import settings
 import inspect
 import os
 import datetime
@@ -98,8 +98,8 @@ def log(message, level=None, print=False):
     None
     """
     if level is None:
-        level = stapy.settings.log_level
-    if stapy.settings.log_to_file:
+        level = settings.log_level
+    if settings.log_to_file:
         # create a new logger with the calling script's name, or access the existing one
         frm = inspect.stack()[1]
         mod = inspect.getmodule(frm[0])
@@ -135,18 +135,18 @@ def get_logger(name):
     """
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
-    filename = stapy.settings.log_filename
+    filename = settings.log_filename
 
     # if a logger with this name is not already set up
     if not getattr(logger, 'handler_set', None):
 
         # get today's date and construct a log filename
         todays_date = datetime.datetime.today().strftime('%Y_%m_%d')
-        log_filename = os.path.join(stapy.settings.log_folder, '{}_{}.log'.format(filename, todays_date))
+        log_filename = os.path.join(settings.log_folder, '{}_{}.log'.format(filename, todays_date))
 
         # if the logs folder does not already exist, create it
-        if not os.path.exists(stapy.settings.log_folder):
-            os.makedirs(stapy.settings.log_folder)
+        if not os.path.exists(settings.log_folder):
+            os.makedirs(settings.log_folder)
 
         # create file handler and log formatter and set them up
         handler = logging.FileHandler(log_filename, encoding='utf-8')
