@@ -12,6 +12,7 @@ from dtapy.parameters import parameters
 from dtapy import data_folder
 from utilities import log
 from itertools import count
+
 speed_mapping = parameters.supply.speed_mapping
 cap_mapping = parameters.supply.cap_mapping
 default_capacity = parameters.supply.cap_mapping
@@ -62,7 +63,9 @@ def get_from_ox_and_save(name: str, reload=False):
     assert 'crs' in dir_g.graph
     dir_g.graph['name'] = name
     deleted.graph['name'] = name
-    return dir_g, deleted
+    return relabel_graph(dir_g), deleted
+
+
 def relabel_graph(g, number_of_centroids):
     """
     osmnx labels the graph nodes and edges by their osm ids. These are neither stable nor continuous. We relabel nodes and edges
@@ -86,23 +89,25 @@ def relabel_graph(g, number_of_centroids):
     # origin/destination based flows
     # no restrictions are set on connector IDs
     new_g = nx.MultiDiGraph()
-    node_labels = np.empty(g.number_of_nodes(), np.uint64)
-    link_labels = np.empty((g.number_of_edges(), 2), np.uint64)
+    new_g.graph = g.graph
     counter = count()
     ordered_nodes = g.nodes
     for node_id, u in enumerate(ordered_nodes):
-        data=g.nodes[u]
-        new_g.add_node(node_id, **data)
-        new_g.nodes[node_id]['osm_id'] = u
-        g.nodes[u]['node_id']=node_id
+        _id = node_id + number_of_centroids
+        data = g.nodes[u]
+        new_g.add_node(_id, **data)
+        new_g.nodes[_id]['osm_id'] = u
+        g.nodes[u]['_id'] = _id
     for start_node, u in enumerate(ordered_nodes):
+        _start_node = start_node + number_of_centroids
         for v in g.succ[u]:
             link_id = next(counter)
             end_node = g.nodes[v]['node_id']
             data = g[u][v]
-            data['link_id']= link_id
-            new_g.add_edge(start_node,end_node, **data)
+            data['_id'] = link_id
+            new_g.add_edge(start_node, end_node, **data)
             g[u][v]['_id'] = link_id
+        # Note that the out_links of a given node always have consecutive ids
     return new_g
 
 
@@ -125,7 +130,7 @@ def set_free_flow_travel_times(g: nx.DiGraph):
                 speed = data['maxspeed']
             if isinstance(data['length'], str):
                 # print(f' u: {u} v: {v} and data: {data}')
-                data['length'] = float(data['length']/1000)
+                data['length'] = float(data['length'] / 1000)
             g[u][v]['travel_time'] = np.float(data['length'] / (speed))
             # print(g[u][v]['travel_time'])
         except KeyError:
@@ -146,7 +151,7 @@ def __clean_up_data(g: nx.DiGraph):
                 if key == 'lanes':
                     print(data[key])
                 print()
-                assert key =='maxspeed'
+                assert key == 'maxspeed'
                 if isinstance(data[key], list):  # some tags, such as maxspeed may carry multiple values, if it's
                     # not a list but some other structure a new case should be defined to handle this  ..
                     float_list = []
@@ -174,7 +179,7 @@ def __clean_up_data(g: nx.DiGraph):
                 print(data)
                 data['maxspeed'] = 50
         assert 'length' in data
-        data['length']=data['length']/1000
+        data['length'] = data['length'] / 1000
         try:
             lanes = int(data['lanes'])
         except (KeyError, TypeError, ValueError) as e:

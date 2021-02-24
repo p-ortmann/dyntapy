@@ -25,12 +25,16 @@ from pyproj import CRS
 from stapy.__init__ import data_folder, results_folder
 
 traffic_cm = __create_green_to_red_cm('hex')
+from dtapy.parameters import parameters
+
+default_plot_size = parameters.visualization.plot_size
+default_notebook_plot_size =  parameters.visualization.notebook_plot_size
 
 
-def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
-                 title=None, plot_size=1300,
-                 mode='assignment', iteration=None, notebook=False, max_links_visualized=None,
-                 show_unloaded_links=False):
+def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
+                    title=None, plot_size=default_plot_size,
+                    mode='assignment', iteration=None, notebook=False, max_links_visualized=None,
+                    show_unloaded_links=False):
     """
 
     Parameters
@@ -48,28 +52,18 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
     -------
 
     """
-    tmp = nx.MultiDiGraph(g)
-    tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
+    tmp = ox.project_graph(g, CRS.from_user_input(3857))
     edges =[(u, v,k) for u, v,k in tmp.edges if u != v] #  removing duplicate edges
     tmp=tmp.edge_subgraph(edges)
-    if title == None:
-        try:
-            tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
-            title = mode + ' ' + tmp.graph['name']
-        except KeyError:
-            # no name provided ..
-            title = mode + ' ' + '... provide city name in graph and it will show here..'
-    if notebook:
-        output_notebook(hide_banner=True)
-        plot_size = 600
-    else:
-        output_file(results_folder + f'/{title}.html')
+    title=_check_title(title,tmp, 'assignment')
+    _output(notebook, title)
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
 
     if max_links_visualized is None:
-        from stapy.settings import max_links_visualized
+        from dtapy.parameters import parameters
+        max_links_visualized=parameters.visualization.max_links
     tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
     max_flow = max([float(f) for _, _, f in tmp.edges.data('flow') if f is not None])
 
@@ -87,39 +81,19 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
         plot.add_tile(tile_provider)
     plot.title.text = title
 
-    if mode == 'assignment':
-        # edge_renderer = plot.add_glyph(edge_source,
-        #                              glyph=MultiLine(xs='x', ys='y', line_width='width', line_color='color',
-        #                                             line_alpha=0.8))
-        edge_renderer = plot.add_glyph(edge_source,
-                                       glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
-                                                     line_alpha=0.8))
-        edge_tooltips = [(item, f'@{item}') for item in visualization_keys_edges if item != 'flow']
-        edge_tooltips.append(('flow', '@flow{(0.0)}'))
-        node_renderer = plot.add_glyph(node_source,
-                                       glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
-                                                      line_width=max_width_bokeh / 5))
-        node_tooltips = [(item, f'@{item}') for item in visualization_keys_nodes]
-    if mode == 'desire lines':
-        edge_renderer = plot.add_glyph(edge_source,
-                                       glyph=Patches(xs='x', ys='y', fill_color='green', line_color='green',
-                                                     line_alpha=0.8))
-        edge_tooltips = [('flow', '@flow{(0.0)}')]
-        node_renderer = plot.add_glyph(node_source,
-                                       glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
-                                                      line_width=max_width_bokeh / 5))
-        node_tooltips = [(item, f'@{item}') for item in visualization_keys_nodes]
-    if mode == 'deleted elements':
-        edge_renderer = plot.add_glyph(edge_source,
-                                       glyph=Patches(xs='x', ys='y', fill_color='red', line_color='red',
-                                                     line_alpha=0.8))
-        tmp = ['name', 'highway', 'length', 'maxspeed']
-        edge_tooltips = [(item, f'@{item}') for item in tmp if item != 'flow']
-        node_renderer = plot.add_glyph(node_source,
-                                       glyph=Circle(x='x', y='y', size=max_width_bokeh, line_color="red",
-                                                    fill_color="black", line_width=max_width_bokeh / 8))
-        tmp = ['osmid', 'x', 'y']
-        node_tooltips = [(item, f'@{item}') for item in tmp]
+    # edge_renderer = plot.add_glyph(edge_source,
+    #                              glyph=MultiLine(xs='x', ys='y', line_width='width', line_color='color',
+    #                                             line_alpha=0.8))
+    edge_renderer = plot.add_glyph(edge_source,
+                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
+                                                 line_alpha=0.8))
+    edge_tooltips = [(item, f'@{item}') for item in visualization_keys_edges if item != 'flow']
+    edge_tooltips.append(('flow', '@flow{(0.0)}'))
+    node_renderer = plot.add_glyph(node_source,
+                                   glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
+                                                  line_width=max_width_bokeh / 5))
+    node_tooltips = [(item, f'@{item}') for item in visualization_keys_nodes]
+
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
@@ -151,34 +125,27 @@ def plot_network(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
 
     show(plot)
 
-def debug_plot(g, costs, flows,link_labels, t=None):
-    """
-    convenience function for plotting in dynamic and static assignment
-    Parameters
-    ----------
-    obj : StaticAssignment or DynamicAssignment
-    costs : cost matrix/vector
-    flows : flow matrix/vector
-    t : index of time slice
-
-    Returns
-    -------
-
-    """
-    assert type(t) == int
-    if t is not None:
-        costs = costs[t]
-        flows = flows[t]
-    for label, flow, cost in zip(link_labels, flows, costs):
-        u, v = label
-        g[u][v]['flow'] = flow
-        g[u][v]['cost'] = cost
-    plot_network(g)
 
 
-def show_desire_lines(obj: StaticAssignment, plot_size=1300, notebook=False):
-    od_flow_graph = obj.construct_demand_graph()
-    plot_network(od_flow_graph, plot_size=plot_size, notebook=notebook, mode='desire lines')
+def show_demand(g, plot_size=1300, notebook=False):
+    if notebook:
+        output_notebook(hide_banner=True)
+        plot_size = 600
+    else:
+        output_file(results_folder + f'/{title}.html')
+    plot = figure(plot_height=plot_size,
+                  plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
+                  aspect_ratio=1, toolbar_location='below')
+    tmp = ox.project_graph(g, CRS.from_user_input(3857))
+    edge_renderer = plot.add_glyph(edge_source,
+                                   glyph=Patches(xs='x', ys='y', fill_color='green', line_color='green',
+                                                 line_alpha=0.8))
+    edge_tooltips = [('flow', '@flow{(0.0)}')]
+    node_renderer = plot.add_glyph(node_source,
+                                   glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
+                                                  line_width=max_width_bokeh / 5))
+    node_tooltips = [(item, f'@{item}') for item in visualization_keys_nodes]
+    show_assignment(od_flow_graph, plot_size=plot_size, notebook=notebook, mode='desire lines')
 
 
 def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links):
@@ -291,16 +258,24 @@ def __linestring_from_node_cords(coord_list, width_coords):
     ls = LineString(coord_list)
     return ls, ls.parallel_offset(1 * width_coords)
 
-def build_flow_data(g):
-    """
-    gathers flow data for different time steps from the edge of the graph,
-    yields a matrix that can the be used for callbacks to allow sliders
-    Parameters
-    ----------
-    g :
+def _check_title(title, tmp, plot_type:str):
+    if title is None:
+        try:
+            tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
+            title = plot_type + ' ' + tmp.graph['name']
+        except KeyError:
+            # no name provided ..
+            title = plot_type + ' ' + '... provide city name in graph and it will show here..'
+    return title
+def _output(notebook:bool, title, plot_size):
+    if notebook:
+        output_notebook(hide_banner=True)
+        plot_size = 600
+    else:
+        output_file(results_folder + f'/{title}.html')
+def _background_map(background_map, plot):
+    if background_map:
+        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+        plot.add_tile(tile_provider)
 
-    Returns
-    -------
-
-    """
 

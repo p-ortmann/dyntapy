@@ -27,24 +27,24 @@ def _init_arrival_maps(costs, out_links, destinations, step_size, tot_time_steps
 
 @njit()
 def setup_aon(assignment: Assignment):
-    costs = assignment.network.links.length / assignment.network.links.v0
+    costs = assignment._network.links.length / assignment._network.links.v0
     step_size= assignment.time.step_size
-    cur_costs = np.empty((assignment.time.route_choice.tot_time_steps,assignment.network.tot_links), dtype=np.float32 )
+    cur_costs = np.empty((assignment.time.route_choice.tot_time_steps,assignment._network.tot_links), dtype=np.float32)
     for t in range (assignment.time.route_choice.tot_time_steps):
         cur_costs[t,:] = costs
     prev_costs = np.copy(cur_costs)
     tot_time_steps = assignment.time.route_choice.tot_time_steps
-    tot_turns = assignment.network.tot_turns
-    tot_destinations = assignment.network.tot_turns
-    for destination in assignment.dynamic_demand.all_destinations:
-        connectors = assignment.network.nodes.in_links.get_nnz(destination)
+    tot_turns = assignment._network.tot_turns
+    tot_destinations = assignment._network.tot_turns
+    for destination in assignment._dynamic_demand.all_destinations:
+        connectors = assignment._network.nodes.in_links.get_nnz(destination)
         for c in connectors:
             prev_costs[c] = np.inf
             # triggering recomputations along all paths towards the destination
 
-    arrival_maps = _init_arrival_maps(cur_costs, assignment.network.nodes.out_links,
-                                      assignment.dynamic_demand.all_destinations, assignment.time.step_size,
-                                      assignment.network.tot_nodes)
+    arrival_maps = _init_arrival_maps(cur_costs, assignment._network.nodes.out_links,
+                                      assignment._dynamic_demand.all_destinations, assignment.time.step_size,
+                                      assignment._network.tot_nodes)
     turning_fractions = np.zeros((tot_time_steps, tot_destinations, tot_turns), dtype=np.float32)
     link_time = np.floor(cur_costs / step_size)
     interpolation_frac = cur_costs / step_size - link_time

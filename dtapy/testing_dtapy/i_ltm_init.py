@@ -21,8 +21,8 @@ time = 0
 for gjson in gjsons:
     parse_demand(gjson, g, time)
     time = time + 1
+
 assignment = Assignment(g)
-i_ltm(assignment.network, assignment.dynamic_demand, assignment.results, assignment.time)
 
 print('init passed successfully')
 print('hi')

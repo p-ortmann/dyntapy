@@ -6,15 +6,23 @@
 #
 #
 import numpy as np
-from itertools import count
 import networkx as nx
 from numba.typed import List
 from datastructures.csr import csr_prep, UI32CSRMatrix
-from dtapy.core.assignment_cls import Links, Nodes, Network, Turns, DynamicDemand, SimulationTime
-from dtapy.demand import _build_demand, _check_centroid_connectivity
+from dtapy.core.assignment_cls import Links, Nodes, Network, Turns, InternalDynamicDemand, SimulationTime
+from dtapy.demand import _check_centroid_connectivity
 from dtapy.parameters import parameters
-from dtapy.core.assignment_methods import i_ltm_aon
 from dataclasses import dataclass
+from dtapy.demand import DynamicDemand
+from typing import Callable
+from dtapy.core.assignment_methods.i_ltm_aon import i_ltm_aon
+
+
+@dataclass
+class valid_methods:
+    i_ltm_aon: Callable = i_ltm_aon
+
+
 
 v_wave_default = parameters.supply.v_wave_default
 turn_capacity_default = parameters.supply.turn_capacity_default
@@ -27,32 +35,33 @@ network_loading_method = parameters.network_loading.method
 
 class Assignment:
     """This class has no value when instantiated on its own,
-     it merely sets up the state variables/interfaces to networkx and the demand generation"""
+     it merely sets up the state variables/interfaces to the nx.MultiDiGraph and the DynamicDemand"""
 
-    def __init__(self, g: nx.DiGraph, time=SimulationTime(0, 24, parameters.network_loading.time_step),
-                 method=i_ltm_aon):
+    def __init__(self, g: nx.DiGraph, dynamic_demand: DynamicDemand,
+                 method=valid_methods.i_ltm_aon):
         """
 
         Parameters
         ----------
         g : nx.DiGraph
-        time : SimulationTime object, specifies start and end of the simulation and the time step to be used
+        dynamic_demand : DynamicDemand
         """
+        # the data structures starting with _ refer to internal compiled structures, if you want to change them
+        # you have to be familiar with numba
+        self.method = method
         _check_centroid_connectivity(g)
         self.g = g
-        self.time = self.__init_time_obj(time)
-        self.tot_nodes = np.uint32(self.g.number_of_nodes())
-        self.tot_links = np.uint32(self.g.number_of_edges())
-        self.tot_turns = None
-        self.results = None
+        self.dynamic_demand= dynamic_demand
+        self.time = self.__init_time_obj(dynamic_demand.simulation_time)
         #get adjacency from nx, and
         self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
-        self.network = self.__build_network()
+        self._network = self.__build_network()
         print('network build')
-        self.dynamic_demand: DynamicDemand = self.__build_demand()
+        self._dynamic_demand: InternalDynamicDemand = self.__build_demand()
         print('demand simulation build')
-        self.network_loading_data_structs(method=network_loading_method)
+        self.results=self.run_assignment()
+
         print('DNL data structures build')
         # replacing network object with specialized version for network loading method
         print('network build, lets see')
@@ -60,10 +69,10 @@ class Assignment:
         # to be dumped into the nx.DiGraph as key value pairs
         # self.set_od_matrix(od_matrix)
 
-    def network_loading_data_structs(self, method: str):
-        if method == 'iltm':
-            from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_setup
-            i_ltm_setup(self)
+    def run_assignment(self):
+        #TODO: generic way for adding keyword args
+        results: AssignmentResults=self.method(self)
+        return results
 
     def __build_network(self):
         nodes = self.__build_nodes()
@@ -72,7 +81,7 @@ class Assignment:
         print("turns passed")
         links = self.__build_links(turns)
         print("links passed")
-        return Network(links, nodes, turns, self.tot_links, self.tot_nodes, self.tot_turns)
+        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), self.tot_turns)
 
     def __build_nodes(self):
         link_ids = np.arange(self.g.number_of_edges(), dtype=np.uint32)
@@ -175,14 +184,7 @@ class Assignment:
                      lanes, link_type)
 
     def __build_demand(self):
-        g = self.g
-        if 'od_graph' not in g.graph:
-            raise ValueError('No od_graph registered on the road graph, see demand.py for required format')
-        od_graphs = g.graph['od_graph']
-        insertion_time = np.array([od_graph.graph['time'] for od_graph in od_graphs])
-        demand_data = [nx.to_scipy_sparse_matrix(c, weight='flow', format='lil') for c in od_graphs]
-        # change to csr for consistency ..
-        return _build_demand(demand_data, insertion_time, simulation_time=self.time)
+        return _build_internal_dynamic_demand(dynamic_demand=self.dynamic_demand)
     @staticmethod
     def __init_time_obj(time:SimulationTime):
         if time.step_size==parameters.route_choice.step_size:
@@ -196,9 +198,58 @@ class Assignment:
         class DTATime:
             network_loading = time
             route_choice = route_choice_time
-            consistent :np.bool = consistent_time
+            consistent:np.bool = consistent_time
 
         return DTATime()
+    @staticmethod
+    def _build_internal_dynamic_demand(dynamic_demand: DynamicDemand):
+        """
+
+        Parameters
+        ----------
+        dynamic_demand: DynamicDemand as defined above
+
+        Returns
+        -------
+
+        """
+        insertion_times = dynamic_demand.insertion_times
+        demand_data = [dynamic_demand.get_sparse_repr(t) for t in dynamic_demand.insertion_times]
+        simulation_time = dynamic_demand.simulation_time
+
+        if not np.all(insertion_times[1:] - insertion_times[:-1] > simulation_time.step_size):
+            raise ValueError(
+                'insertion times are assumed to be monotonously increasing. The minimum difference between '
+                'two '
+                'insertions is the internal simulation time step')
+        if max(insertion_times > 24):
+            raise ValueError('internally time is restricted to 24 hours')
+        time = np.arange(simulation_time.start, simulation_time.end, simulation_time.step_size)
+        loading_time_steps = [(np.abs(insertion_time - time)).argmin() for insertion_time in insertion_times]
+        static_demands = List()
+        rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
+        row_sizes = np.array([lil_demand.nonzero()[0].size for lil_demand in demand_data], dtype=np.uint32)
+        cols = [np.asarray(lil_demand.nonzero()[1], dtype=np.uint32) for lil_demand in demand_data]
+        col_sizes = np.array([lil_demand.nonzero()[1].size for lil_demand in demand_data], dtype=np.uint32)
+        all_destinations, cols = np.unique(np.concatenate(cols), return_inverse=True)
+        all_origins, rows = np.unique(np.concatenate(rows), return_inverse=True)
+        cols = np.array_split(cols, np.cumsum(col_sizes))
+        rows = np.array_split(rows, np.cumsum(row_sizes))
+        tot_destinations = max(all_destinations)
+        tot_origins = max(all_origins)
+        for internal_time, lil_demand, row, col in zip(loading_time_steps, demand_data, rows, cols):
+            vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
+            index_array_to_d = np.column_stack((row, col))
+            index_array_to_o = np.column_stack((col, row))
+            to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (tot_origins, tot_destinations)))
+            to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (tot_origins, tot_destinations)))
+            origin_node_ids = np.array([all_origins[i] for i in to_destinations.get_nnz_rows()], dtype=np.uint32)
+            destination_node_ids = np.array([all_destinations[i] for i in to_origins.get_nnz_rows()], dtype=np.uint32)
+            static_demands.append(StaticDemand(to_origins, to_destinations,
+                                               to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(),
+                                               origin_node_ids,
+                                               destination_node_ids, internal_time))
+        return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, all_origins, all_destinations)
 
 
 @dataclass()

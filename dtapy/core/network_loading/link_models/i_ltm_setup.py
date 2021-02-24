@@ -19,11 +19,11 @@ from datastructures.csr import UI8CSRMatrix, csr_prep, F32CSRMatrix
 
 def i_ltm_setup(assignment: Assignment):
     # link properties
-    length = assignment.network.links.length
-    v0 = assignment.network.links.v0
-    capacity = assignment.network.links.capacity
+    length = assignment._network.links.length
+    v0 = assignment._network.links.v0
+    capacity = assignment._network.links.capacity
     step_size = assignment.time.step_size
-    v_wave = assignment.network.links.v_wave
+    v_wave = assignment._network.links.v_wave
     vf_index = int32((length / v0) / step_size)  # uint works as floor in matlab
     vf_ratio = float32(vf_index - (length / v0) / step_size + 1)
     vf_index = -vf_index - 1
@@ -32,7 +32,7 @@ def i_ltm_setup(assignment: Assignment):
     vw_index = -vw_index - 1
     k_crit = capacity / v0
     k_jam = capacity / v_wave + k_crit
-    iltm_links = ILTMLinks(assignment.network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
+    iltm_links = ILTMLinks(assignment._network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 
     # node properties
@@ -51,12 +51,12 @@ def i_ltm_setup(assignment: Assignment):
     _out_link_counter = 0
     for node in range(assignment.tot_nodes):
         # tot_in_links = assignment.network.nodes.tot_in_links[node]
-        node_turns = np.where(assignment.network.turns.via_node == node)[0]
-        node_in_links = assignment.network.nodes.in_links.get_nnz(node)
-        node_out_links = assignment.network.nodes.out_links.get_nnz(node)
+        node_turns = np.where(assignment._network.turns.via_node == node)[0]
+        node_in_links = assignment._network.nodes.in_links.get_nnz(node)
+        node_out_links = assignment._network.nodes.out_links.get_nnz(node)
         for turn in node_turns:
-            from_link = assignment.network.turns.from_link[turn]
-            to_link = assignment.network.turns.to_link[turn]
+            from_link = assignment._network.turns.from_link[turn]
+            to_link = assignment._network.turns.to_link[turn]
             index_array_node_turns[turn_counter] = node, turn_counter
             val_in_links[turn_counter] = np.uint8(np.where(node_in_links == from_link)[0])
             val_out_links[turn_counter] = np.uint8(np.where(node_out_links == to_link)[0])
@@ -67,14 +67,14 @@ def i_ltm_setup(assignment: Assignment):
         *csr_prep(index_array_node_turns, val_out_links, (assignment.tot_nodes, assignment.tot_turns)))
     val_in_link_cap[_in_l_counter:_in_l_counter + len(node_in_links)] = capacity[node_in_links]
     val_out_link_cap[_out_link_counter:_out_link_counter + len(node_in_links)] = capacity[node_out_links]
-    in_link_cap = F32CSRMatrix(val_in_link_cap, assignment.network.nodes.in_links._col_index,
-                               assignment.network.nodes.in_links._row_index)
-    out_link_cap = F32CSRMatrix(val_out_link_cap, assignment.network.nodes.out_links._col_index,
-                                assignment.network.nodes.out_links._row_index)
-    iltm_nodes = ILTMNodes(assignment.network.nodes, turn_based_in_links, turn_based_out_links, in_link_cap,
+    in_link_cap = F32CSRMatrix(val_in_link_cap, assignment._network.nodes.in_links._col_index,
+                               assignment._network.nodes.in_links._row_index)
+    out_link_cap = F32CSRMatrix(val_out_link_cap, assignment._network.nodes.out_links._col_index,
+                                assignment._network.nodes.out_links._row_index)
+    iltm_nodes = ILTMNodes(assignment._network.nodes, turn_based_in_links, turn_based_out_links, in_link_cap,
                            out_link_cap)
-    assignment.network = ILTMNetwork(assignment.network, iltm_links, iltm_nodes,
-                                     assignment.network.turns)
+    assignment._network = ILTMNetwork(assignment._network, iltm_links, iltm_nodes,
+                                      assignment._network.turns)
 
     # attributes that share the same sparsity structure should have the same index arrays and the underlying data
     # should be stored with a shared matrix where each row is an individual data array for a sparse matrix
@@ -83,9 +83,9 @@ def i_ltm_setup(assignment: Assignment):
     if not assignment.results:
         # cold start
         marg_comp = False
-        tot_origins = assignment.dynamic_demand.tot_origins
-        all_origins = assignment.dynamic_demand.next
-        tot_destinations = assignment.dynamic_demand.tot_destinations
+        tot_origins = assignment._dynamic_demand.tot_origins
+        all_origins = assignment._dynamic_demand.next
+        tot_destinations = assignment._dynamic_demand.tot_destinations
         tot_links = assignment.tot_links
         tot_nodes = assignment.tot_nodes
         tot_turns = assignment.tot_turns
@@ -107,7 +107,7 @@ def i_ltm_setup(assignment: Assignment):
         #     for origin in assignment.demand_simulation.demands[t].get_nnz_rows():
         #         nodes_2_update[origin][t]=True
         # we stick with the implementation where all are active and see if we can reduce later.
-        for origin in assignment.dynamic_demand.all_origins:
+        for origin in assignment._dynamic_demand.all_origins:
             nodes_2_update[origin] = True
 
         turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations))

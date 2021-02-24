@@ -16,20 +16,19 @@ route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
 
-# TODO: add generic results object
 @njit
 def update_arrival_maps(assignment: Assignment, state: AONState):
     tot_time_steps = assignment.time.route_choice.tot_time_steps
-    from_node = assignment.network.links.from_node
-    to_node = assignment.network.links.to_node
-    out_links = assignment.network.nodes.out_links
-    in_links = assignment.network.nodes.in_links
-    all_destinations = assignment.dynamic_demand.all_destinations
+    from_node = assignment._network.links.from_node
+    to_node = assignment._network.links.to_node
+    out_links = assignment._network.nodes.out_links
+    in_links = assignment._network.nodes.in_links
+    all_destinations = assignment._dynamic_demand.all_destinations
     state.prev_costs = state.cur_costs
     state.cur_costs = assignment.results.costs
     delta_costs = np.abs(state.cur_costs - state.prev_costs)
-    nodes_2_update = np.full(assignment.network.tot_nodes, np.iinfo(np.uint32).max, dtype=np.uint32)
-    next_nodes_2_update = np.full(assignment.network.tot_nodes,np.iinfo(np.uint32).max, dtype=np.uint32)  # nodes to be
+    nodes_2_update = np.full(assignment._network.tot_nodes, np.iinfo(np.uint32).max, dtype=np.uint32)
+    next_nodes_2_update = np.full(assignment._network.tot_nodes, np.iinfo(np.uint32).max, dtype=np.uint32)  # nodes to be
     # activated for earlier time steps
     arrival_maps = state.arrival_maps
     step_size = assignment.time.route_choice.step_size
@@ -37,7 +36,6 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
     interpolation_frac = state.cur_costs / step_size - link_time
     # TODO: revisit structuring of the travel time arrays
     # could be worth while to copy and reverse the order depending on where you're at in these loops ..
-    # TODO: replace node2update  lists with fixed size arrays and pointers
     # the following implementation closely follows the solution presented in
     # Himpe, Willem. "Integrated Algorithms for Repeated Dynamic Traffic Assignments The Iterative
     # Link Transmission Model with Equilibrium Assignment Procedure."(2016).
@@ -99,7 +97,7 @@ def update_arrival_maps(assignment: Assignment, state: AONState):
                 if np.abs(new_dist - arrival_maps[destination, t, node]) > route_choice_delta:
                     # new arrival time found
                     arrival_maps[destination, t, node] = new_dist
-                    if node > assignment.dynamic_demand.tot_centroids:
+                    if node > assignment._dynamic_demand.tot_centroids:
                         # only adds the in_links if it's not a centroid
                         # the first nodes are centroids, see labelling in assignment.py
                         for link in in_links.get_nnz(node):
@@ -137,16 +135,16 @@ def calc_turning_fractions(assignment: Assignment, state: AONState, departure_ti
     next_node = np.int32(-1)
     turning_fractions = state.turning_fractions
     # starting point tomorrow - all that needs to be done is to query into the future for the smallest label in the current time step!
-    for idx in prange(assignment.dynamic_demand.all_destinations.size):
-        destination = assignment.dynamic_demand.all_destinations[idx]
+    for idx in prange(assignment._dynamic_demand.all_destinations.size):
+        destination = assignment._dynamic_demand.all_destinations[idx]
         dists = state.arrival_maps[destination, :, :]
         for t in assignment.time.route_choice.tot_time_steps:
-            for node in assignment.network.nodes:
+            for node in assignment._network.nodes:
                 next_node = node.copy()
                 start_time = t + departure_time_offset
                 min_dist = np.inf
-                for link, to_node in zip(assignment.network.nodes.out_links.get_nnz(next_node),
-                                         assignment.network.nodes.out_links.get_row(next_node)):
+                for link, to_node in zip(assignment._network.nodes.out_links.get_nnz(next_node),
+                                         assignment._network.nodes.out_links.get_row(next_node)):
                     link_time = np.floor(start_time+state.cur_costs[t,link])
                     interpolation_fraction = start_time+state.cur_costs[t,link] - link_time
                     dist = (1 - interpolation_fraction) * arrival_maps[
@@ -154,5 +152,5 @@ def calc_turning_fractions(assignment: Assignment, state: AONState, departure_ti
                                destination, t + link_time + 1, to_node]
                     if dist < min_dist:
                         next_link = link
-                for turn in assignment.network.turns.to_link[next_link]:
+                for turn in assignment._network.turns.to_link[next_link]:
                     turning_fractions[destination, t, turn] = 1

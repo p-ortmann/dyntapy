@@ -61,6 +61,9 @@ class _Visualization:
     container for parameters that concern visualization
     """
     max_links: np.uint32 = np.uint32(1000)
+    plot_size: int = 1300
+    notebook_plot_size = 600
+
 
 
 @dataclass
@@ -81,6 +84,8 @@ class _Parameters:
     demand: _Demand = _Demand()
     network_loading: _NetworkLoading = _NetworkLoading()
     route_choice: _RouteChoice = _RouteChoice()
+
+
 
 
 parameters = _Parameters()  # default initilisation

@@ -11,7 +11,7 @@ import numpy as np
 from stapy.network_data import get_from_ox_and_save, load_pickle
 from stapy.assignment_methods import DUE
 from stapy.demand import generate_od_fixed
-from visualization import plot_network
+from visualization import show_assignment
 from stapy.network_data import __filepath
 from stapy.assignment import  StaticAssignment
 
@@ -36,7 +36,7 @@ rand_od = generate_od_fixed(g.number_of_nodes(), 20)
 DUE(g, od_matrix=rand_od, method='dial_b') # methods = ['bpr,flow_avg', 'frank_wolfe', 'dial_b']
 make_artificial_dynamic_graph(g)
 path = 'stapy/data/viz_test.pickle'
-plot_network(g)
+show_assignment(g)
 
 
 

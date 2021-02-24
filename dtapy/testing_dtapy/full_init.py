@@ -8,19 +8,26 @@
 #
 # testing initialization of all information needed for LTM
 from dtapy.core.assignment_cls import SimulationTime
-from dtapy.demand import _build_demand, generate_od_fixed
+from dtapy.demand import _build_internal_dynamic_demand, generate_od_xy, add_centroids_from_grid, parse_demand
 from dtapy.network_data import get_from_ox_and_save
 import numpy as np
 from dtapy.assignment import Assignment
+from dtapy.parameters import parameters
+from visualization import show_demand
+ltm_dt = parameters.network_loading.time_step
 
 (g, deleted) = get_from_ox_and_save('Gent')
 print(f'number of nodes{g.number_of_nodes()}')
 start_time = 6  # time of day in hrs
 end_time = 12
-demands = [generate_od_fixed(g.number_of_nodes(), 20), generate_od_fixed(g.number_of_nodes(), 20)]
 insertion_times = np.array([6, 7])
-ltm_dt = 0.25  # ltm timestep in hrs
+add_centroids_from_grid('Gent', g)
+demands = [generate_od_xy(20,'Gent'), generate_od_xy(20,'Gent', seed=1)]
+[parse_demand(demand,g ,t) for demand,t in zip(demands, insertion_times) ]
+# demand is now stored under g.graph['od_graphs'], it's a dict of nx.DiGraphs with time as the key
+# can visualized with
+show_demand(g.graph['od_graphs'][6])
 simulation_time = SimulationTime(start_time, end_time, ltm_dt)
-demand_simulation = _build_demand(demands, insertion_times, simulation_time, g.number_of_nodes())
-Assignment(g, demand_simulation, simulation_time)
+demand_simulation = _build_internal_dynamic_demand(demands, insertion_times, simulation_time, g.number_of_nodes())
+Assignment(g, simulation_time)
 print('init passed successfully')

@@ -10,7 +10,7 @@
 from stapy.network_data import get_from_ox_and_save
 from stapy.assignment_methods import SUE
 from stapy.demand import generate_od_fixed
-from visualization import plot_network, show_desire_lines
+from visualization import show_assignment, show_desire_lines
 from stapy.assignment import StaticAssignment
 from stapy.settings import assignment_parameters
 (g, deleted) = get_from_ox_and_save('Gent')
@@ -19,5 +19,5 @@ obj = StaticAssignment(g, rand_od)
 show_desire_lines(obj)
 SUE(g, od_matrix=rand_od)
 val= assignment_parameters['logit_theta']
-plot_network(g, title=f'GENT assignment, theta = {val}')
+show_assignment(g, title=f'GENT assignment, theta = {val}')
 

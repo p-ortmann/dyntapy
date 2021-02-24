@@ -247,7 +247,7 @@ spec_simulation = [('next', StaticDemand.class_type.instance_type),
 
 
 @jitclass(spec_simulation)
-class DynamicDemand(object):
+class InternalDynamicDemand(object):
     def __init__(self, demands, tot_time_steps, all_origin_node_ids, all_destination_node_ids):
         self.demands = demands
         self.next = demands[0]
