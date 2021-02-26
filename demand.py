@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from core.assignment_cls import SimulationTime
 import osmnx as ox
-from osmnx.distance import great_circle_vec
+from osmnx.distance import great_circle_vec, euclidean_dist_vec
 import geopandas as gpd
 from shapely.geometry import Point
 from geojson import Feature, FeatureCollection, dumps
@@ -101,7 +101,7 @@ def _check_centroid_connectivity(g: nx.DiGraph):
         raise ValueError(f'these centroids do not have an incoming connector: {disconnected_centroids}')
 
 
-def __create_centroid_grid(name: str, spacing=1000):
+def get_centroid_grid_coords(name: str, spacing=1000):
     """
     creates centroids on a grid that overlap with the polygon that is associated with city or region specified
     under 'name'
@@ -112,7 +112,7 @@ def __create_centroid_grid(name: str, spacing=1000):
 
     Returns
     -------
-
+    X,Y arrays of centroid locations
     """
     my_gdf = ox.geocode_to_gdf(name)
     range_ns_meters = great_circle_vec(my_gdf.bbox_north[0], my_gdf.bbox_east[0], my_gdf.bbox_south[0],
@@ -127,61 +127,69 @@ def __create_centroid_grid(name: str, spacing=1000):
     points = [Point(x, y) for x, y in zip(X, Y)]
     points = gpd.geoseries.GeoSeries(points, crs=4326)
     centroids = points[points.within(my_gdf.loc[0, 'geometry'])]
-    return centroids
+    return np.array(centroids.x), np.array(centroids.y)
 
 
-def add_centroids_to_graph(g, centroids, k=3):
+def add_centroids_to_graph(g, X, Y, add_connectors = True,k = 1):
     """
     partitions the polygon associated with the region/city into squares (with D as the side length in meters)
     and adds one centroid and k connectors to the k nearest nodes for each square.
     Parameters
     ----------
+    add_connectors : whether to add auto-configured connectors, k for each centroid
+    Y : lat vector of centroids
+    X : lon vector of centroids
     k : number of connectors to be added per centroid
     g : nx.MultiDigraph
-    name : name of the city to which g corresponds
     Returns
     -------
 
     """
     if len([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]) > 0:
         raise ValueError('grid generation assumes that no centroids are present in the graph')
-    new_centroids = [(u, {'x': p.x, 'y': p.y, 'centroid': True}) for u, p in
-                     zip(range(len(centroids)), centroids)]
+    new_centroids = [(u, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True}) for u, p in
+                     enumerate(zip(X, Y))]
     for u, data in new_centroids:
         g.add_node(u, **data)
-        tmp: nx.DiGraph = g
-        og_nodes = list(g.nodes)
-        for _ in range(k):
-            v, length = ox.get_nearest_node(tmp, (data['y'], data['x']), return_dist=True)
-            og_nodes.remove(v)
-            tmp = tmp.subgraph(og_nodes)
-            connector_data = {'connector': True, 'length': length / 1000, 'free speed': DEFAULT_CONNECTOR_SPEED, 'lanes': DEFAULT_CONNECTOR_LANES, 'capacity':DEFAULT_CONNECTOR_CAPACITY}  # length in km
-            g.add_edge(u, v, **connector_data)
-            g.add_edge(v, u, **connector_data)
+    if add_connectors:
+        for u, data in new_centroids:
+            tmp: nx.DiGraph = g
+            og_nodes = list(g.nodes)
+            for _ in range(k):
+                v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
+                og_nodes.remove(v)
+                tmp = tmp.subgraph(og_nodes)
+                connector_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
+                                  'lanes': DEFAULT_CONNECTOR_LANES, 'capacity': DEFAULT_CONNECTOR_CAPACITY}  # length in km
+                g.add_edge(u, v, **connector_data)
+                g.add_edge(v, u, **connector_data)
 
 
 def parse_demand(data: str, g: nx.DiGraph, time=0):
+    # TODO: to be tested
     """
     Maps travel demand to existing closest centroids in g.
-    The demand pattern is added in the graph as its own directed graph and can be retrieved via g.graph['od_graph'],
-    it contains edges with a 'flow' entry that indicates the movements from centroid to centroid.
-    The corresponding OD tables can be retrieved through calling nx.to_scipy_sparse_matrix(od_graph,weight='flow' )
+    The demand pattern is expressed as its own directed graph od_graph returned with 'time', 'crs' and 'name' as metadata
+    in od_graph.graph : Dict.
+    The od_graph contains edges with a 'flow' entry that indicates the movements from centroid to centroid.
+    The corresponding OD table can be retrieved through calling nx.to_scipy_sparse_matrix(od_graph,weight='flow' )
 
     Parameters
     ----------
     time : time stamp for the demand data in hours (0<= time <=24)
     data : geojson that contains lineStrings (WGS84) as features, each line has an associated
     'flow' stored in the properties dict
-    g : networkx DiGraph for the city under consideration with centroids
+    g : nx.MultiDigraph for the city under consideration with centroids assumed to be labelled starting from 0, .. ,C-1
+    with C being the number of centroids.
 
     There's no checking on whether the data and the nx.Digraph correspond to the same geo-coded region.
     Returns
     -------
-
+    od_graph: nx.DiGraph
 
     """
-    centroid_subgraph = g.subgraph(nodes=[u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict])
-    if centroid_subgraph.number_of_nodes() == 0:
+    od_graph = g.subgraph(nodes=[u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]).copy()
+    if od_graph.number_of_nodes() == 0:
         raise ValueError('Graph does not contain any centroids.')
     data = geojson.loads(data)
     gdf = gpd.GeoDataFrame.from_features(data['features'])
@@ -193,15 +201,11 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
     Y = np.concatenate((Y0, Y1))
     snapped_centroids, _ = find_nearest_centroids(X,
                                                   Y,
-                                                  centroid_subgraph)  # snapped centroids are in nx node id space,
+                                                  od_graph)  # snapped centroids are in nx node id space,
     # and not their respective internal centroid ids
-    new_centroid_ids = np.array([centroid_subgraph.nodes[u]['centroid_id'] for u in snapped_centroids], dtype=np.uint32)
     flows = np.array(gdf['flow'])
-    od_graph = nx.DiGraph()
-    od_graph.add_nodes_from(
-        [(data['centroid_id'], {'nx_id': u, 'x': data['x'], 'y': data['y']}) for u, data in g.nodes(data=True) if
-         'centroid' in data])
-    ods = new_centroid_ids.reshape((int(new_centroid_ids.size / 2), 2), order='F')
+
+    ods = snapped_centroids.reshape((int(snapped_centroids.size / 2), 2), order='F')
     uniq, inv, counts = np.unique(ods, axis=0, return_inverse=True, return_counts=True)
 
     if uniq.shape[0] != ods.shape[0]:
@@ -221,12 +225,7 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
     od_graph.graph['crs'] = 'epsg:4326'
     name = g.graph['name']
     od_graph.graph['name'] = f'mobility flows in {name} at {time} s'
-    if 'od_graphs' in g.graph:
-        if type(g.graph['od_graphs']) != list:
-            raise ValueError('od_graphs needs to be a list')
-        g.graph['od_graphs'].append(od_graph)
-    else:
-        g.graph['od_graphs'] = [od_graph]
+    return od_graph
 
 
 class DynamicDemand:
@@ -261,9 +260,6 @@ class DynamicDemand:
         return self.trip_graphs[time]
 
 
-
-
-
 def __count_iter_items(iterable):
     """
     Consume an iterable not reading it into memory; return the number of items.
@@ -290,7 +286,7 @@ def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
     tot_ods = len(X)
     assert centroid_graph.graph['crs'] == 'epsg:4326'
     centroids = pd.DataFrame(
-        {"x": nx.get_node_attributes(centroid_graph, "x"), "y": nx.get_node_attributes(centroid_graph, "y")}
+        {"x": nx.get_node_attributes(centroid_graph, "x_coord"), "y": nx.get_node_attributes(centroid_graph, "y_coord")}
     )
     tree = cKDTree(data=centroids[["x", "y"]], compact_nodes=True, balanced_tree=True)
     # ox.get_nearest_nodes()
@@ -316,3 +312,70 @@ def _merge_gjsons(geojsons):
     feature_lists = [loads(my_string)['features'] for my_string in geojsons]
     features = list(itertools.chain(*feature_lists))
     return {'type': 'FeatureCollection', 'features': features}
+
+
+def get_nearest_node(G, point, method="haversine", return_dist=False):
+    """
+    adapted from OSMNX
+    Find the nearest node to a point.
+
+    Return the graph node nearest to some (lat, lng) or (y, x) point and
+    optionally the distance between the node and the point. This function can
+    use either the haversine formula or Euclidean distance.
+
+    Parameters
+    ----------
+    G : networkx.MultiDiGraph
+        input graph
+    point : tuple
+        The (lat, lng) or (y, x) point for which we will find the nearest node
+        in the graph
+    method : string {'haversine', 'euclidean'}
+        Which method to use for calculating distances to find nearest node.
+        If 'haversine', graph nodes' coordinates must be in units of decimal
+        degrees. If 'euclidean', graph nodes' coordinates must be projected.
+    return_dist : bool
+        Optionally also return the distance (in meters if haversine, or graph
+        node coordinate units if euclidean) between the point and the nearest
+        node
+
+    Returns
+    -------
+    int or tuple of (int, float)
+        Nearest node ID or optionally a tuple of (node ID, dist), where dist
+        is the distance (in meters if haversine, or graph node coordinate
+        units if euclidean) between the point and nearest node
+    """
+    if len(G) < 1:
+        raise ValueError("G must contain at least one node")
+
+    # dump graph node coordinates into a pandas dataframe indexed by node id
+    # with x and y columns
+    coords = ((n, d["x_coord"], d["y_coord"]) for n, d in G.nodes(data=True))
+    df = pd.DataFrame(coords, columns=["node", "x", "y"]).set_index("node")
+
+    # add columns to df for the (constant) coordinates of reference point
+    df["ref_y"] = point[0]
+    df["ref_x"] = point[1]
+
+    # calculate the distance between each node and the reference point
+    if method == "haversine":
+        # calculate distances using haversine for spherical lat-lng geometries
+        dists = great_circle_vec(lat1=df["ref_y"], lng1=df["ref_x"], lat2=df["y"], lng2=df["x"])
+
+    elif method == "euclidean":
+        # calculate distances using euclid's formula for projected geometries
+        dists = euclidean_dist_vec(y1=df["ref_y"], x1=df["ref_x"], y2=df["y"], x2=df["x"])
+
+    else:
+        raise ValueError('method argument must be either "haversine" or "euclidean"')
+
+    # nearest node's ID is the index label of the minimum distance
+    nearest_node = dists.idxmin()
+
+    # if caller requested return_dist, return distance between the point and the
+    # nearest node as well
+    if return_dist:
+        return nearest_node, dists.loc[nearest_node]
+    else:
+        return nearest_node

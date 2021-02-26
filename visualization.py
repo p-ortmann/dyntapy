@@ -20,10 +20,9 @@ from utilities import __create_green_to_red_cm
 import osmnx as ox
 from pyproj import CRS
 from __init__ import results_folder
-
-traffic_cm = __create_green_to_red_cm('hex')
 from settings import parameters
 
+traffic_cm = __create_green_to_red_cm('hex')
 default_plot_size = parameters.visualization.plot_size
 default_notebook_plot_size = parameters.visualization.notebook_plot_size
 
@@ -130,7 +129,7 @@ def show_demand(g, plot_size=1300, notebook=False):
     node_renderer = plot.add_glyph(node_source,
                                    glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
                                                   line_width=max_width_bokeh / 5))
-    node_tooltips = [(item, f'@{item}') for item in visualization_keys_nodes]
+    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
     show_assignment(od_flow_graph, plot_size=plot_size, notebook=notebook, mode='desire lines')
 
 

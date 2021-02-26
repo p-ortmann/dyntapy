@@ -8,20 +8,19 @@
 #
 import os
 import networkx as nx
-import numpy as np
 import osmnx as ox
 from settings import parameters
 from __init__ import data_folder
 from utilities import log
 from itertools import count
+import numpy as np
+import pandas as pd
+from osmnx.distance import great_circle_vec, euclidean_dist_vec
 
 speed_mapping = parameters.supply.speed_mapping
 cap_mapping = parameters.supply.cap_mapping
 default_capacity = parameters.supply.cap_mapping
 default_speed = parameters.supply.default_speed
-
-
-
 
 
 def get_from_ox_and_save(name: str, reload=False):
@@ -63,12 +62,14 @@ def get_from_ox_and_save(name: str, reload=False):
         deleted = nx.subgraph(dir_g, nodes_to_be_removed)
         dir_g = nx.subgraph(dir_g, largest).copy()
     __clean_up_data(dir_g)
-    convert_to_gmns(dir_g)
-    nx.write_gpickle(dir_g, file_path)
+    dir_g = convert_ox_to_gmns(dir_g)
+    nx.write_gpickle(dir_g, file_path+'_processed')
     assert 'crs' in dir_g.graph
     dir_g.graph['name'] = name
     return dir_g, deleted
-def convert_to_gmns(g):
+
+
+def convert_ox_to_gmns(g):
     # the attribute names are chosen in compliance with GMNS,
     # see https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/node.schema.json
     # and https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/link.schema.json
@@ -79,37 +80,47 @@ def convert_to_gmns(g):
     edge_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'flow', 'cost', 'max_speed', 'osm_id',
                  'name', 'facility_type']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'osm_id', 'node_type', 'ctrl_type']
-
-    for node in g.nodes:
-        data = g.nodes[node]
+    new_g = nx.MultiDiGraph()
+    edges = []
+    for node, data in g.nodes.data():
         new_data = {}
-        new_data['node_id']=node
-        new_data['x_coord'] =data['x']
+        new_data['node_id'] = node
+        new_data['x_coord'] = data['x']
         new_data['y_coord'] = data['y']
-        new_data['node_type']=None
-        new_data['ctrl_type']=None
-        g.nodes[node] =new_data
-    for u,v in g.edges:
-        data = g[u][v]
+        new_data['node_type'] = None
+        new_data['ctrl_type'] = None
+        new_g.add_node(node, **new_data)
+    for u, v, data in g.edges.data():
         new_data = {}
-        new_data['link_id'] = data['osm_id']
         new_data['from_node_id'] = u
-        new_data['to_node_id']= v
+        new_data['to_node_id'] = v
         new_data['length'] = data['length']
-        new_data['free_speed'] = data['max_speed']
-        new_data['name'] = data['name']
-        new_data['facility_type']= data['highway']
-        new_data['lanes'] =data['lanes']
-        g[u][v]=new_data
-def relabel_graph(g, number_of_centroids, number_of_connectors):
+        new_data['free_speed'] = data['maxspeed']
+        if 'name' in data:
+            new_data['name'] = data['name']
+        else:
+            if 'ref' in data:
+                new_data['name'] = data['ref']
+            else:
+                new_data['name'] = None
+
+        new_data['facility_type'] = data['highway']
+        new_data['lanes'] = data['lanes']
+        edges.append((u, v, new_data))
+    new_g.add_edges_from(edges)
+    new_g.graph = g.graph
+    return new_g
+
+
+def relabel_graph(g, tot_centroids, tot_connectors):
     """
     osmnx labels the graph nodes and edges by their osm ids. These are neither stable nor continuous. We relabel nodes and edges
     with our internal ids.
     Parameters
     ----------
-    number_of_connectors : number of connectors in the graph
+    tot_connectors : number of connectors in the graph
     g : nx.DiGraph
-    number_of_centroids: int
+    tot_centroids: int
     the first nodes are centroids, this is to reserve spots for them
     Returns
     -------
@@ -120,23 +131,24 @@ def relabel_graph(g, number_of_centroids, number_of_connectors):
 
     new_g = nx.MultiDiGraph()
     new_g.graph = g.graph
-    link_counter = count(number_of_connectors)
+    link_counter = count(tot_connectors)
     ordered_nodes = g.nodes
+    new_g.add_nodes_from(np.arange(tot_centroids))
     for node_id, u in enumerate(ordered_nodes):
-        _id = node_id + number_of_centroids
+        _id = node_id + tot_centroids
         data = g.nodes[u]
         new_g.add_node(_id, **data)
-        new_g.nodes[_id]['osm_id'] = u
-        g.nodes[u]['_id'] = _id
+        new_g.nodes[_id]['ext_id'] = u
+        g.nodes[u]['node_id'] = _id
     for start_node, u in enumerate(ordered_nodes):
-        _start_node = start_node + number_of_centroids
+        _start_node = start_node + tot_centroids
         for v in g.succ[u]:
-            link_id = next(link_counter)
-            end_node = g.nodes[v]['node_id']
-            data = g[u][v]
-            data['_id'] = link_id
-            new_g.add_edge(start_node, end_node, **data)
-            g[u][v]['_id'] = link_id
+            for k in g[u][v].keys():
+                link_id = next(link_counter)
+                end_node = g.nodes[v]['node_id']
+                data = g[u][v][k].copy()
+                data['link_id'] = link_id
+                new_g.add_edge(_start_node, end_node,key=k,  **data)
         # Note that the out_links of a given node always have consecutive ids
     return new_g
 
@@ -255,3 +267,7 @@ def __filepath(name: str, check_path_valid=False):
             print(f'{name}.pickle not found in data folder!')
             raise NameError.with_traceback()
     return file_path
+
+
+
+

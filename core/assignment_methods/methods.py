@@ -6,9 +6,11 @@
 #
 #
 #
-from assignment import Assignment
-from core.route_choice.aon_setup import setup_aon
-from core.route_choice.aon import calc_turning_fractions
-def i_ltm_aon(assignment:Assignment):
-    aon_state = setup_aon(assignment)
-    calc_turning_fractions(assignment, aon_state)
+from dataclasses import dataclass
+from typing import Callable
+from core.assignment_methods.i_ltm_aon import i_ltm_aon
+
+
+@dataclass
+class valid_methods:
+    i_ltm_aon: Callable = i_ltm_aon

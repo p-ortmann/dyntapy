@@ -17,14 +17,6 @@ from settings import parameters
 from dataclasses import dataclass
 from demand import DynamicDemand
 from typing import Callable
-from core.assignment_methods.i_ltm_aon import i_ltm_aon
-
-
-@dataclass
-class valid_methods:
-    i_ltm_aon: Callable = i_ltm_aon
-
-
 
 v_wave_default = parameters.supply.v_wave_default
 turn_capacity_default = parameters.supply.turn_capacity_default
@@ -41,8 +33,7 @@ class Assignment:
      DynamicDemand and translates it into internal representations that can be understood by numba
      """
 
-    def __init__(self, g: nx.DiGraph, dynamic_demand: DynamicDemand,
-                 method=valid_methods.i_ltm_aon):
+    def __init__(self, g: nx.DiGraph, dynamic_demand: DynamicDemand):
         """
 
         Parameters
@@ -52,19 +43,18 @@ class Assignment:
         """
         # the data structures starting with _ refer to internal compiled structures, if you want to change them
         # you have to be familiar with numba
-        self.method = method
         _check_centroid_connectivity(g)
         self.g = g
-        self.dynamic_demand= dynamic_demand
+        self.dynamic_demand = dynamic_demand
         self.time = self.__init_time_obj(dynamic_demand.simulation_time)
-        #get adjacency from nx, and
+        # get adjacency from nx, and
         self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
         self._network = self.__build_network()
         print('network build')
         self._dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand)
         print('demand simulation build')
-        self.results=self.run_assignment()
+        self.results = self.run_assignment()
 
         print('DNL data structures build')
         # replacing network object with specialized version for network loading method
@@ -73,10 +63,16 @@ class Assignment:
         # to be dumped into the nx.DiGraph as key value pairs
         # self.set_od_matrix(od_matrix)
 
-    def run_assignment(self):
-        #TODO: generic way for adding keyword args
-        results: AssignmentResults=self.method(self)
+    def run_assignment(self, method: Callable):
+        from core.assignment_methods.methods import valid_methods
+        assert method in valid_methods
+        # TODO: generic way for adding keyword args
+        results: AssignmentResults = self.method(self)
         return results
+
+    def get_methods(self):
+        from core.assignment_methods.methods import valid_methods
+        return valid_methods
 
     def __build_network(self):
         nodes = self.__build_nodes()
@@ -188,10 +184,10 @@ class Assignment:
                      lanes, link_type)
 
     @staticmethod
-    def __init_time_obj(time:SimulationTime):
-        if time.step_size==parameters.route_choice.step_size:
-            route_choice_time=time
-            consistent_time =  np.bool_(True)
+    def __init_time_obj(time: SimulationTime):
+        if time.step_size == parameters.route_choice.step_size:
+            route_choice_time = time
+            consistent_time = np.bool_(True)
         else:
             route_choice_time = SimulationTime(time.start, time.end, parameters.route_choice.step_size)
             consistent_time = np.bool_(False)
@@ -200,9 +196,10 @@ class Assignment:
         class DTATime:
             network_loading = time
             route_choice = route_choice_time
-            consistent:np.bool = consistent_time
+            consistent: np.bool = consistent_time
 
         return DTATime()
+
     @staticmethod
     def _build_internal_dynamic_demand(dynamic_demand: DynamicDemand):
         """
@@ -261,17 +258,5 @@ class AssignmentResults:
     flows: np.ndarray
 
 # remapping of od from different time granularity to computation time steps
-# node or link event which triggers a change in otherwise staionary characteristics
+# node or link event which triggers a change in otherwise stationary characteristics
 # example ramp metering event capacity choke, relative and absolute events
-
-# TODO: maybe different link labelling orders that can be set based on the algorithm at hand
-# some have an outlink pattern like Algorithm B and others have an inlink outlink pattern like LTM ..
-# TODO: how high a priority is visualization.. - one time, interval visualization
-# arrays for different things separately by node id
-# what does the node data structure look like, turning fraction matrix
-# data structure for events a sparse matrix .. time steps( row) * links(columns) value as capacity,
-# different ones for each theme
-
-# is the results object a good decision?, we can just pass on network/ demand objects for warm starting
-# to enable syntax like DynamicAssignment.Network.Flows
-# time incoming outgoing link, belgium netwo
