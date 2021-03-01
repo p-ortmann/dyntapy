@@ -8,18 +8,13 @@
 #
 from demand import generate_od_xy, parse_demand, add_centroids_to_graph
 from network_data import get_from_ox_and_save
-import numpy as np
 from assignment import Assignment
 
 (g, deleted) = get_from_ox_and_save('Gent', reload=True)
 print(f'number of nodes{g.number_of_nodes()}')
 add_centroids_to_graph('Gent', g)
 print(f'number of nodes{g.number_of_nodes()} incl connectors')
-gjsons = [generate_od_xy(20, 'Gent', seed=seed) for seed in np.arange(3) * 3]
-time = 0
-for gjson in gjsons:
-    parse_demand(gjson, g, time)
-    time = time + 1
+
 
 assignment = Assignment(g)
 

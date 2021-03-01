@@ -24,20 +24,19 @@ default_speed = parameters.supply.default_speed
 
 
 def get_from_ox_and_save(name: str, reload=False):
-    file_path = __filepath(name)
-    _ = file_path + '_pure_ox'
+    file_path = _filepath(name + '_pure_ox')
     if not reload:
         try:
-            g = nx.read_gpickle(_)
+            g = nx.read_gpickle(file_path)
         except FileNotFoundError:
             log(f'city {name} could not be found in data folder, loading from osm', level=50)
             g = ox.graph_from_place(name, network_type='drive')
-            nx.write_gpickle(g, file_path + '_pure_ox')
+            nx.write_gpickle(g, file_path)
     else:
         log('Starting to load from OSM')
         g = ox.graph_from_place(name, network_type='drive')
         log('Finished downloading')
-        nx.write_gpickle(g, file_path + '_pure_ox')
+        nx.write_gpickle(g, file_path)
     # osmnx generates MultiDiGraphs, meaning there can be more than one edge connecting i ->j, a preliminary check on
     # them shows that these edges are mostly tagged with (mildly) conflicting data, e.g. slightly different linestring
     # or length for simplification we just take all the first entries, these differences will be mostly negligible
@@ -63,7 +62,7 @@ def get_from_ox_and_save(name: str, reload=False):
         dir_g = nx.subgraph(dir_g, largest).copy()
     __clean_up_data(dir_g)
     dir_g = convert_ox_to_gmns(dir_g)
-    nx.write_gpickle(dir_g, file_path+'_processed')
+    nx.write_gpickle(dir_g, _filepath(name + "_gmns"))
     assert 'crs' in dir_g.graph
     dir_g.graph['name'] = name
     return dir_g, deleted
@@ -77,25 +76,14 @@ def convert_ox_to_gmns(g):
     # https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/link_tod.schema.json
     # and also lanes:
     # https://github.com/zephyr-data-specs/GMNS/blob/master/Specification/lane_tod.schema.json
-    edge_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'flow', 'cost', 'max_speed', 'osm_id',
-                 'name', 'facility_type']
-    node_keys = ['node_id', 'x_coord', 'y_coord', 'osm_id', 'node_type', 'ctrl_type']
     new_g = nx.MultiDiGraph()
     edges = []
     for node, data in g.nodes.data():
-        new_data = {}
-        new_data['node_id'] = node
-        new_data['x_coord'] = data['x']
-        new_data['y_coord'] = data['y']
-        new_data['node_type'] = None
-        new_data['ctrl_type'] = None
+        new_data = {'node_id': node, 'x_coord': data['x'], 'y_coord': data['y'], 'node_type': None, 'ctrl_type': None}
         new_g.add_node(node, **new_data)
     for u, v, data in g.edges.data():
-        new_data = {}
-        new_data['from_node_id'] = u
-        new_data['to_node_id'] = v
-        new_data['length'] = data['length']
-        new_data['free_speed'] = data['maxspeed']
+        new_data = {'from_node_id': u, 'to_node_id': v, 'length': data['length'], 'free_speed': data['maxspeed'],
+                    'facility_type': data['highway'], 'lanes': data['lanes'], 'capacity': data['capacity']}
         if 'name' in data:
             new_data['name'] = data['name']
         else:
@@ -104,8 +92,6 @@ def convert_ox_to_gmns(g):
             else:
                 new_data['name'] = None
 
-        new_data['facility_type'] = data['highway']
-        new_data['lanes'] = data['lanes']
         edges.append((u, v, new_data))
     new_g.add_edges_from(edges)
     new_g.graph = g.graph
@@ -133,12 +119,12 @@ def relabel_graph(g, tot_centroids, tot_connectors):
     new_g.graph = g.graph
     link_counter = count(tot_connectors)
     ordered_nodes = g.nodes
-    new_g.add_nodes_from(np.arange(tot_centroids))
     for node_id, u in enumerate(ordered_nodes):
         _id = node_id + tot_centroids
         data = g.nodes[u]
         new_g.add_node(_id, **data)
-        new_g.nodes[_id]['ext_id'] = u
+        new_g.nodes[_id]['ext_id'] = u  # allows identifying the external labels later ..
+        new_g.nodes[_id]['node_id'] = _id
         g.nodes[u]['node_id'] = _id
     for start_node, u in enumerate(ordered_nodes):
         _start_node = start_node + tot_centroids
@@ -148,7 +134,9 @@ def relabel_graph(g, tot_centroids, tot_connectors):
                 end_node = g.nodes[v]['node_id']
                 data = g[u][v][k].copy()
                 data['link_id'] = link_id
-                new_g.add_edge(_start_node, end_node,key=k,  **data)
+                data['from_node_id'] = _start_node
+                data['to_node_id'] = end_node
+                new_g.add_edge(_start_node, end_node, key=k, **data)
         # Note that the out_links of a given node always have consecutive ids
     return new_g
 
@@ -233,6 +221,13 @@ def __capacity(highway_val, lanes):
             return default_capacity * lanes
 
 
+def reshuffle_graph(g):
+    # creates a copy of the graph with consistent order of nodes and links aligned with 'node_id' and 'link_id' for
+    # the nodes and edges respectively
+    node_id_map = np.array([np.array([u, _id]) for u, _id in g.nodes.data('node_id')])
+    sorted_node_id_map = np.sort(node_id_map)  # sorts by _id
+
+
 def __speed(highway_val):
     try:
         if highway_val not in speed_mapping:
@@ -250,16 +245,16 @@ def __speed(highway_val):
 
 
 def save_pickle(g: nx.DiGraph, name: str):
-    file_path = __filepath(name)
+    file_path = _filepath(name)
     nx.write_gpickle(g, file_path)
 
 
 def load_pickle(name: str):
-    file_path = __filepath(name, check_path_valid=True)
+    file_path = _filepath(name, check_path_valid=True)
     return nx.read_gpickle(file_path)
 
 
-def __filepath(name: str, check_path_valid=False):
+def _filepath(name: str, check_path_valid=False):
     assert isinstance(name, str)
     file_path = os.path.join(data_folder, str(name.lower() + '.pickle'))
     if check_path_valid:
@@ -267,7 +262,3 @@ def __filepath(name: str, check_path_valid=False):
             print(f'{name}.pickle not found in data folder!')
             raise NameError.with_traceback()
     return file_path
-
-
-
-

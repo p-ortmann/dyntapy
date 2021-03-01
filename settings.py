@@ -62,7 +62,7 @@ class _NetworkLoading:
     method: str = 'i_ltm'
     gap: np.float32 = np.float32(0.00000001)
     max_iterations: np.uint32 = np.uint32(100)
-    time_step: np.float32 = np.float32(0.25)
+    step_size: np.float32 = np.float32(0.25)
 
 
 @dataclass

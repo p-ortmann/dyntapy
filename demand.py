@@ -130,27 +130,35 @@ def get_centroid_grid_coords(name: str, spacing=1000):
     return np.array(centroids.x), np.array(centroids.y)
 
 
-def add_centroids_to_graph(g, X, Y, add_connectors = True,k = 1):
+def add_centroids_to_graph(g, X, Y, add_connectors=True, k=1):
     """
-    partitions the polygon associated with the region/city into squares (with D as the side length in meters)
-    and adds one centroid and k connectors to the k nearest nodes for each square.
+    adds centroids to g as the first C-1 nodes, with C the number of centroids.
+    g.nodes.c contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y  and 'centroid' a boolean
+    set to True.
+
     Parameters
     ----------
     add_connectors : whether to add auto-configured connectors, k for each centroid
     Y : lat vector of centroids
     X : lon vector of centroids
     k : number of connectors to be added per centroid
-    g : nx.MultiDigraph
+    g : nx.MultiDigraph containing only road network edges and nodes with 'x_coord' and 'y_coord' attribute on each node
     Returns
     -------
-
+    new nx.MultiDiGraph with centroids (and connectors)
     """
     if len([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]) > 0:
         raise ValueError('grid generation assumes that no centroids are present in the graph')
-    new_centroids = [(u, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True}) for u, p in
+    new_centroids = [(u, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True, 'node_id':u}) for u, p in
                      enumerate(zip(X, Y))]
-    for u, data in new_centroids:
-        g.add_node(u, **data)
+    connector_id = itertools.count()
+    new_g = nx.MultiDiGraph()
+    # the steps below here could be compressed but not without compromising the consistency between the order in
+    # edges and nodes in the networkx graph and the 'link_id' and 'node_id' attributes
+    for u, data in new_centroids:  # first centroids
+        new_g.add_node(u, **data)
+    for u, data in g.nodes.data():  # then road network nodes
+        new_g.add_node(u, **data)
     if add_connectors:
         for u, data in new_centroids:
             tmp: nx.DiGraph = g
@@ -159,10 +167,19 @@ def add_centroids_to_graph(g, X, Y, add_connectors = True,k = 1):
                 v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
                 og_nodes.remove(v)
                 tmp = tmp.subgraph(og_nodes)
-                connector_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
-                                  'lanes': DEFAULT_CONNECTOR_LANES, 'capacity': DEFAULT_CONNECTOR_CAPACITY}  # length in km
-                g.add_edge(u, v, **connector_data)
-                g.add_edge(v, u, **connector_data)
+                source_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
+                               'lanes': DEFAULT_CONNECTOR_LANES,
+                               'capacity': DEFAULT_CONNECTOR_CAPACITY, 'link_id': next(connector_id),
+                               'source': True}  # length in km
+                sink_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
+                             'lanes': DEFAULT_CONNECTOR_LANES,
+                             'capacity': DEFAULT_CONNECTOR_CAPACITY, 'link_id': next(connector_id), 'sink': True}
+                new_g.add_edge(u, v, **source_data)
+                new_g.add_edge(v, u, **sink_data)
+        new_g.add_edges_from(g.edges.data())
+    new_g.graph = g.graph
+    return new_g
+
 
 
 def parse_demand(data: str, g: nx.DiGraph, time=0):
@@ -229,17 +246,15 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
 
 
 class DynamicDemand:
-    def __init__(self, trip_graphs, simulation_time: SimulationTime):
+    def __init__(self, trip_graphs):
         """
 
         Parameters
         ----------
         trip_graphs : Dict of nx.DiGraphs with mobility patterns for different time slots t, with t as dict key
-        simulation_time: SimulationTime time discretization of network loading
         """
         self.trip_graphs = trip_graphs
         self.insertion_times = trip_graphs.keys
-        self.simulation_time = simulation_time
 
     def get_sparse_repr(self, time):
         """
@@ -251,8 +266,6 @@ class DynamicDemand:
         -------
         lil_matrix of trip table for given time slice
         """
-        assert time >= 0
-        assert time <= self.simulation_time.tot_time_steps
         graph: nx.DiGraph = self.trip_graphs[time]
         return nx.to_scipy_sparse_matrix(graph, weight='flow', format='lil')
 
@@ -294,7 +307,7 @@ def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
     points = np.array([X, Y]).T
     centroid_dists, centroid_idx = tree.query(points, k=1)
     snapped_centroids = centroids.iloc[centroid_idx].index
-    return snapped_centroids, centroid_dists
+    return np.array(snapped_centroids, dtype=np.uint32), centroid_dists
 
 
 def _merge_gjsons(geojsons):

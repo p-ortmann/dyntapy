@@ -122,7 +122,7 @@ class Nodes(object):
                  capacity):
         """
         out_links and in_links are sparse matrices in csr format that indicate connected links and their nodes
-        both are nodes x nodes with f(i,link_id) = j and essentially carry the same information. There's duplication to
+        both are nodes x links with f(i,link_id) = j and essentially carry the same information. There's duplication to
         avoid on-the-fly transformations.
         out_links is fromNode x Link and in_links toNode x Link in dim with toNode and fromNode as val, respectively.
         Parameters
@@ -252,7 +252,7 @@ class InternalDynamicDemand(object):
         self.demands = demands
         self.next = demands[0]
         self.__time_step = uint32(0)  # current simulation time in time step reference
-        self.is_loading = self.next.time_step == self.__time_step  # boolean that indicates if during the current
+        self.is_loading = self.next.step_size == self.__time_step  # boolean that indicates if during the current
         # time step traffic is loaded into the network
         self.all_destinations = get_all_destinations(demands)  # for destination/origin based labels
         self.all_origins = get_all_origins(demands)
@@ -266,9 +266,9 @@ class InternalDynamicDemand(object):
         self.__time_step += uint32(1)
         if self.__time_step > self.tot_time_steps:
             raise AssertionError('exceeding limit of time steps as defined in simulation time, use reset')
-        if self.__time_step > self.next.time_step:
+        if self.__time_step > self.next.step_size:
             self.next = self.demands[self.__time_step]
-        if self.next.time_step == self.__time_step:
+        if self.next.step_size == self.__time_step:
             self.is_loading = True
         else:
             self.is_loading = False

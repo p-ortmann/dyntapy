@@ -14,7 +14,7 @@ import numpy as np
 from assignment import Assignment
 from settings import parameters
 from visualization import show_demand
-ltm_dt = parameters.network_loading.time_step
+ltm_dt = parameters.network_loading.step_size
 
 (g, deleted) = get_from_ox_and_save('Gent')
 print(f'number of nodes{g.number_of_nodes()}')
