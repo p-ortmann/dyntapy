@@ -38,7 +38,7 @@ class Assignment:
 
         Parameters
         ----------
-        g : nx.DiGraph
+        g : nx.MultiDiGraph
         dynamic_demand : DynamicDemand
         """
         # the data structures starting with _ refer to internal compiled structures, if you want to change them
@@ -52,7 +52,8 @@ class Assignment:
         # self.demand = self.build_demand()
         self._network = self.__build_network()
         print('network build')
-        self._dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand)
+        self._dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
+                                                                                          simulation_time)
         print('demand simulation build')
         self.results = self.run_assignment()
 
@@ -75,35 +76,38 @@ class Assignment:
         return valid_methods
 
     def __build_network(self):
-        link_ids = np.array([link_id for (_, _, link_id) in self.g.edges.data('link_id')], dtype=np.uint32)
+        sorted_edges = sorted(self.g.edges(data=True), key=lambda t: t[2]['link_id'])
         node_ids = np.array([node_id for (_, node_id) in self.g.nodes.data('node_id')], dtype=np.uint32)
-        # necessary condition to effortlessly switch between nx and internal representation..
-        if not np.all(link_ids[1:] >= link_ids[:-1]):
-            raise ValueError('the link_ids in the graph are assumed to be monotonously increasing and have to be '
-                             'added accordingly')
+        # for the future: remove this requirement of pre sorting of nodes.
         if not np.all(node_ids[1:] >= node_ids[:-1]):
             raise ValueError('the node_ids in the graph are assumed to be monotonously increasing and have to be '
                              'added accordingly')
         tot_nodes = np.uint32(self.g.number_of_nodes())
         tot_links = np.uint32(self.g.number_of_edges())
-        from_nodes = np.array([node_id for (node_id, _, _) in self.g.edges], dtype=np.uint32)
-        to_nodes = np.array([node_id for (_, node_id, _) in self.g.edges], dtype=np.uint32)
+        from_nodes = np.array([d['from_node_id'] for (_, _, d) in sorted_edges], dtype=np.uint32)
+        to_nodes = np.array([d['to_node_id'] for _, _, d in sorted_edges], dtype=np.uint32)
+        link_ids = np.arange(tot_links, dtype=np.uint32)
 
         nodes = self.__build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids)
         print("nodes passed")
-        turns = self.__build_turns(nodes)
+        turns = self.__build_turns(tot_nodes, nodes)
         print("turns passed")
-        link_capacity = np.array([cap for (_, _, cap) in self.g.edges.data('capacity')], dtype=np.uint32)
-        free_speed = np.array([speed for (_, _, speed) in self.g.edges.data('free_speed')], dtype=np.uint32)
-        lanes = np.array([lanes for (_, _, lanes) in self.g.edges.data('lanes')], dtype=np.uint32)
-        length = np.array([length for (_, _, length) in self.g.edges.data('length')], dtype=np.uint32)
-        links = self.__build_links(turns,tot_links, from_nodes, to_nodes, link_ids, link_capacity, free_speed, lanes)
+
+        link_capacity = np.array([d['capacity'] for (_, _, d) in sorted_edges], dtype=np.uint32)
+        free_speed = np.array([d['free_speed'] for (_, _, d) in sorted_edges], dtype=np.float32)
+        lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
+        length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)
+        link_type = np.array([np.int8(d.get('link_type', 0)) for (_, _, d) in sorted_edges], dtype=np.int8)
+        # 1 is for sources (connectors leading out of a centroid)
+        # -1 for sinks (connectors leading towards a centroid)
+        tot_time_steps = self.time.network_loading.tot_time_steps
+        links = self.__build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, link_capacity, free_speed,
+                                   lanes, length, link_type)
         print("links passed")
-        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), self.tot_turns)
+        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size)
 
     @staticmethod
     def __build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids):
-
         values, col, row = csr_prep(np.column_stack((from_nodes, link_ids)), to_nodes,
                                     (tot_nodes, tot_links))
         # Note: links are labelled consecutively in the order of their start nodes
@@ -124,14 +128,15 @@ class Assignment:
         number_of_in_links = np.array(number_of_in_links, dtype=np.uint32)
         return Nodes(in_links, out_links, number_of_out_links, number_of_in_links, control_type, capacity)
 
-    def __build_turns(self, nodes: Nodes):
+    @staticmethod
+    def __build_turns(tot_nodes, nodes: Nodes):
         to_nodes = List()
         from_nodes = List()
         from_links = List()
         to_links = List()
         via_nodes = List()
         turn_counter = 0
-        for via_node in np.arange(self.tot_nodes):
+        for via_node in np.arange(tot_nodes):
             # named here _attribute to indicate all the to nodes/links that are associated with the via_node
             # turns are labelled here topologically by their respective in_link labels, out_links are tiebreakers.
 
@@ -156,7 +161,9 @@ class Assignment:
                      np.array(to_nodes, dtype=np.uint32), np.array(from_links, dtype=np.uint32),
                      np.array(to_links, dtype=np.uint32), turn_type)
 
-    def __build_links(self, turns,tot_links, from_nodes, to_nodes, link_ids, capacity, free_speed, lanes, length):
+    @staticmethod
+    def __build_links(turns,tot_time_steps, tot_links, from_nodes, to_nodes, capacity, free_speed, lanes, length,
+                      link_type):
         """
         initiates all the different numpy arrays for the links object from nx.DiGraph,
         requires the networkx graph to be set up as specified in the network_data
@@ -165,26 +172,15 @@ class Assignment:
         -------
 
         """
-        link_type = np.zeros(tot_links, dtype=np.int8)  # 0 indicates regular road network link
-        # 1 is for sources (connectors leading out of a centroid)
-        # -1 for sinks (connectors leading towards a centroid)
-        # fix for connectors here, add link types
-        for _id, arr in zip(link_ids, self.link_label):
-            u, v = arr
-            if 'connector' in self.g[u][v] and 'centroid' in self.g.nodes[v]:
-                link_type[_id] = -1  # sink
-            if 'connector' in self.g[u][v] and 'centroid' in self.g.nodes[v]:
-                link_type[_id] = 1  # source
-
-        costs = np.empty((self.number_of_time_steps, self.tot_links), dtype=np.float32)
-        v_wave = np.full(self.tot_links, v_wave_default, dtype=np.float32)
+        costs = np.empty((tot_time_steps, tot_links), dtype=np.float32)
+        v_wave = np.full(tot_links, v_wave_default, dtype=np.float32)
         number_of_turns = np.uint32(len(turns.to_link))
         fw_index_array = np.column_stack((turns.from_link, turns.to_link))
         bw_index_array = np.column_stack((turns.to_link, turns.from_link))
         val = np.arange(number_of_turns, dtype=np.uint32)
-        val, col, row = csr_prep(fw_index_array, val, (self.tot_links, self.tot_links))
+        val, col, row = csr_prep(fw_index_array, val, (tot_links, tot_links))
         forward = UI32CSRMatrix(val, col, row)
-        val, col, row = csr_prep(bw_index_array, val, (self.tot_links, self.tot_links))
+        val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_links))
         backward = UI32CSRMatrix(val, col, row)
 
         return Links(length, from_nodes, to_nodes, capacity, v_wave, costs, free_speed, forward, backward,
@@ -222,10 +218,9 @@ class Assignment:
         # finding closest time step for defined demand insertion times
         # each time is translated to an index and element of [0,1, ..., tot_time_steps]
         insertion_times = np.array(
-            [np.argmin(np.arange(simulation_time.tot_time_steps) * simulation_time.step_size - time) for time in
+            [np.argmin(np.abs(np.arange(simulation_time.tot_time_steps) * simulation_time.step_size - time)) for time in
              dynamic_demand.insertion_times], dtype=np.uint32)
         demand_data = [dynamic_demand.get_sparse_repr(t) for t in dynamic_demand.insertion_times]
-        simulation_time = simulation_time
 
         if not np.all(insertion_times[1:] - insertion_times[:-1] > simulation_time.step_size):
             raise ValueError(
@@ -238,28 +233,17 @@ class Assignment:
         loading_time_steps = [(np.abs(insertion_time - time)).argmin() for insertion_time in insertion_times]
         static_demands = List()
         rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
-        row_sizes = np.array([lil_demand.nonzero()[0].size for lil_demand in demand_data], dtype=np.uint32)
         cols = [np.asarray(lil_demand.nonzero()[1], dtype=np.uint32) for lil_demand in demand_data]
-        col_sizes = np.array([lil_demand.nonzero()[1].size for lil_demand in demand_data], dtype=np.uint32)
-        all_destinations, cols = np.unique(np.concatenate(cols), return_inverse=True)
-        all_origins, rows = np.unique(np.concatenate(rows), return_inverse=True)
-        cols = np.array_split(cols, np.cumsum(col_sizes))
-        rows = np.array_split(rows, np.cumsum(row_sizes))
-        tot_destinations = max(all_destinations)
-        tot_origins = max(all_origins)
+        tot_centroids = np.uint32(max([trip_graph.number_of_nodes() for _,trip_graph in dynamic_demand.trip_graphs.items()]))
         for internal_time, lil_demand, row, col in zip(loading_time_steps, demand_data, rows, cols):
             vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
             index_array_to_d = np.column_stack((row, col))
             index_array_to_o = np.column_stack((col, row))
-            to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (tot_origins, tot_destinations)))
-            to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (tot_origins, tot_destinations)))
-            origin_node_ids = np.array([all_origins[i] for i in to_destinations.get_nnz_rows()], dtype=np.uint32)
-            destination_node_ids = np.array([all_destinations[i] for i in to_origins.get_nnz_rows()], dtype=np.uint32)
+            to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (tot_centroids, tot_centroids)))
+            to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids)))
             static_demands.append(StaticDemand(to_origins, to_destinations,
-                                               to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(),
-                                               origin_node_ids,
-                                               destination_node_ids, internal_time))
-        return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, all_origins, all_destinations)
+                                               to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(), np.uint32(internal_time)))
+        return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids)
 
 
 @dataclass()

@@ -23,6 +23,7 @@ from collections import deque
 from json import loads
 import itertools
 from settings import parameters
+from network_data import sort_graph
 
 DEFAULT_CONNECTOR_SPEED = parameters.demand.default_connector_speed
 DEFAULT_CONNECTOR_CAPACITY = parameters.demand.default_connector_capacity
@@ -130,7 +131,7 @@ def get_centroid_grid_coords(name: str, spacing=1000):
     return np.array(centroids.x), np.array(centroids.y)
 
 
-def add_centroids_to_graph(g, X, Y, add_connectors=True, k=1):
+def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
     """
     adds centroids to g as the first C-1 nodes, with C the number of centroids.
     g.nodes.c contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y  and 'centroid' a boolean
@@ -138,6 +139,7 @@ def add_centroids_to_graph(g, X, Y, add_connectors=True, k=1):
 
     Parameters
     ----------
+    sort : boolean, whether to sort the nodes of the graph, see sort_graph(g)
     add_connectors : whether to add auto-configured connectors, k for each centroid
     Y : lat vector of centroids
     X : lon vector of centroids
@@ -147,43 +149,47 @@ def add_centroids_to_graph(g, X, Y, add_connectors=True, k=1):
     -------
     new nx.MultiDiGraph with centroids (and connectors)
     """
+    new_g = nx.MultiDiGraph()
+    new_g.graph=g.graph
     if len([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]) > 0:
         raise ValueError('grid generation assumes that no centroids are present in the graph')
-    new_centroids = [(u, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True, 'node_id':u}) for u, p in
+    new_centroids = [(u, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True, 'node_id': u}) for u, p in
                      enumerate(zip(X, Y))]
     connector_id = itertools.count()
-    new_g = nx.MultiDiGraph()
     # the steps below here could be compressed but not without compromising the consistency between the order in
     # edges and nodes in the networkx graph and the 'link_id' and 'node_id' attributes
-    for u, data in new_centroids:  # first centroids
+    for u, data in new_centroids:  # first centroids, then intersection nodes for order
         new_g.add_node(u, **data)
-    for u, data in g.nodes.data():  # then road network nodes
+    for u, data in g.nodes.data():
         new_g.add_node(u, **data)
+    for u, v, data in g.edges.data():
+        new_g.add_edge(u, v, **data)
     if add_connectors:
         for u, data in new_centroids:
-            tmp: nx.DiGraph = g
+            tmp: nx.DiGraph = g  # calculate distance to road network graph
             og_nodes = list(g.nodes)
             for _ in range(k):
+                # find the nearest node j k times, ignoring previously nearest nodes in consequent iterations if
+                # multiple connectors are wanted
                 v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
                 og_nodes.remove(v)
                 tmp = tmp.subgraph(og_nodes)
                 source_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
                                'lanes': DEFAULT_CONNECTOR_LANES,
                                'capacity': DEFAULT_CONNECTOR_CAPACITY, 'link_id': next(connector_id),
-                               'source': True}  # length in km
+                               'link_type': np.int8(1), 'from_node_id': u, 'to_node_id': v}  # length in km
                 sink_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
                              'lanes': DEFAULT_CONNECTOR_LANES,
-                             'capacity': DEFAULT_CONNECTOR_CAPACITY, 'link_id': next(connector_id), 'sink': True}
+                             'capacity': DEFAULT_CONNECTOR_CAPACITY, 'link_id': next(connector_id),
+                             'link_type': np.int8(-1), 'from_node_id': v, 'to_node_id': u}
                 new_g.add_edge(u, v, **source_data)
                 new_g.add_edge(v, u, **sink_data)
-        new_g.add_edges_from(g.edges.data())
-    new_g.graph = g.graph
+    if sort:
+        new_g = sort_graph(new_g)
     return new_g
 
 
-
 def parse_demand(data: str, g: nx.DiGraph, time=0):
-    # TODO: to be tested
     """
     Maps travel demand to existing closest centroids in g.
     The demand pattern is expressed as its own directed graph od_graph returned with 'time', 'crs' and 'name' as metadata
@@ -205,7 +211,12 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
     od_graph: nx.DiGraph
 
     """
-    od_graph = g.subgraph(nodes=[u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]).copy()
+    od_graph = nx.MultiDiGraph()
+    od_graph.graph['time'] = time  # time in hours
+    od_graph.graph['crs'] = 'epsg:4326'
+    name = g.graph['name']
+    od_graph.graph['name'] = f'mobility flows in {name} at {time} s'
+    od_graph.add_nodes_from([(u, data_dict) for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict])
     if od_graph.number_of_nodes() == 0:
         raise ValueError('Graph does not contain any centroids.')
     data = geojson.loads(data)
@@ -238,10 +249,7 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
 
     od_edges = [(od[0], od[1], {'flow': flow}) for od, flow in zip(ods, flows)]
     od_graph.add_edges_from(od_edges)
-    od_graph.graph['time'] = time  # time in hours
-    od_graph.graph['crs'] = 'epsg:4326'
-    name = g.graph['name']
-    od_graph.graph['name'] = f'mobility flows in {name} at {time} s'
+
     return od_graph
 
 
@@ -254,7 +262,7 @@ class DynamicDemand:
         trip_graphs : Dict of nx.DiGraphs with mobility patterns for different time slots t, with t as dict key
         """
         self.trip_graphs = trip_graphs
-        self.insertion_times = trip_graphs.keys
+        self.insertion_times = list(trip_graphs.keys())
 
     def get_sparse_repr(self, time):
         """

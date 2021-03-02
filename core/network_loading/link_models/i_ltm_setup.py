@@ -6,7 +6,7 @@
 #
 #
 #
-from core import ILTMNetwork, ILTMNodes, ILTMState, ILTMLinks
+from core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMNodes, ILTMState, ILTMLinks
 import numpy as np
 from numba import int32, float32
 from assignment import Assignment

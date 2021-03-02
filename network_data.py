@@ -221,30 +221,31 @@ def __capacity(highway_val, lanes):
             return default_capacity * lanes
 
 
-def reshuffle_graph(g):
+def sort_graph(g):
     """
 
     Parameters
     ----------
-    g : networkx.MultiDiGraph with 'node_id' and 'link_id' on nodes and links each forming topological sequences
+    g : networkx.MultiDiGraph with 'node_id'
 
     Returns
     -------
-    a sorted version of g that yields topological orders of 'node_id' and 'link_id' when accessing g.nodes and g.edges
-    respectively
+    a sorted version of g that yields topological orders of 'node_id'
 
     """
-    # creates a copy of the graph with consistent order of nodes and links topologically
-    # aligned with 'node_id' and 'link_id' for
-    # the nodes and edges respectively
+    # creates a copy of the graph with consistent order of nodes topologically
+    # aligned with 'node_id', stable edge order is not supported by networkx
+    # ordered edges can be retrieved via sorted(self.g.edges(data=True), key=lambda t: t[2]['link_id'])
     node_id_map = np.array([np.array([u, _id]) for u, _id in g.nodes.data('node_id')])
     sorted_node_id_map = node_id_map[node_id_map[:, 1].argsort()]  # sorts by _id
     sorted_g = nx.MultiDiGraph()
+    sorted_g.graph = g.graph
     nodes = [(node_id, g.nodes[u]) for u, node_id in sorted_node_id_map]
     sorted_g.add_nodes_from(nodes)
-    link_id_map = np.array([np.array([u, v, k, _id]) for u, v, k, _id in g.nodes.data('link_id')])
+    # maybe at some point in the future networkx will maintain this order and this code will work ..
+    link_id_map = np.array([np.array([u, v, k, _id]) for u, v, k, _id in g.edges.data('link_id', keys=True)])
     sorted_link_id_map = link_id_map[link_id_map[:, 3].argsort()]
-    edges = [(u, v, k, g[u][v][k]) for u, v, k, _ in sorted_link_id_map[:, :3]]
+    edges = [(u, v, k, g[u][v][k]) for u, v, k, _ in sorted_link_id_map]
     sorted_g.add_edges_from(edges)
     return sorted_g
 

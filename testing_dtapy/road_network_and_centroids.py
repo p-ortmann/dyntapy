@@ -8,7 +8,7 @@
 #
 #
 #
-from network_data import get_from_ox_and_save, relabel_graph, save_pickle, load_pickle, _filepath, reshuffle_graph
+from network_data import get_from_ox_and_save, relabel_graph, save_pickle, load_pickle, _filepath, sort_graph
 from demand import add_centroids_to_graph, get_centroid_grid_coords
 from assignment import Assignment
 (g, deleted) = get_from_ox_and_save('Gent', reload=False)
@@ -22,6 +22,5 @@ tot_connectors = tot_centroids * k
 g = relabel_graph(g, tot_centroids, tot_connectors)
 print('relabeling passed')
 g = add_centroids_to_graph(g, x, y, k=k)
-g = reshuffle_graph(g)
 save_pickle(g, 'gent_grid_centroids')
 print(g.edges.data())

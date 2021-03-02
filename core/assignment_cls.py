@@ -27,7 +27,7 @@ import numpy as np
 # one simply needs to define new extending network, turn, node and link objects as needed and write a setup file,
 # as shown for i-ltm.
 
-spec_link = [('capacity', float32[:]),
+spec_link = [('capacity', uint32[:]),
              ('from_node', uint32[:]),
              ('to_node', uint32[:]),
              ('length', float32[:]),
@@ -38,7 +38,7 @@ spec_link = [('capacity', float32[:]),
              ('v_wave', float32[:]),
              ('v0', float32[:]),
              ('type', int8[:]),
-             ('lanes', int8[:]),
+             ('lanes', uint8[:]),
              ('link_type', int8[:])]
 
 
@@ -214,22 +214,18 @@ spec_demand = [('to_destinations', f32csr_type),
                ('to_origins', f32csr_type),
                ('origins', uint32[:]),
                ('destinations', uint32[:]),
-               ('origin_node_ids', uint32[:]),
-               ('destination_node_ids', uint32[:]),
                ('time_step', uint32)]
 spec_demand = OrderedDict(spec_demand)
 
 
 @jitclass(spec_demand)
 class StaticDemand(object):
-    def __init__(self, to_origins, to_destinations, origins, destinations, origin_node_ids, destination_node_ids,
+    def __init__(self, to_origins, to_destinations, origins, destinations,
                  time_step):
         self.to_destinations = to_destinations  # csr matrix origins x destinations
         self.to_origins = to_origins  # csr destinations x origins
         self.origins = origins  # array of active origin id's
         self.destinations = destinations  # array of active destination id's
-        self.origin_node_ids = origin_node_ids
-        self.destination_node_ids = destination_node_ids
         self.time_step = time_step  # time at which this demand is added to the network
 
 
@@ -237,29 +233,26 @@ spec_simulation = [('next', StaticDemand.class_type.instance_type),
                    ('demands', ListType(StaticDemand.class_type.instance_type)),
                    ('is_loading', boolean),
                    ('__time_step', uint32),
-                   ('all_destinations', uint32[:]),
-                   ('all_origins', uint32[:]),
-                   ('all_destination_node_ids', uint32[:]),
-                   ('all_origin_node_ids', uint32[:]),
                    ('tot_time_steps', uint32),
-                   ('tot_destinations', uint32),
-                   ('tot_origins', uint32)]
+                   ('all_active_destinations', uint32[:]),
+                   ('all_active_origins', uint32[:]),
+                   ('all_centroids', uint32[:]),
+                   ('tot_centroids', uint32)]
 
 
 @jitclass(spec_simulation)
 class InternalDynamicDemand(object):
-    def __init__(self, demands, tot_time_steps, all_origin_node_ids, all_destination_node_ids):
+    def __init__(self, demands, tot_time_steps, tot_centroids):
         self.demands = demands
         self.next = demands[0]
         self.__time_step = uint32(0)  # current simulation time in time step reference
-        self.is_loading = self.next.step_size == self.__time_step  # boolean that indicates if during the current
+        self.is_loading = self.next.time_step == self.__time_step  # boolean that indicates if during the current
         # time step traffic is loaded into the network
-        self.all_destinations = get_all_destinations(demands)  # for destination/origin based labels
-        self.all_origins = get_all_origins(demands)
+        self.all_active_destinations = get_all_destinations(demands)
+        self.all_active_origins = get_all_origins(demands)
+        self.all_centroids = np.arange(tot_centroids, dtype=np.uint32)  # for destination/origin based labels
         self.tot_time_steps = np.uint32(tot_time_steps)
-        self.tot_origins = np.uint32(self.all_destinations.size)
-        self.tot_destinations = np.uint32(self.all_destinations.size)
-        self.tot_centroids = np.uint32(self.all_destinations.size)
+        self.tot_centroids = np.uint32(tot_centroids)
         #TODO: sort out the whole tot_centroid tot_destination conundrum, with the new notation it should be all the same...
 
     def update(self):

@@ -7,7 +7,7 @@
 #
 #
 
-from core import Nodes, UncompiledNodes, spec_node, Links, UncompiledLinks, spec_link, Network, \
+from core.assignment_cls import Nodes, UncompiledNodes, spec_node, Links, UncompiledLinks, spec_link, Network, \
     UncompiledNetwork, spec_uncompiled_network, Turns
 from numba import boolean, float32, int32
 from numba.experimental import jitclass
