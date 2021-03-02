@@ -222,10 +222,31 @@ def __capacity(highway_val, lanes):
 
 
 def reshuffle_graph(g):
-    # creates a copy of the graph with consistent order of nodes and links aligned with 'node_id' and 'link_id' for
+    """
+
+    Parameters
+    ----------
+    g : networkx.MultiDiGraph with 'node_id' and 'link_id' on nodes and links each forming topological sequences
+
+    Returns
+    -------
+    a sorted version of g that yields topological orders of 'node_id' and 'link_id' when accessing g.nodes and g.edges
+    respectively
+
+    """
+    # creates a copy of the graph with consistent order of nodes and links topologically
+    # aligned with 'node_id' and 'link_id' for
     # the nodes and edges respectively
     node_id_map = np.array([np.array([u, _id]) for u, _id in g.nodes.data('node_id')])
-    sorted_node_id_map = np.sort(node_id_map)  # sorts by _id
+    sorted_node_id_map = node_id_map[node_id_map[:, 1].argsort()]  # sorts by _id
+    sorted_g = nx.MultiDiGraph()
+    nodes = [(node_id, g.nodes[u]) for u, node_id in sorted_node_id_map]
+    sorted_g.add_nodes_from(nodes)
+    link_id_map = np.array([np.array([u, v, k, _id]) for u, v, k, _id in g.nodes.data('link_id')])
+    sorted_link_id_map = link_id_map[link_id_map[:, 3].argsort()]
+    edges = [(u, v, k, g[u][v][k]) for u, v, k, _ in sorted_link_id_map[:, :3]]
+    sorted_g.add_edges_from(edges)
+    return sorted_g
 
 
 def __speed(highway_val):
