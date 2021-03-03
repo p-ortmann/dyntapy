@@ -27,14 +27,19 @@ default_plot_size = parameters.visualization.plot_size
 default_notebook_plot_size = parameters.visualization.notebook_plot_size
 
 
-def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
-                    title=None, plot_size=default_plot_size,
-                    mode='assignment', osm_tap_tool=True, notebook=False, max_links_visualized=None,
+def show_assignment(g: nx.DiGraph,flows, costs, scaling=np.double(0.006), background_map=True,
+                    title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False, max_links_visualized=None,
                     show_unloaded_links=False):
     """
 
     Parameters
     ----------
+    osm_tap_tool
+    notebook
+    max_links_visualized
+    show_unloaded_links
+    flows
+    costs
     g : nx.Digraph
     scaling : width of the widest link in relation to plot_size
     background_map : bool, show the background map
@@ -55,26 +60,26 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
     if max_links_visualized is None:
         max_links_visualized = parameters.visualization.max_links
     tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
-    max_flow = max([float(f) for _, _, f in tmp.edges.data('flow') if f is not None])
+    max_flow = np.max(flows)
 
-    node_x = [x for _, x in tmp.nodes.data('x')]
-    node_y = [y for _, y in tmp.nodes.data('y')]
+    node_x = [x for _, x in tmp.nodes.data('x_coord')]
+    node_y = [y for _, y in tmp.nodes.data('y_coord')]
     min_x, max_x, min_y, max_y = min(node_x), max(node_x), min(node_y), max(node_y)
     max_width_coords = scaling * (0.5 * (max_x - min_x) + 0.5 * (max_y - min_y))
     max_width_bokeh = plot_size * scaling
 
-    edge_source = _edge_cds(tmp, max_width_coords, max_flow)
-    node_source = _node_cds(tmp, mode == 'assignment')
+    edge_source = _edge_cds(tmp, max_width_coords, max_flow,flows)
+    node_source = _node_cds(tmp)
     _background_map(background_map, plot)
     plot.title.text = title
 
     edge_renderer = plot.add_glyph(edge_source,
-                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
+                                   glyph=Patches(xs='x_coord', ys='y_coord', fill_color='color', line_color='color',
                                                  line_alpha=0.8))
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if item != 'flow']
     edge_tooltips.append(('flow', '@flow{(0.0)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
+                                   glyph=Asterisk(x='x_coord', y='y_coord', size=max_width_bokeh * 3, line_color="black",
                                                   line_width=max_width_bokeh / 5))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
 
@@ -87,9 +92,10 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
         nodetaptool.callback = OpenURL(url=url)
 
     time_slider = Slider(start=0, end=10, value=0, step=1, title="time")
+    #TODO: add color converter for dynamic
     callback = CustomJS(
         args=dict(source=edge_source, time=time_slider, dynamic_x=None, dynamic_y=None, dynamic_color=None,
-                  dynamic_flow=None),
+                  dynamic_flow=flows),
         code="""
         const data = source.data;
         const t = time.value;
@@ -129,7 +135,7 @@ def show_demand(g, plot_size=1300, notebook=False):
                                    glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
                                                   line_width=max_width_bokeh / 5))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
-    show_assignment(od_flow_graph, plot_size=plot_size, notebook=notebook, mode='desire lines')
+
 
 
 def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links):
@@ -174,6 +180,7 @@ def _node_cds(g, visualization_keys = parameters.visualization.node_keys):
 
 
 def _edge_cds(g, max_width_coords, max_flow, visualization_keys= parameters.visualization.edge_keys):
+    #TODO: add dependence on cost and flow array.
     edge_dict = dict()
     for attr_key in visualization_keys:
         values = [edge_attr[attr_key] if attr_key in edge_attr.keys() else 'None'
