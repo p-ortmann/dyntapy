@@ -6,9 +6,17 @@
 #
 #
 #
-from assignment import Assignment
 from core.route_choice.aon_setup import setup_aon
 from core.route_choice.aon import calc_turning_fractions
-def i_ltm_aon(assignment:Assignment):
-    aon_state = setup_aon(assignment)
-    calc_turning_fractions(assignment, aon_state)
+from core.network_loading.link_models.i_ltm_setup import i_ltm_setup
+from core.assignment_cls import Network, InternalDynamicDemand, SimulationTime
+
+def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime, network_loading_time:SimulationTime):
+
+
+    aon_state = setup_aon(network,route_choice_time, dynamic_demand)
+    # aon_state is updated in this routine
+    print('aon passed')
+    calc_turning_fractions(dynamic_demand, network, route_choice_time, aon_state)
+    print('calc turnf')
+

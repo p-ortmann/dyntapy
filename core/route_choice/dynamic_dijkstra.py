@@ -16,7 +16,7 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, distances):
     typical dijkstra implementation with heaps, fills the distances array with the results
     Parameters
     ----------
-    costs : float64 vector
+    costs : float32 vector
     out_links : CSR matrix, fromNode x Link
     source: integer ID of source node
     distances: array 1D, dim tot_nodes
@@ -30,13 +30,13 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, distances):
     distances = np.full(distances.size,np.inf, dtype=np.float32)
     seen = np.copy(distances)
     my_heap = []
-    seen[source] = float(0)
-    heap_item = (float(0), float(source))
+    seen[source] = np.float32(0)
+    heap_item = (np.float32(0), np.float32(source))
     my_heap.append(heap_item)
     while my_heap:
         heap_item = heappop(my_heap)
         d = heap_item[0]
-        i = np.int64(heap_item[1])
+        i = np.uint32(heap_item[1])
         if distances[i] != np.inf:
             continue  # had this node already
         distances[i] = d
@@ -44,6 +44,6 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, distances):
             ij_dist = distances[i] + costs[out_link]
             if seen[j] == np.inf or ij_dist < seen[j]:
                 seen[j] = ij_dist
-                heap_item = (ij_dist, float(j))
+                heap_item = (ij_dist, np.float32(j))
                 heappush(my_heap, heap_item)
     return distances

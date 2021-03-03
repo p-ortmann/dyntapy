@@ -22,5 +22,8 @@ trip_graphs = {time: parse_demand(geo_json, g, time) for geo_json, time in zip(g
 # time unit is assumed to be hours, see parse demand
 dynamic_demand = DynamicDemand(trip_graphs)
 # convert everything to internal representations and parse
-Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(24.0), step_size=step_size))
+assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(24.0), step_size=step_size))
 # TODO: add tests for multi-edge parsing
+methods = assignment.get_methods()
+assignment.run(methods.i_ltm_aon)
+print('ran successfully')

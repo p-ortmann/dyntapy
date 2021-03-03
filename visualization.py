@@ -29,7 +29,7 @@ default_notebook_plot_size = parameters.visualization.notebook_plot_size
 
 def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True,
                     title=None, plot_size=default_plot_size,
-                    mode='assignment', iteration=None, notebook=False, max_links_visualized=None,
+                    mode='assignment', osm_tap_tool=True, notebook=False, max_links_visualized=None,
                     show_unloaded_links=False):
     """
 
@@ -80,12 +80,11 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
-    url = "https://www.openstreetmap.org/node/@osm_id/"
-    nodetaptool = TapTool(renderers=[node_renderer])
-    nodetaptool.callback = OpenURL(url=url)
-    url = "https://www.openstreetmap.org/way/@osm_id/"
-    edgetaptool = TapTool(renderers=[edge_renderer])
-    edgetaptool.callback = OpenURL(url=url)
+
+    if osm_tap_tool:
+        url = "https://www.openstreetmap.org/node/@ext_id/"
+        nodetaptool = TapTool(renderers=[node_renderer])
+        nodetaptool.callback = OpenURL(url=url)
 
     time_slider = Slider(start=0, end=10, value=0, step=1, title="time")
     callback = CustomJS(
@@ -106,7 +105,7 @@ def show_assignment(g: nx.DiGraph, scaling=np.double(0.006), background_map=True
         plot,
         column(time_slider),
     )
-    plot.add_tools(node_hover, edge_hover, edgetaptool, nodetaptool)
+    plot.add_tools(node_hover, edge_hover, nodetaptool)
 
     show(plot)
 
@@ -165,28 +164,21 @@ def show_convergence(g: nx.DiGraph, notebook=False):
     show(p)
 
 
-def _node_cds(g):
+def _node_cds(g, visualization_keys = parameters.visualization.node_keys):
     node_dict = dict()
-    for attr_key in visualization_keys_nodes:
+    for attr_key in visualization_keys:
         values = [node_attr[attr_key] if attr_key in node_attr.keys() else 'None'
                   for _, node_attr in g.nodes(data=True)]
         node_dict[attr_key] = values
     return ColumnDataSource(data=node_dict)
 
 
-def _edge_cds(g, max_width_coords, max_flow):
+def _edge_cds(g, max_width_coords, max_flow, visualization_keys= parameters.visualization.edge_keys):
     edge_dict = dict()
-    for attr_key in visualization_keys_edges:
+    for attr_key in visualization_keys:
         values = [edge_attr[attr_key] if attr_key in edge_attr.keys() else 'None'
                   for _, _, edge_attr in g.edges(data=True)]
         edge_dict[attr_key] = values
-    edge_dict['compressed_osm_ids'] = []
-    for it, id in enumerate(edge_dict['osmid']):
-        if isinstance(id, list):
-            edge_dict['compressed_osm_ids'].append(id[1:])
-            edge_dict['osmid'][it] = id[0]
-        else:
-            edge_dict['compressed_osm_ids'].append([-1])
 
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords / 10

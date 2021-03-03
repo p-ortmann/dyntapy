@@ -237,7 +237,9 @@ spec_simulation = [('next', StaticDemand.class_type.instance_type),
                    ('all_active_destinations', uint32[:]),
                    ('all_active_origins', uint32[:]),
                    ('all_centroids', uint32[:]),
-                   ('tot_centroids', uint32)]
+                   ('tot_centroids', uint32),
+                   ('tot_active_destinations', uint32),
+                   ('tot_active_origins', uint32)]
 
 
 @jitclass(spec_simulation)
@@ -250,6 +252,8 @@ class InternalDynamicDemand(object):
         # time step traffic is loaded into the network
         self.all_active_destinations = get_all_destinations(demands)
         self.all_active_origins = get_all_origins(demands)
+        self.tot_active_origins = self.all_active_origins.size
+        self.tot_active_destinations = self.all_active_destinations.size
         self.all_centroids = np.arange(tot_centroids, dtype=np.uint32)  # for destination/origin based labels
         self.tot_time_steps = np.uint32(tot_time_steps)
         self.tot_centroids = np.uint32(tot_centroids)

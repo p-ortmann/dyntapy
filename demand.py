@@ -102,6 +102,23 @@ def _check_centroid_connectivity(g: nx.DiGraph):
         raise ValueError(f'these centroids do not have an incoming connector: {disconnected_centroids}')
 
 
+def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
+    """
+    creates od_graph from od_matrix and centroid locations
+    Parameters
+    ----------
+    od_matrix : float array, centroids x centroids
+    X : lon array of centroids
+    Y : lat array of centroids
+
+    Returns
+    -------
+    od_flow_graph: nx.DiGraph
+    """
+    pass
+    # TODO: add this functionality
+
+
 def get_centroid_grid_coords(name: str, spacing=1000):
     """
     creates centroids on a grid that overlap with the polygon that is associated with city or region specified
@@ -150,7 +167,7 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
     new nx.MultiDiGraph with centroids (and connectors)
     """
     new_g = nx.MultiDiGraph()
-    new_g.graph=g.graph
+    new_g.graph = g.graph
     if len([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]) > 0:
         raise ValueError('grid generation assumes that no centroids are present in the graph')
     new_centroids = [(u, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True, 'node_id': u}) for u, p in

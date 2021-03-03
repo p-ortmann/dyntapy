@@ -6,11 +6,14 @@
 #
 #
 #
-from core import ILTMNetwork, InternalDynamicDemand, SimulationTime, ILTMState, StaticDemand
+from core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMState
+from core.assignment_cls import InternalDynamicDemand, SimulationTime, StaticDemand
 import numpy as np
-from settings import LTM_GAP as gap
+from settings import parameters
 from numba import njit
 from numba.typed import List
+
+gap = parameters.network_loading.gap
 
 
 @njit

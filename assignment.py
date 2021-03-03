@@ -50,28 +50,20 @@ class Assignment:
         # get adjacency from nx, and
         self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
-        self._network = self.__build_network()
+        self.nb_network = self.__build_network()
         print('network build')
-        self._dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
-                                                                                          simulation_time)
+        self.nb_dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
+                                                                                            simulation_time)
         print('demand simulation build')
-        self.results = self.run_assignment()
 
-        print('DNL data structures build')
-        # replacing network object with specialized version for network loading method
-        print('network build, lets see')
-        # dict of dict with outer dict keyed by edges (u,v) and inner dict as data
-        # to be dumped into the nx.DiGraph as key value pairs
-        # self.set_od_matrix(od_matrix)
-
-    def run_assignment(self, method: Callable):
+    def run(self, method: Callable):
         from core.assignment_methods.methods import valid_methods
-        assert method in valid_methods
         # TODO: generic way for adding keyword args
-        results: AssignmentResults = self.method(self)
+        results: AssignmentResults = method(self.nb_network, self.nb_dynamic_demand, self.time.route_choice, self.time.network_loading)
         return results
 
-    def get_methods(self):
+    @staticmethod
+    def get_methods():
         from core.assignment_methods.methods import valid_methods
         return valid_methods
 
@@ -162,7 +154,7 @@ class Assignment:
                      np.array(to_links, dtype=np.uint32), turn_type)
 
     @staticmethod
-    def __build_links(turns,tot_time_steps, tot_links, from_nodes, to_nodes, capacity, free_speed, lanes, length,
+    def __build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, capacity, free_speed, lanes, length,
                       link_type):
         """
         initiates all the different numpy arrays for the links object from nx.DiGraph,
@@ -234,7 +226,8 @@ class Assignment:
         static_demands = List()
         rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
         cols = [np.asarray(lil_demand.nonzero()[1], dtype=np.uint32) for lil_demand in demand_data]
-        tot_centroids = np.uint32(max([trip_graph.number_of_nodes() for _,trip_graph in dynamic_demand.trip_graphs.items()]))
+        tot_centroids = np.uint32(
+            max([trip_graph.number_of_nodes() for _, trip_graph in dynamic_demand.trip_graphs.items()]))
         for internal_time, lil_demand, row, col in zip(loading_time_steps, demand_data, rows, cols):
             vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
             index_array_to_d = np.column_stack((row, col))
@@ -242,7 +235,8 @@ class Assignment:
             to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (tot_centroids, tot_centroids)))
             to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids)))
             static_demands.append(StaticDemand(to_origins, to_destinations,
-                                               to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(), np.uint32(internal_time)))
+                                               to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(),
+                                               np.uint32(internal_time)))
         return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids)
 
 
