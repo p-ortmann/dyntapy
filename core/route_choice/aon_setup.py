@@ -15,17 +15,18 @@ from core.assignment_cls import Network, InternalDynamicDemand, SimulationTime
 from numba import njit
 
 
-#@njit()
+@njit()
 def _init_arrival_maps(costs, out_links, destinations, step_size, tot_time_steps, tot_nodes):
     arrival_map = np.empty((len(destinations), tot_time_steps, tot_nodes), dtype=np.float32)
     for _id, destination in enumerate(destinations):
-        dijkstra(costs[0,:], out_links, destination, arrival_map[_id, 0, :])
+        dijkstra(costs[0, :], out_links, destination, arrival_map[_id, 0, :])
         for t in range(1, tot_time_steps):
             arrival_map[_id, t, :] = arrival_map[_id, 0,
                                      :] + t * step_size  # init of all time steps with free flow vals
     return arrival_map
 
-#@njit
+
+@njit()
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     costs = network.links.length / network.links.v0
     step_size = time.step_size
@@ -39,7 +40,7 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     for destination in dynamic_demand.all_active_destinations:
         connectors = network.nodes.in_links.get_nnz(destination)
         for c in connectors:
-            prev_costs[:,c] = np.inf
+            prev_costs[:, c] = np.inf
             # triggering recomputations along all paths towards the destination
 
     arrival_maps = _init_arrival_maps(cur_costs, network.nodes.out_links,

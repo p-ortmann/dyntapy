@@ -110,7 +110,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
 
 # TODO: test the @njit(parallel=True) option here
-# @njit(parallel=True)
+@njit(parallel=True)
 def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime,
                            state: AONState, departure_time_offset=route_choice_agg):
     """
@@ -142,9 +142,9 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
     # starting point tomorrow - all that needs to be done is to query into the future for the smallest label in the current time step!
     for dest_idx in prange(dynamic_demand.all_active_destinations.size):
         dists = state.arrival_maps[dest_idx, :, :]
-        print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
+        #print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
-            print(f'time {t}')
+            #print(f'time {t}')
             for node in range(network.tot_nodes):
                 next_node = node
                 start_time = t + departure_time_offset

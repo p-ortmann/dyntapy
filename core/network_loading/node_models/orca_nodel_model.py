@@ -4,7 +4,6 @@ from numba.core.types.containers import ListType
 from numba import int8, njit
 
 
-@njit
 def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
                     turn_capacity, in_link_capacity):
     """
@@ -47,14 +46,13 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size
     while len(J) > 0:
         a, min_a, _j = __find_most_restrictive_constraint(J, R, U, C, a)
-        print(f'new {_j}')
+        # print(f'new {_j}')
         __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket)
 
     return q
 
 
-# @njit
-def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket,j_bucket ):
+def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
     for i in U[_j]:
@@ -69,18 +67,18 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket,j_bucket 
                     # i is demand constrained, it takes its share from each supply j
                     # corresponding to the demand.
                     R[j] = R[j] - S[i][j]
-                    if j==_j:
-                        i_bucket.append(i) # to remove i from U[_j] after looping
+                    if j == _j:
+                        i_bucket.append(i)  # to remove i from U[_j] after looping
                     else:
-                        U[j].remove(i) # other sets are stable ..
+                        U[j].remove(i)  # other sets are stable ..
                     # removing outside the loops to keep the set stable for iterations
-                    if len(U[j])==0:
-                        j_bucket.append(j) # to remove j after looping
+                    if len(U[j]) == 0:
+                        j_bucket.append(j)  # to remove j after looping
 
-    while len(i_bucket)>0:
-        i= i_bucket.pop(0)
+    while len(i_bucket) > 0:
+        i = i_bucket.pop(0)
         U[_j].remove(i)
-    if len(U[_j])==0:
+    if len(U[_j]) == 0:
         j_bucket.append(j)
     if all_in_links_supply_constrained:
         for i in U[_j]:
@@ -97,22 +95,21 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket,j_bucket 
                     if len(U[j]) == 0:
                         a[j] = np.inf
                         j_bucket.append(j)
-        a[_j]=np.inf
+        a[_j] = np.inf
         J.remove(_j)
-    while len(j_bucket)>0:
+    while len(j_bucket) > 0:
         j = j_bucket.pop(0)
-        a[j] =  np.inf
+        a[j] = np.inf
         J.remove(j)
 
 
-# @njit
 def __find_most_restrictive_constraint(J, R, U, C, a):
     # loosely corresponds to step 3, pg 301
     for j in J:
         R_j = R[j]
         if len(U[j]) == 0:
             # no competing links for j
-            print(f'a is one here {a}')
+            # print(f'a is one here {a}')
             continue
         else:
             sum_c_ij = np.int(0)
@@ -123,7 +120,6 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
     return a, a[_j], _j,  # determine most restrictive out_link j
 
 
-# @njit
 def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, use_turn_cap=False):
     """
 
@@ -143,7 +139,9 @@ def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity
     turn_capacity.reshape(dim)
     if use_turn_cap:
         for in_link, cap in zip(range(dim[0]), in_link_capacity):
-            oriented_capacity[in_link] = np.min((turn_capacity[in_link], turning_fractions[in_link] * cap), 0)
+            for out_link in range(dim[1]):
+                oriented_capacity[in_link][out_link] = min((turn_capacity[in_link, out_link],
+                                                            turning_fractions[in_link, out_link] * cap))
     else:
         for in_link, cap in zip(range(dim[0]), in_link_capacity):
             oriented_capacity[in_link] = turning_fractions[in_link] * cap
