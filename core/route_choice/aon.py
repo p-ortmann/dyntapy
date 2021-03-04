@@ -47,9 +47,10 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     for destination in range(all_destinations.size):
         #print(f'building map for destination {destination}')
         for t in range(tot_time_steps - 1, -1, -1):
-            print('building map for destination '+str(destination)+' , now in time step '+str(t) )
+           #print('building map for destination '+str(destination)+' , now in time step '+str(t) )
             nodes_2_update[:tot_next_nodes_2_update] = next_nodes_2_update[:tot_next_nodes_2_update].copy()
             tot_nodes_2_update = tot_next_nodes_2_update
+            #print(' before ndenumerate')
             for link, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
@@ -61,6 +62,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
             tot_nodes_2_update = unique_nodes.size
             nodes_2_update[:tot_nodes_2_update] = unique_nodes
             tot_active_nodes = tot_nodes_2_update
+            #print('starting with active nodes')
             while tot_active_nodes > 0:
                 # going through all the nodes that need updating for the current time step
                 # note that nodes_2_update changes dynamically as we traverse the graph ..
@@ -73,14 +75,10 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 min_dist = np.inf
                 min_idx = -1
                 for idx, node in enumerate(nodes_2_update[:tot_nodes_2_update]):
-                    try:
+                    if node != np.iinfo(np.uint32).max:
                         if arrival_maps[destination, t, node] < min_dist:
                             min_idx = idx
                             min_dist = arrival_maps[destination, t, node]
-                    except Exception:
-                        # node ==  np.iinfo(np.uint32)
-                        # IndexError .. already queried.
-                        continue
                 node = nodes_2_update[min_idx]
                 nodes_2_update[min_idx] = np.iinfo(np.uint32).max  # no longer considered
                 tot_active_nodes = tot_active_nodes - 1
@@ -154,11 +152,14 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                 for link, to_node in zip(network.nodes.out_links.get_nnz(next_node),
                                          network.nodes.out_links.get_row(next_node)):
                     link_time = np.floor(start_time + state.cur_costs[t, link])
-                    interpolation_fraction = start_time + state.cur_costs[t, link] - link_time
-                    dist = (1 - interpolation_fraction) * arrival_maps[
-                        dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
-                               dest_idx, t + np.uint32(link_time) + 1, to_node]
+                    if t + np.uint32(link_time) < time.tot_time_steps-1:
+                        interpolation_fraction = start_time + state.cur_costs[t, link] - link_time
+                        dist = (1 - interpolation_fraction) * arrival_maps[
+                            dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
+                                   dest_idx, t + np.uint32(link_time) + 1, to_node]
+                    else:
+                        dist = arrival_maps[dest_idx, time.tot_time_steps-1, to_node]
                     if dist < min_dist:
                         next_link = link
-                for turn in network.turns.to_link[next_link]:
+                for turn in network.links.in_turns.get_row(next_link):
                     turning_fractions[dest_idx, t, turn] = 1

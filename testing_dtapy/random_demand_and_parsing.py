@@ -16,13 +16,13 @@ import numpy as np
 step_size = parameters.network_loading.step_size
 # loading from data folder, assumes road_network_and_centroids was run previously
 g = load_pickle('gent_grid_centroids')
-geo_jsons = [generate_od_xy(20, 'Gent', seed=seed) for seed in [0, 1, 2]]
+geo_jsons = [generate_od_xy(4, 'Gent', seed=seed) for seed in [0, 1, 2]]
 times = np.arange(2)
 trip_graphs = {time: parse_demand(geo_json, g, time) for geo_json, time in zip(geo_jsons, times)}
 # time unit is assumed to be hours, see parse demand
 dynamic_demand = DynamicDemand(trip_graphs)
 # convert everything to internal representations and parse
-assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(24.0), step_size=step_size))
+assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size))
 # TODO: add tests for multi-edge parsing
 methods = assignment.get_methods()
 assignment.run(methods.i_ltm_aon)
