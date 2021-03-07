@@ -6,6 +6,8 @@
 #
 #
 #
+#
+#
 import numpy as np
 
 # import node model you want to test
@@ -38,13 +40,15 @@ for in_link, flow in enumerate(sending_flow):
 
 results = node_model(sending_flow, turning_fractions, turning_flow, receiving_flow, turn_capacity,
                           in_link_capacity)
+rounded_results = np.round(results, decimals=1)
+
 
 correct_turning_flows = np.array([[0, 50, 150, 300],
                                  [68.5, 0, 205.5, 1095.7],
                                  [100, 100, 0, 600],
                                  [80.6, 644.5, 644.5, 0]], dtype=np.float32)
 
-if np.sum(np.abs(results - correct_turning_flows)) < 0.0001:
+if np.sum(np.abs(rounded_results - correct_turning_flows)) < 0.0001:
     print('node model test passed successfully')
 else:
     print('node model returns erroneous results ..')

@@ -72,7 +72,7 @@ class _Visualization:
     """
     max_links: np.uint32 = np.uint32(1000)
     plot_size: int = 1300
-    notebook_plot_size = 600
+    notebook_plot_size: int = 600
     edge_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'max_speed', 'ext_id',
                  'name', 'facility_type']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'ext_id', 'node_type', 'ctrl_type']

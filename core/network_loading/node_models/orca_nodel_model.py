@@ -45,6 +45,7 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
         U.append(List(np.where(turning_fractions[:, j] > 0)[0]))
     a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size
     while len(J) > 0:
+        print(' iterations')
         a, min_a, _j = __find_most_restrictive_constraint(J, R, U, C, a)
         # print(f'new {_j}')
         __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket)

@@ -21,14 +21,17 @@ import osmnx as ox
 from pyproj import CRS
 from __init__ import results_folder
 from settings import parameters
+from core.assignment_cls import SimulationTime
 
 traffic_cm = __create_green_to_red_cm('hex')
 default_plot_size = parameters.visualization.plot_size
 default_notebook_plot_size = parameters.visualization.notebook_plot_size
+default_max_links = parameters.visualization.max_links
 
 
-def show_assignment(g: nx.DiGraph,flows, costs, scaling=np.double(0.006), background_map=True,
-                    title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False, max_links_visualized=None,
+def show_assignment(g: nx.DiGraph, flows, costs, scaling=np.double(0.006), background_map=True,
+                    title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False,
+                    max_links_visualized=default_max_links,
                     show_unloaded_links=False):
     """
 
@@ -50,16 +53,16 @@ def show_assignment(g: nx.DiGraph,flows, costs, scaling=np.double(0.006), backgr
     -------
 
     """
-    tmp = ox.project_graph(g, CRS.from_user_input(3857))
-    title = _check_title(title, tmp, 'assignment')
-    _output(notebook, title)
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
-
-    if max_links_visualized is None:
-        max_links_visualized = parameters.visualization.max_links
-    tmp = filter_links(tmp, max_links_visualized, show_unloaded_links)
+    tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
+    title = _check_title(title, tmp, 'assignment')
+    _output(notebook, title)
+    if background_map:
+        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+        plot.add_tile(tile_provider)
+    tmp = filter_links(tmp, max_links_visualized, show_unloaded_links, flows, costs)
     max_flow = np.max(flows)
 
     node_x = [x for _, x in tmp.nodes.data('x_coord')]
@@ -68,9 +71,9 @@ def show_assignment(g: nx.DiGraph,flows, costs, scaling=np.double(0.006), backgr
     max_width_coords = scaling * (0.5 * (max_x - min_x) + 0.5 * (max_y - min_y))
     max_width_bokeh = plot_size * scaling
 
-    edge_source = _edge_cds(tmp, max_width_coords, max_flow,flows)
+    edge_source = _edge_cds(tmp, max_width_coords, max_flow, flows)
     node_source = _node_cds(tmp)
-    _background_map(background_map, plot)
+
     plot.title.text = title
 
     edge_renderer = plot.add_glyph(edge_source,
@@ -79,7 +82,8 @@ def show_assignment(g: nx.DiGraph,flows, costs, scaling=np.double(0.006), backgr
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if item != 'flow']
     edge_tooltips.append(('flow', '@flow{(0.0)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Asterisk(x='x_coord', y='y_coord', size=max_width_bokeh * 3, line_color="black",
+                                   glyph=Asterisk(x='x_coord', y='y_coord', size=max_width_bokeh * 3,
+                                                  line_color="black",
                                                   line_width=max_width_bokeh / 5))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
 
@@ -92,7 +96,7 @@ def show_assignment(g: nx.DiGraph,flows, costs, scaling=np.double(0.006), backgr
         nodetaptool.callback = OpenURL(url=url)
 
     time_slider = Slider(start=0, end=10, value=0, step=1, title="time")
-    #TODO: add color converter for dynamic
+    # TODO: add color converter for dynamic
     callback = CustomJS(
         args=dict(source=edge_source, time=time_slider, dynamic_x=None, dynamic_y=None, dynamic_color=None,
                   dynamic_flow=flows),
@@ -116,8 +120,8 @@ def show_assignment(g: nx.DiGraph,flows, costs, scaling=np.double(0.006), backgr
     show(plot)
 
 
-def show_demand(g, plot_size=1300, notebook=False):
-    _check_title(t)
+def show_demand(g, plot_size=1300, notebook=False, title=None):
+    _check_title(title, g, plot_type='Desire Lines ')
     if notebook:
         output_notebook(hide_banner=True)
         plot_size = 600
@@ -137,18 +141,26 @@ def show_demand(g, plot_size=1300, notebook=False):
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
 
 
-
-def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links):
+def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links, flows, costs):
     if g.number_of_edges() > max_links_visualized:
-        tmp = sorted(((np.max(data['flow']) / data['capacity'], u, v) for u, v, data in g.edges.data()),
-                     reverse=True)
+        links_to_show = np.argsort(np.sum(flows, axis=1))[:max_links_visualized]
+        edges = [(u, v, k) for u, v, k, data in g.edges.data(keys=True) if data['link_id'] in links_to_show]
+        flows=flows[:,links_to_show]
+        costs = costs[:,links_to_show]
         if not show_unloaded_links:
+            loaded_links = np.argwhere(np.sum(flows, axis=1) > 0)
             edges = [(u, v) for val, u, v in tmp[:max_links_visualized] if val > 0.00001]
         else:
             edges = [(u, v) for val, u, v in tmp[:max_links_visualized]]
         return g.edge_subgraph(edges)
-    else:
-        return g
+
+
+def filter_time(time: SimulationTime, flows, costs):
+    last = np.max(np.argwhere(np.sum(flows, axis=0) > 0))
+    flows = flows[:last, :]
+    costs = costs[:last, :]
+    new_time = SimulationTime(time.start, last*time.step_size, time.step_size)
+    return new_time
 
 
 def show_convergence(g: nx.DiGraph, notebook=False):
@@ -170,7 +182,7 @@ def show_convergence(g: nx.DiGraph, notebook=False):
     show(p)
 
 
-def _node_cds(g, visualization_keys = parameters.visualization.node_keys):
+def _node_cds(g, visualization_keys=parameters.visualization.node_keys):
     node_dict = dict()
     for attr_key in visualization_keys:
         values = [node_attr[attr_key] if attr_key in node_attr.keys() else 'None'
@@ -179,8 +191,8 @@ def _node_cds(g, visualization_keys = parameters.visualization.node_keys):
     return ColumnDataSource(data=node_dict)
 
 
-def _edge_cds(g, max_width_coords, max_flow, visualization_keys= parameters.visualization.edge_keys):
-    #TODO: add dependence on cost and flow array.
+def _edge_cds(g, max_width_coords, max_flow, visualization_keys=parameters.visualization.edge_keys):
+    # TODO: add dependence on cost and flow array.
     edge_dict = dict()
     for attr_key in visualization_keys:
         values = [edge_attr[attr_key] if attr_key in edge_attr.keys() else 'None'
@@ -244,7 +256,11 @@ def _check_title(title, tmp, plot_type: str):
     if title is None:
         try:
             tmp.graph['name'] = tmp.graph['name'].strip('_UTM')
-            title = plot_type + ' ' + tmp.graph['name']
+            title = plot_type + ' in ' + tmp.graph['name']
+            time = tmp.graph.get('time', None)
+            time_str = 'at' + str(time)
+            if time is not None:
+                title = title + time_str
         except KeyError:
             # no name provided ..
             title = plot_type + ' ' + '... provide city name in graph and it will show here..'
@@ -254,12 +270,9 @@ def _check_title(title, tmp, plot_type: str):
 def _output(notebook: bool, title, plot_size):
     if notebook:
         output_notebook(hide_banner=True)
-        plot_size = 600
+        if not plot_size:
+            plot_size = default_notebook_plot_size
     else:
+        if not plot_size:
+            plot_size = default_plot_size
         output_file(results_folder + f'/{title}.html')
-
-
-def _background_map(background_map, plot):
-    if background_map:
-        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-        plot.add_tile(tile_provider)

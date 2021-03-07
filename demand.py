@@ -10,7 +10,6 @@
 from scipy.spatial import cKDTree
 import pandas as pd
 import numpy as np
-from core.assignment_cls import SimulationTime
 import osmnx as ox
 from osmnx.distance import great_circle_vec, euclidean_dist_vec
 import geopandas as gpd
