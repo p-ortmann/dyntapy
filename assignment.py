@@ -11,7 +11,7 @@ import numpy as np
 import networkx as nx
 from numba.typed import List
 from datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
-from core.assignment_cls import Links, Nodes, Network, Turns, InternalDynamicDemand, SimulationTime, StaticDemand
+from core.assignment_cls import Links, Nodes, Network, Turns, InternalDynamicDemand, SimulationTime, Demand
 from demand import _check_centroid_connectivity
 from settings import parameters
 from dataclasses import dataclass
@@ -90,13 +90,15 @@ class Assignment:
         lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
         length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)
         link_type = np.array([np.int8(d.get('link_type', 0)) for (_, _, d) in sorted_edges], dtype=np.int8)
+        tot_source_connectors = np.argwhere(link_type==1).size
+        tot_sink_connectors =  np.argwhere(link_type==-1).size
         # 1 is for sources (connectors leading out of a centroid)
         # -1 for sinks (connectors leading towards a centroid)
         tot_time_steps = self.time.network_loading.tot_time_steps
         links = self.__build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, link_capacity, free_speed,
                                    lanes, length, link_type)
         print("links passed")
-        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size)
+        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size, tot_source_connectors, tot_sink_connectors)
 
     @staticmethod
     def __build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids):
@@ -234,9 +236,9 @@ class Assignment:
             index_array_to_o = np.column_stack((col, row))
             to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (tot_centroids, tot_centroids)))
             to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids)))
-            static_demands.append(StaticDemand(to_origins, to_destinations,
-                                               to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(),
-                                               np.uint32(internal_time)))
+            static_demands.append(Demand(to_origins, to_destinations,
+                                         to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(),
+                                         np.uint32(internal_time)))
         return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids)
 
 

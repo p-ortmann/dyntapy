@@ -6,13 +6,15 @@
 #
 #
 #
+from numpy.core._multiarray_umath import ndarray
 
 from core.route_choice.dynamic_dijkstra import dijkstra
 import numpy as np
-from assignment import Assignment
 from core.route_choice.aon_cls import AONState
 from core.assignment_cls import Network, InternalDynamicDemand, SimulationTime
 from numba import njit
+from datastructures.csr import F32CSRMatrix, csr_prep
+from numba.typed import List
 
 
 @njit()
@@ -49,4 +51,23 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     turning_fractions = np.zeros((tot_time_steps, tot_destinations, tot_turns), dtype=np.float32)
     link_time = np.floor(cur_costs / step_size)
     interpolation_frac = cur_costs / step_size - link_time
-    return AONState(cur_costs, prev_costs, arrival_maps, turning_fractions, interpolation_frac, link_time)
+
+    source_connector_choice = List()
+    last_centroid = np.max(dynamic_demand.all_centroids)  # highest node id of centroids
+    last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
+    for t in dynamic_demand.loading_time_steps:
+        _id = 0
+        index_array: ndarray = np.empty((network.tot_source_connectors * dynamic_demand.all_active_destinations, 2))
+        val = np.zeros(network.tot_source_connectors * dynamic_demand.all_active_destinations, dtype=np.float32)
+        demand = dynamic_demand.get_demand(t)
+        for origin in demand.origins:
+            for destination in demand.to_destinations.get_nnz(origin):
+                for connector in network.nodes.out_links.get_nnz(origin):
+                    index_array[_id] = [connector, destination]
+                    _id += 1
+        index_array = index_array[:_id].copy()
+        val = val[:_id].copy()
+        source_connector_choice.apppend(
+            F32CSRMatrix(**csr_prep(index_array, val, shape=(last_source_connector, last_centroid))))
+    return AONState(cur_costs, prev_costs, arrival_maps, turning_fractions,
+                    interpolation_frac, link_time, source_connector_choice)

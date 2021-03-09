@@ -12,6 +12,7 @@ from core.route_choice.aon_cls import AONState
 import numpy as np
 from settings import parameters
 from numba import prange
+from datastructures.csr import F32CSRMatrix
 
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
@@ -45,12 +46,12 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     tot_next_nodes_2_update = 0
     tot_active_nodes = 0  # number of nodes in this time step that still need to be considered
     for destination in range(all_destinations.size):
-        #print(f'building map for destination {destination}')
+        # print(f'building map for destination {destination}')
         for t in range(tot_time_steps - 1, -1, -1):
-           #print('building map for destination '+str(destination)+' , now in time step '+str(t) )
+            # print('building map for destination '+str(destination)+' , now in time step '+str(t) )
             nodes_2_update[:tot_next_nodes_2_update] = next_nodes_2_update[:tot_next_nodes_2_update].copy()
             tot_nodes_2_update = tot_next_nodes_2_update
-            #print(' before ndenumerate')
+            # print(' before ndenumerate')
             for link, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
@@ -62,7 +63,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
             tot_nodes_2_update = unique_nodes.size
             nodes_2_update[:tot_nodes_2_update] = unique_nodes
             tot_active_nodes = tot_nodes_2_update
-            #print('starting with active nodes')
+            # print('starting with active nodes')
             while tot_active_nodes > 0:
                 # going through all the nodes that need updating for the current time step
                 # note that nodes_2_update changes dynamically as we traverse the graph ..
@@ -142,9 +143,9 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
     # starting point tomorrow - all that needs to be done is to query into the future for the smallest label in the current time step!
     for dest_idx in prange(dynamic_demand.all_active_destinations.size):
         dists = state.arrival_maps[dest_idx, :, :]
-        #print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
+        # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
-            #print(f'time {t}')
+            # print(f'time {t}')
             for node in range(network.tot_nodes):
                 next_node = node
                 start_time = t + departure_time_offset
@@ -152,14 +153,30 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                 for link, to_node in zip(network.nodes.out_links.get_nnz(next_node),
                                          network.nodes.out_links.get_row(next_node)):
                     link_time = np.floor(start_time + state.cur_costs[t, link])
-                    if t + np.uint32(link_time) < time.tot_time_steps-1:
+                    if t + np.uint32(link_time) < time.tot_time_steps - 1:
                         interpolation_fraction = start_time + state.cur_costs[t, link] - link_time
                         dist = (1 - interpolation_fraction) * arrival_maps[
                             dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
                                    dest_idx, t + np.uint32(link_time) + 1, to_node]
                     else:
-                        dist = arrival_maps[dest_idx, time.tot_time_steps-1, to_node]
+                        dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_node]
                     if dist < min_dist:
                         next_link = link
                 for turn in network.links.in_turns.get_row(next_link):
                     turning_fractions[dest_idx, t, turn] = 1
+
+
+@njit
+def calc_source_connector_choice(network: Network, state: AONState,
+                                 dynamic_demand: InternalDynamicDemand):
+    for t in dynamic_demand.loading_time_steps:
+        demand = dynamic_demand.get_demand(t)
+        for origin in demand.origins:
+            for _id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
+                dist = np.inf
+                min_link = -1
+                for node, link in zip(network.nodes.out_links.get_row(origin), network.nodes.out_links.get_nnz(origin)):
+                    if state.arrival_map[t, destination, node] < dist:
+                        dist = state.arrival_map[t, destination, node]
+                        min_link = link
+                state.connector_choice.get_row(min_link)[_id] = 1.0

@@ -12,6 +12,7 @@
 import numpy as np
 import numba
 
+
 # if this becomes more common, we may want to re-implement Scipys functions here..
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html
 
@@ -19,6 +20,8 @@ import numba
 # vice versa
 # not tested yet
 # THIS IS JUST A PROTOTYPE
+
+# TODO: add conversion for connector choice representation
 @numba.njit()
 def __turning_fractions(turning_fractions, T, step_function=True):
     """
@@ -45,8 +48,10 @@ def __turning_fractions(turning_fractions, T, step_function=True):
                                                                                             :]
     else:
         for t in new_samples:
-            t0 = np.round(t) # simply maps to nearest point in previous discretization
+            t0 = np.round(t)  # simply maps to nearest point in previous discretization
             new_turning_fractions[t] = turning_fractions[:, t0, :]
+
+
 @numba.njit()
 def __link_costs(link_costs, T, step_function=True):
     """
@@ -69,9 +74,9 @@ def __link_costs(link_costs, T, step_function=True):
             t0 = np.floor(t)
             interpolation_frac = t - t0
             new_link_costs[t] = (1 - interpolation_frac) * link_costs[:, t0,
-                                                                  :] + interpolation_frac * link_costs[:, t0 + 1,
-                                                                                            :]
+                                                           :] + interpolation_frac * link_costs[:, t0 + 1,
+                                                                                     :]
     else:
         for t in new_samples:
-            t0 = np.round(t) # simply maps to nearest point in previous discretization
+            t0 = np.round(t)  # simply maps to nearest point in previous discretization
             new_link_costs[t] = link_costs[:, t0, :]

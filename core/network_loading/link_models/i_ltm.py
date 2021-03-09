@@ -7,13 +7,22 @@
 #
 #
 from core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMState
-from core.assignment_cls import InternalDynamicDemand, SimulationTime, StaticDemand
+from core.assignment_cls import InternalDynamicDemand, SimulationTime, Demand
 import numpy as np
 from settings import parameters
 from numba import njit
 from numba.typed import List
 
 gap = parameters.network_loading.gap
+
+# for t in range(time.tot_time_steps):
+#     if dynamic_demand.is_loading(t):
+#         demand: Demand = dynamic_demand.get_demand(t)
+#         for origin in demand.origins:
+#             for connector in network.nodes.out_links.get_nnz(origin):
+#                 for flow, destination, fraction in zip(demand.to_destinations.get_row(origin),
+#                                                        demand.to_destinations.get_nnz(origin),
+#                                                        connector_choice.get_row(connector)):
 
 
 @njit
@@ -78,7 +87,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         sending_flow_init = np.full(tot_links, True)
 
         if dynamic_demand.is_loading:  # check if any origins are sending flow into the network this time step
-            current_demand: StaticDemand = dynamic_demand.next
+            current_demand: Demand = dynamic_demand.next
             __load_origin_flows(current_demand, nodes_2_update, t, cvn_up, local_sending_flow, tot_nodes_updates,
                                 out_links, cap, step_size, con_up, vind, tot_time_steps, to_node)
 

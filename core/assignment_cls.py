@@ -14,8 +14,6 @@ from numba.experimental import jitclass
 from numba import njit
 import numpy as np
 
-
-
 # We differentiate here between the generic Links Nodes and Turns object and more specialized objects that inherit
 # from these classes Dynamic Traffic Assignment algorithms all use a base line of attributes that are kept in these
 # baseline classes Algorithms like LTM need additional attributes - these are kept in objects that inherit from their
@@ -87,18 +85,15 @@ class UncompiledLinks(object):
         self.link_type = link_type
 
 
+spec_arrival_map = [('turning_fractions', float32[:, :, :]),
+                    ('marg_comp', boolean)]
 
-
-
-
-spec_arrival_map =  [('turning_fractions', float32[:, :, :]),
-                     ('marg_comp', boolean)]
 
 @jitclass(spec_arrival_map)
 class ArrivalMap(object):
     def __init__(self, turning_fractions, marg_comp):
         self.turning_fractions = turning_fractions
-        self.marg_comp = marg_comp # whether results can be used for warm starting
+        self.marg_comp = marg_comp  # whether results can be used for warm starting
 
 
 spec_node = [('out_links', ui32csr_type),
@@ -107,9 +102,6 @@ spec_node = [('out_links', ui32csr_type),
              ('capacity', float32[:]),
              ('tot_out_links', uint32[:]),
              ('tot_in_links', uint32[:])]
-
-
-
 
 
 @jitclass(spec_node)
@@ -156,8 +148,6 @@ class UncompiledNodes(object):
         # self.turn_fractions = turn_fractions  # node x turn_ids
         self.control_type = control_type  #
         self.capacity = capacity
-
-
 
 
 spec_turn = [('db_restrictions', ui32csr_type),
@@ -219,7 +209,7 @@ spec_demand = OrderedDict(spec_demand)
 
 
 @jitclass(spec_demand)
-class StaticDemand(object):
+class Demand(object):
     def __init__(self, to_origins, to_destinations, origins, destinations,
                  time_step):
         self.to_destinations = to_destinations  # csr matrix origins x destinations
@@ -229,8 +219,8 @@ class StaticDemand(object):
         self.time_step = time_step  # time at which this demand is added to the network
 
 
-spec_simulation = [('next', StaticDemand.class_type.instance_type),
-                   ('demands', ListType(StaticDemand.class_type.instance_type)),
+spec_simulation = [('next', Demand.class_type.instance_type),
+                   ('demands', ListType(Demand.class_type.instance_type)),
                    ('is_loading', boolean),
                    ('__time_step', uint32),
                    ('tot_time_steps', uint32),
@@ -247,8 +237,7 @@ class InternalDynamicDemand(object):
     def __init__(self, demands, tot_time_steps, tot_centroids):
         self.demands = demands
         self.next = demands[0]
-        self.__time_step = uint32(0)  # current simulation time in time step reference
-        self.is_loading = self.next.time_step == self.__time_step  # boolean that indicates if during the current
+        self.loading_time_steps = _get_loading_time_steps(demands, tot_time_steps)
         # time step traffic is loaded into the network
         self.all_active_destinations = get_all_destinations(demands)
         self.all_active_origins = get_all_origins(demands)
@@ -257,22 +246,29 @@ class InternalDynamicDemand(object):
         self.all_centroids = np.arange(tot_centroids, dtype=np.uint32)  # for destination/origin based labels
         self.tot_time_steps = np.uint32(tot_time_steps)
         self.tot_centroids = np.uint32(tot_centroids)
-        #TODO: sort out the whole tot_centroid tot_destination conundrum, with the new notation it should be all the same...
 
-    def update(self):
-        self.__time_step += uint32(1)
-        if self.__time_step > self.tot_time_steps:
-            raise AssertionError('exceeding limit of time steps as defined in simulation time, use reset')
-        if self.__time_step > self.next.step_size:
-            self.next = self.demands[self.__time_step]
-        if self.next.step_size == self.__time_step:
-            self.is_loading = True
+    def is_loading(self, t):
+        _ = np.argwhere(self.loading_time_steps == t)
+        if _.size == 1:
+            return True
+        elif _.size > 1:
+            raise Exception('ValueError, multiple StaticDemand objects with identical time label')
         else:
-            self.is_loading = False
+            return False
 
-    def reset(self):
-        self.__time_step = uint32(0)
-        self.next = self.demands[0]
+    def get_demand(self, t):
+        _id = np.argwhere(self.loading_time_steps == t)[0][0]
+        return self.demands[_id]
+
+
+@njit()
+def _get_loading_time_steps(demands):
+    loading = np.full(len(demands), dtype=np.uint32)
+    for _id, demand in enumerate(demands):
+        demand: Demand
+        t = demand.time_step
+        loading[_id] = t
+    return loading
 
 
 @njit
@@ -283,7 +279,7 @@ def get_all_destinations(demands):
     if len(demands) == 1:
         return previous
     for demand in demands[1:]:
-        demand: StaticDemand
+        demand: Demand
         current = np.concatenate((demand.destinations, previous))
         previous = current
     return np.unique(current)
@@ -297,7 +293,7 @@ def get_all_origins(demands):
     if len(demands) == 1:
         return previous
     for demand in demands[1:]:
-        demand: StaticDemand
+        demand: Demand
         current = np.concatenate((demand.origins, previous))
         previous = current
     return np.unique(current)
@@ -331,19 +327,23 @@ spec_network = [('links', Links.class_type.instance_type),
                 ('static_events', ListType(StaticEvent.class_type.instance_type)),
                 ('tot_links', uint32),
                 ('tot_nodes', uint32),
-                ('tot_turns', uint32)]
+                ('tot_turns', uint32),
+                ('tot_out_connectors', uint32),
+                ('tot_in_connectors', uint32)]
 
 
 @jitclass(spec_network)
 class Network(object):
     # link mat
-    def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_turns):
+    def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_turns, tot_out_connectors, tot_in_connectors):
         self.links = links
         self.nodes = nodes
         self.turns = turns
         self.tot_links = tot_links
         self.tot_nodes = tot_nodes
         self.tot_turns = tot_turns
+        self.tot_source_connectors = np.uint32(tot_out_connectors)
+        self.tot_sink_connectors = np.uint32(tot_in_connectors)
         # TODO: add lookup tables for name to index
 
     def set_static_events(self, list_static_events):
@@ -390,10 +390,6 @@ class UncompiledNetwork(object):
     def get_array(self, attr):
         if attr == 0:
             return self.links.capacity
-
-
-
-
 
 # dt current time step
 # T time horizon
