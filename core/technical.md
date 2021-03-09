@@ -136,9 +136,17 @@ The node model needs as its input the global sending and receiving flows of the 
  We stick here with C order as F is not currently supported by numba.
  Striding over an array in a way that is not aligned with the memory layout has serious performance implications for code that heavily
  relies on loops. The articles cited above show the differences.
- ###What's still coming?
+ ### What's still coming?
  do check trello 
  https://trello.com/invite/b/JJe3F5H3/84248383af0033e19119df8fa817da65/dta-implementation
- 
+ #### GMNS
+
+In the scope of our development for [DUET](https://www.digitalurbantwins.com/) we've started to incorporate [GMNS](https://github.com/zephyr-data-specs/GMNS/tree/master/Specification) as a
+standard for our naming of attributes in the networkx graph that's used to feed the network parser.
+In the future this should be extended to also incorporate information about lanes, movements, signals etc. through a 
+parser that supports this .csv format. In the object hierarchy lanes would become an additional element alongside 
+links, nodes and turns. It's likely that some sparse representations of the data will need to be developed to seamlessly
+feed this information into the node model. In the spirit of what has been done above to settle the mapping
+between turns and links inside it.
 
  
