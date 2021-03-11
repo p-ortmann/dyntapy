@@ -20,6 +20,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     # aon_state is updated in this routine
     print('aon passed')
+
     calc_turning_fractions(dynamic_demand, network, route_choice_time, aon_state)
     print('calc turnf')
     calc_source_connector_choice(network, aon_state, dynamic_demand)

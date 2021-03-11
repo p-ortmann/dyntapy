@@ -18,7 +18,7 @@ log_folder = 'logs'
 log_level = 20
 log_filename = 'dtapy'
 
-default_city = 'Krummin'
+default_city = 'Zinnowitz'
 # Parameters for various methods
 @dataclass
 class _Supply:

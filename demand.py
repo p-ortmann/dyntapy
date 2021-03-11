@@ -146,9 +146,9 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     points = [Point(x, y) for x, y in zip(X, Y)]
     points = gpd.geoseries.GeoSeries(points, crs=4326)
     centroids = points[points.within(my_gdf.loc[0, 'geometry'])]
-    x,y = np.array(centroids.x), np.array(centroids.y)
+    x, y = np.array(centroids.x), np.array(centroids.y)
     log(f'found {x.size} centroids at {default_centroid_spacing=} meter', to_console=True)
-    return x,y
+    return x, y
 
 
 def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
@@ -169,6 +169,11 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
     -------
     new nx.MultiDiGraph with centroids (and connectors)
     """
+    lowest_existing_link_id = min([d['link_id'] for u, v, d in g.edges.data()])
+    lowest_existing_node_id = min([d['node_id'] for u, d in g.nodes.data()])
+    if lowest_existing_link_id != X.size * k * 2 or lowest_existing_node_id != X.size:
+        raise ValueError('graph is not correctly labelled to add centroids')
+
     new_g = nx.MultiDiGraph()
     new_g.graph = g.graph
     if len([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]) > 0:

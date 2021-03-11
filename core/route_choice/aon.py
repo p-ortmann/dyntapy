@@ -20,7 +20,7 @@ route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
 
-@njit
+#@njit
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, state: AONState):
     tot_time_steps = time.tot_time_steps
     from_node = network.links.from_node
@@ -113,7 +113,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
 
 # TODO: test the @njit(parallel=True) option here
-@njit(parallel=True)
+#@njit(parallel=True)
 def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime,
                            state: AONState, departure_time_offset=route_choice_agg):
     """
@@ -168,7 +168,7 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                     turning_fractions[dest_idx, t, turn] = 1
 
 
-@njit
+#@njit
 def calc_source_connector_choice(network: Network, state: AONState,
                                  dynamic_demand: InternalDynamicDemand):
     for t in dynamic_demand.loading_time_steps:

@@ -24,7 +24,7 @@ x, y = get_centroid_grid_coords(city)
 # that needs to be accounted for in the labeling
 k = 2  # connectors per centroid to be generated
 tot_centroids = x.size
-tot_connectors = tot_centroids * k
+tot_connectors = tot_centroids * k * 2
 g = relabel_graph(g, tot_centroids, tot_connectors)
 print('relabeling passed')
 g = add_centroids_to_graph(g, x, y, k=k)

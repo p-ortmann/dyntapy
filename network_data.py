@@ -142,7 +142,7 @@ def relabel_graph(g, tot_centroids, tot_connectors):
                 data['to_node_id'] = end_node
                 new_g.add_edge(_start_node, end_node, key=k, **data)
         # Note that the out_links of a given node always have consecutive ids
-        log('graph relabeled')
+    log('graph relabeled')
     return new_g
 
 

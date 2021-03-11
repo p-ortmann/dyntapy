@@ -92,15 +92,14 @@ class Assignment:
         lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
         length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)
         link_type = np.array([np.int8(d.get('link_type', 0)) for (_, _, d) in sorted_edges], dtype=np.int8)
-        tot_source_connectors = np.argwhere(link_type==1).size
-        tot_sink_connectors =  np.argwhere(link_type==-1).size
+        tot_connectors = np.argwhere(link_type==1).size+np.argwhere(link_type==-1).size
         # 1 is for sources (connectors leading out of a centroid)
         # -1 for sinks (connectors leading towards a centroid)
         tot_time_steps = self.time.network_loading.tot_time_steps
         links = self.__build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, link_capacity, free_speed,
                                    lanes, length, link_type)
         print("links passed")
-        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size, tot_source_connectors, tot_sink_connectors)
+        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size, tot_connectors)
 
     @staticmethod
     def __build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids):
@@ -122,7 +121,7 @@ class Assignment:
                               np.arange(tot_nodes, dtype=np.uint32)]
         number_of_out_links = np.array(number_of_out_links, dtype=np.uint32)
         number_of_in_links = np.array(number_of_in_links, dtype=np.uint32)
-        return Nodes(in_links, out_links, number_of_out_links, number_of_in_links, control_type, capacity)
+        return Nodes(out_links, in_links, number_of_out_links, number_of_in_links, control_type, capacity)
 
     @staticmethod
     def __build_turns(tot_nodes, nodes: Nodes):
