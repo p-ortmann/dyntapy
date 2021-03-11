@@ -48,12 +48,12 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     tot_next_nodes_2_update = 0
     tot_active_nodes = 0  # number of nodes in this time step that still need to be considered
     for destination in range(all_destinations.size):
-        # print(f'building map for destination {destination}')
+        print(f'building map for destination {destination}')
         for t in range(tot_time_steps - 1, -1, -1):
-            # print('building map for destination '+str(destination)+' , now in time step '+str(t) )
+            print('building map for destination '+str(destination)+' , now in time step '+str(t) )
             nodes_2_update[:tot_next_nodes_2_update] = next_nodes_2_update[:tot_next_nodes_2_update].copy()
             tot_nodes_2_update = tot_next_nodes_2_update
-            # print(' before ndenumerate')
+            print(' before ndenumerate')
             for link, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
@@ -65,8 +65,9 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
             tot_nodes_2_update = unique_nodes.size
             nodes_2_update[:tot_nodes_2_update] = unique_nodes
             tot_active_nodes = tot_nodes_2_update
-            # print('starting with active nodes')
+            print('starting with active nodes')
             while tot_active_nodes > 0:
+                print('currently active nodes: ' + str(tot_active_nodes))
                 # going through all the nodes that need updating for the current time step
                 # note that nodes_2_update changes dynamically as we traverse the graph ..
                 # finding the node with the minimal arrival time to the destination is meant
@@ -105,7 +106,10 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                         # only adds the in_links if it's not a centroid
                         # the first nodes are centroids, see labelling in assignment.py
                         for link in in_links.get_nnz(node):
-                            nodes_2_update[tot_nodes_2_update] = from_node[link]
+                            try:
+                                nodes_2_update[tot_nodes_2_update] = from_node[link]
+                            except IndexError:
+                                print('hi')
                             next_nodes_2_update[tot_next_nodes_2_update] = from_node[link]
                             tot_next_nodes_2_update += 1
                             tot_nodes_2_update += 1

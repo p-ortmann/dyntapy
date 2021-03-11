@@ -11,7 +11,7 @@ from heapq import heappush, heappop
 import numpy as np
 from datastructures.csr import UI32CSRMatrix
 @njit
-def dijkstra(costs, out_links: UI32CSRMatrix, source, distances):
+def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes):
     """
     typical dijkstra implementation with heaps, fills the distances array with the results
     Parameters
@@ -19,15 +19,14 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, distances):
     costs : float32 vector
     out_links : CSR matrix, fromNode x Link
     source: integer ID of source node
-    distances: array 1D, dim tot_nodes
 
     Returns
     -------
-
+    distances: array 1D, dim tot_nodes
     """
     # some minor adjustments from the static version to allow for the use of the csr structures
     # also removed conditional checks/ functionality that are not needed when this is integrated into route choice
-    distances = np.full(distances.size,np.inf, dtype=np.float32)
+    distances = np.full(tot_nodes,np.inf, dtype=np.float32)
     seen = np.copy(distances)
     my_heap = []
     seen[source] = np.float32(0)

@@ -19,19 +19,20 @@ from datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
 
 
-@njit()
+
 def _init_arrival_maps(costs, out_links, destinations, step_size, tot_time_steps, tot_nodes):
     arrival_map = np.empty((len(destinations), tot_time_steps, tot_nodes), dtype=np.float32)
     for _id, destination in enumerate(destinations):
-        dijkstra(costs[0, :], out_links, destination, arrival_map[_id, 0, :])
+        arrival_map[_id, 0, :]=dijkstra(costs[0, :], out_links, destination, tot_nodes)
         for t in range(1, tot_time_steps):
             arrival_map[_id, t, :] = arrival_map[_id, 0,
-                                     :] + t * step_size  # init of all time steps with free flow vals
+                                     :] + t * step_size*3600  # init of all time steps with free flow vals
     return arrival_map
 
 #@njit
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     costs = network.links.length / network.links.v0
+    costs = 3600*costs
     step_size = time.step_size
     cur_costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
