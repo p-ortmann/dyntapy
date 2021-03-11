@@ -10,7 +10,7 @@ from demand import parse_demand, generate_od_xy, DynamicDemand
 from network_data import load_pickle
 from assignment import Assignment
 from settings import parameters
-from core.assignment_cls import SimulationTime
+from core.time import SimulationTime
 import numpy as np
 
 step_size = parameters.network_loading.step_size

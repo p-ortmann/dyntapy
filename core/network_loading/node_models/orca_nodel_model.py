@@ -1,9 +1,10 @@
 import numpy as np
 from numba.typed import List
 from numba.core.types.containers import ListType
+from numba import float32, uint32
 from numba import int8, njit
 
-
+@njit()
 def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
                     turn_capacity, in_link_capacity):
     """
@@ -53,6 +54,7 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     return q
 
 
+@njit
 def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
@@ -104,6 +106,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
         J.remove(j)
 
 
+@njit
 def __find_most_restrictive_constraint(J, R, U, C, a):
     # loosely corresponds to step 3, pg 301
     for j in J:
@@ -121,6 +124,7 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
     return a, a[_j], _j,  # determine most restrictive out_link j
 
 
+@njit
 def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, use_turn_cap=False):
     """
 

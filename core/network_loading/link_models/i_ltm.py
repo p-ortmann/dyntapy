@@ -7,13 +7,15 @@
 #
 #
 from core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMState
-from core.assignment_cls import InternalDynamicDemand, SimulationTime, Demand
+from core.demand import Demand, InternalDynamicDemand
+from core.time import SimulationTime
 import numpy as np
 from settings import parameters
 from numba import njit
 from numba.typed import List
-
+from core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
 gap = parameters.network_loading.gap
+node_model_str = parameters.network_loading.node_model
 
 # for t in range(time.tot_time_steps):
 #     if dynamic_demand.is_loading(t):
@@ -118,6 +120,10 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 # todo: order arguments in some logical fashion and document these functions ..
                 tot_sending_flow[:len(local_in_links)] = np.sum(local_sending_flow, 1)
                 # Node model call
+                local_turning_capacity=None
+                if node_model_str=='orca':
+                    orca(local_sending_flow,local_turning_fractions, local_turning_flows, local_receiving_flow,local_turning_capacity,local_in_links )
+
 
 
 def __load_origin_flows(current_demand, nodes_2_update, t, cvn_up, tmp_sending_flow, tot_nodes_updates, out_links, cap,

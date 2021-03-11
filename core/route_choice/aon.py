@@ -7,7 +7,9 @@
 #
 from numba import njit
 from assignment import Assignment
-from core.assignment_cls import Network, SimulationTime, InternalDynamicDemand
+from core.supply import Network
+from core.demand import InternalDynamicDemand
+from core.time import SimulationTime
 from core.route_choice.aon_cls import AONState
 import numpy as np
 from settings import parameters

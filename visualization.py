@@ -21,7 +21,7 @@ import osmnx as ox
 from pyproj import CRS
 from __init__ import results_folder
 from settings import parameters
-from core.assignment_cls import SimulationTime
+from core.time import SimulationTime
 
 traffic_cm = __create_green_to_red_cm('hex')
 default_plot_size = parameters.visualization.plot_size

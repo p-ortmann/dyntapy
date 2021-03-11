@@ -10,11 +10,9 @@ from core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMNodes, I
 import numpy as np
 from numba import int32, float32
 from datastructures.csr import UI8CSRMatrix, csr_prep, F32CSRMatrix
-from core.assignment_cls import SimulationTime, Network, InternalDynamicDemand
-
-
-
-
+from core.supply import Network
+from core.demand import InternalDynamicDemand
+from core.time import SimulationTime
 
 
 def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):

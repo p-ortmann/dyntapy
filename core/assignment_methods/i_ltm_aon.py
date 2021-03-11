@@ -9,7 +9,10 @@
 from core.route_choice.aon_setup import setup_aon
 from core.route_choice.aon import calc_turning_fractions
 from core.network_loading.link_models.i_ltm_setup import i_ltm_setup
-from core.assignment_cls import Network, InternalDynamicDemand, SimulationTime
+from core.supply import Network
+from core.demand import InternalDynamicDemand
+from core.time import SimulationTime
+
 
 def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime, network_loading_time:SimulationTime):
 

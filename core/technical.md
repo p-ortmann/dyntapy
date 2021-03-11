@@ -143,7 +143,7 @@ The node model needs as its input the global sending and receiving flows of the 
 
 In the scope of our development for [DUET](https://www.digitalurbantwins.com/) we've started to incorporate [GMNS](https://github.com/zephyr-data-specs/GMNS/tree/master/Specification) as a
 standard for our naming of attributes in the networkx graph that's used to feed the network parser.
-In the future this should be extended to also incorporate information about lanes, movements, signals etc. through a 
+In the future this should be extended to also incorporate information about lanes, movements (turns), signals etc. through a 
 parser that supports this .csv format. In the object hierarchy lanes would become an additional element alongside 
 links, nodes and turns. It's likely that some sparse representations of the data will need to be developed to seamlessly
 feed this information into the node model. In the spirit of what has been done above to settle the mapping

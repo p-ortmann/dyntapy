@@ -59,10 +59,11 @@ class _NetworkLoading:
     """
     container for parameters that concern supply
     """
-    method: str = 'i_ltm'
+    link_model: str = 'i_ltm'
     gap: np.float32 = np.float32(0.00000001)
     max_iterations: np.uint32 = np.uint32(100)
     step_size: np.float32 = np.float32(0.25)
+    node_model: str = 'orca'
 
 
 @dataclass

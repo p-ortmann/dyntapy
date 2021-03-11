@@ -11,7 +11,9 @@ import numpy as np
 import networkx as nx
 from numba.typed import List
 from datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
-from core.assignment_cls import Links, Nodes, Network, Turns, InternalDynamicDemand, SimulationTime, Demand
+from core.supply import Links, Nodes, Network, Turns
+from core.demand import Demand, InternalDynamicDemand
+from core.time import SimulationTime
 from demand import _check_centroid_connectivity
 from settings import parameters
 from dataclasses import dataclass
@@ -24,7 +26,7 @@ turn_type_default = parameters.supply.turn_type_default
 node_capacity_default = parameters.supply.node_capacity_default
 turn_t0_default = parameters.supply.turn_t0_default
 node_control_default = parameters.supply.node_control_default
-network_loading_method = parameters.network_loading.method
+network_loading_method = parameters.network_loading.link_model
 
 
 class Assignment:

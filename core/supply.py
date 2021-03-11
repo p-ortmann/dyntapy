@@ -7,8 +7,8 @@
 #
 #
 from collections import OrderedDict
-from datastructures.csr import UI32CSRMatrix, F32CSRMatrix, UI8CSRMatrix, ui32csr_type, f32csr_type, ui8csr_type
-from numba.core.types import float32, uint32, int32, int8, uint8, boolean
+from datastructures.csr import UI32CSRMatrix, ui32csr_type, f32csr_type
+from numba.core.types import float32, uint32, int8, uint8, boolean
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
 from numba import njit
@@ -85,23 +85,19 @@ class UncompiledLinks(object):
         self.link_type = link_type
 
 
-spec_arrival_map = [('turning_fractions', float32[:, :, :]),
-                    ('marg_comp', boolean)]
-
-
-@jitclass(spec_arrival_map)
-class ArrivalMap(object):
-    def __init__(self, turning_fractions, marg_comp):
-        self.turning_fractions = turning_fractions
-        self.marg_comp = marg_comp  # whether results can be used for warm starting
-
-
 spec_node = [('out_links', ui32csr_type),
              ('in_links', ui32csr_type),
              ('control_type', int8[:]),
              ('capacity', float32[:]),
              ('tot_out_links', uint32[:]),
              ('tot_in_links', uint32[:])]
+
+class Lanes(object):
+    pass
+    # placeholder to support raheleh's lane based node models
+    # we will need to decompose each link into its associated lanes.
+    # Links can be thought of as containers of lanes, in line with the GMNS spec.
+    # for each lane we store a green time
 
 
 @jitclass(spec_node)
@@ -184,119 +180,6 @@ class Turns(object):
         # happens in preprocessing after in initialization ..
         self.db_restrictions = db_restrictions
 
-
-spec_time = [('start', float32),
-             ('end', float32),
-             ('step_size', float32),
-             ('tot_time_steps', uint32)]
-
-
-@jitclass(spec_time)
-class SimulationTime(object):
-    def __init__(self, start, end, step_size):
-        self.start = start
-        self.end = end
-        self.step_size = step_size
-        self.tot_time_steps = np.uint32(np.ceil((end - start) / step_size))
-
-
-spec_demand = [('to_destinations', f32csr_type),
-               ('to_origins', f32csr_type),
-               ('origins', uint32[:]),
-               ('destinations', uint32[:]),
-               ('time_step', uint32)]
-spec_demand = OrderedDict(spec_demand)
-
-
-@jitclass(spec_demand)
-class Demand(object):
-    def __init__(self, to_origins, to_destinations, origins, destinations,
-                 time_step):
-        self.to_destinations = to_destinations  # csr matrix origins x destinations
-        self.to_origins = to_origins  # csr destinations x origins
-        self.origins = origins  # array of active origin id's
-        self.destinations = destinations  # array of active destination id's
-        self.time_step = time_step  # time at which this demand is added to the network
-
-
-spec_simulation = [('next', Demand.class_type.instance_type),
-                   ('demands', ListType(Demand.class_type.instance_type)),
-                   ('is_loading', boolean),
-                   ('__time_step', uint32),
-                   ('tot_time_steps', uint32),
-                   ('all_active_destinations', uint32[:]),
-                   ('all_active_origins', uint32[:]),
-                   ('all_centroids', uint32[:]),
-                   ('tot_centroids', uint32),
-                   ('tot_active_destinations', uint32),
-                   ('tot_active_origins', uint32)]
-
-
-@jitclass(spec_simulation)
-class InternalDynamicDemand(object):
-    def __init__(self, demands, tot_time_steps, tot_centroids):
-        self.demands = demands
-        self.next = demands[0]
-        self.loading_time_steps = _get_loading_time_steps(demands, tot_time_steps)
-        # time step traffic is loaded into the network
-        self.all_active_destinations = get_all_destinations(demands)
-        self.all_active_origins = get_all_origins(demands)
-        self.tot_active_origins = self.all_active_origins.size
-        self.tot_active_destinations = self.all_active_destinations.size
-        self.all_centroids = np.arange(tot_centroids, dtype=np.uint32)  # for destination/origin based labels
-        self.tot_time_steps = np.uint32(tot_time_steps)
-        self.tot_centroids = np.uint32(tot_centroids)
-
-    def is_loading(self, t):
-        _ = np.argwhere(self.loading_time_steps == t)
-        if _.size == 1:
-            return True
-        elif _.size > 1:
-            raise Exception('ValueError, multiple StaticDemand objects with identical time label')
-        else:
-            return False
-
-    def get_demand(self, t):
-        _id = np.argwhere(self.loading_time_steps == t)[0][0]
-        return self.demands[_id]
-
-
-@njit()
-def _get_loading_time_steps(demands):
-    loading = np.full(len(demands), dtype=np.uint32)
-    for _id, demand in enumerate(demands):
-        demand: Demand
-        t = demand.time_step
-        loading[_id] = t
-    return loading
-
-
-@njit
-def get_all_destinations(demands):
-    if len(demands) < 1:
-        raise AssertionError
-    previous = demands[0].destinations
-    if len(demands) == 1:
-        return previous
-    for demand in demands[1:]:
-        demand: Demand
-        current = np.concatenate((demand.destinations, previous))
-        previous = current
-    return np.unique(current)
-
-
-@njit
-def get_all_origins(demands):
-    if len(demands) < 1:
-        raise AssertionError
-    previous = demands[0].origins
-    if len(demands) == 1:
-        return previous
-    for demand in demands[1:]:
-        demand: Demand
-        current = np.concatenate((demand.origins, previous))
-        previous = current
-    return np.unique(current)
 
 
 spec_static_event = [('events', f32csr_type),
