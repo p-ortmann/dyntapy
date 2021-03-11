@@ -18,7 +18,7 @@ log_folder = 'logs'
 log_level = 20
 log_filename = 'dtapy'
 
-
+default_city = 'Krummin'
 # Parameters for various methods
 @dataclass
 class _Supply:
@@ -52,6 +52,7 @@ class _Demand:
     default_connector_speed: np.float32 = np.float32(1000)
     default_connector_capacity: np.float32 = np.float32(10000)
     default_connector_lanes: np.uint8 = np.uint8(10)
+    default_centroid_spacing: int = 1000 # in meters
 
 
 @dataclass

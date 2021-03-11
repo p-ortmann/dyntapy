@@ -1,0 +1,34 @@
+2021-03-11 10:54:17,752 INFO @network_data.py: retrieved network graph for Krummin, with 31 nodes and 72 edges after processing
+2021-03-11 10:54:19,090 INFO @demand.py: found 10 centroids at default_centroid_spacing=1000 meter
+2021-03-11 10:54:19,178 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,263 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,366 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,473 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,574 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,668 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,763 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,857 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:19,949 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,040 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,132 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,225 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,318 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,408 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,500 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,591 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,704 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,817 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:20,918 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,014 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,109 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,205 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,300 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,392 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,486 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,580 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,674 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,770 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,865 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:21,956 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:22,046 INFO @network_data.py: graph relabeled
+2021-03-11 10:54:22,244 INFO @network_data.py: saved to disk, file_path='data/krummin_grid_centroids.pickle' 

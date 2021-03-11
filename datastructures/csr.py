@@ -113,7 +113,7 @@ def __build_csr_cls(nb_type):
     return CSRMatrix
 
 
-#@nb.njit
+@nb.njit
 def csr_prep(index_array, values, shape, unsorted=True):
     """
 

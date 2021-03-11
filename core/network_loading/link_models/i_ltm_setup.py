@@ -78,37 +78,37 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     # should be stored with a shared matrix where each row is an individual data array for a sparse matrix
 
     # setting up results object
-    if not network.results:
-        # cold start
-        marg_comp = False
-        tot_origins = dynamic_demand.tot_origins
-        all_origins = dynamic_demand.next
-        tot_destinations = dynamic_demand.tot_destinations
-        tot_links = network.tot_links
-        tot_nodes = network.tot_nodes
-        tot_turns = network.tot_turns
-        costs = np.empty(( tot_links, tot_time_steps), dtype=np.float32) #order of arguments is changed here, for route choice
-        # iterate over multiple time steps for a single link ..
-        t0= length/v0
-        for t in range(tot_time_steps):
-            costs[:, t] = t0
-        cvn_up = np.zeros((tot_time_steps, tot_links, tot_destinations), dtype=np.float32)
-        cvn_down = np.empty_like(cvn_up)
-        con_up = np.full((tot_time_steps, tot_links), False, dtype=np.bool_)
-        con_down = np.full((tot_time_steps, tot_links), False, dtype=np.bool_)
-        nodes_2_update = np.full((tot_time_steps, tot_nodes), False, dtype=np.bool_)
+    # cold start
+    marg_comp = False
+    tot_origins = dynamic_demand.tot_origins
+    all_origins = dynamic_demand.next
+    tot_destinations = dynamic_demand.tot_destinations
+    tot_links = network.tot_links
+    tot_nodes = network.tot_nodes
+    tot_turns = network.tot_turns
+    costs = np.empty(( tot_links, tot_time_steps), dtype=np.float32) #order of arguments is changed here, for route choice
+    # iterate over multiple time steps for a single link ..
+    t0= length/v0
+    for t in range(tot_time_steps):
+        costs[:, t] = t0
+    cvn_up = np.zeros((tot_time_steps, tot_links, tot_destinations), dtype=np.float32)
+    cvn_down = np.empty_like(cvn_up)
+    con_up = np.full((tot_time_steps, tot_links), False, dtype=np.bool_)
+    con_down = np.full((tot_time_steps, tot_links), False, dtype=np.bool_)
+    nodes_2_update = np.full((tot_time_steps, tot_nodes), False, dtype=np.bool_)
 
-        # in matlab all are active all the time .. however in our case this is not necessary, we'll see if it causes
-        # issues down the line ..
-        #
-        # for t in np.arange(tot_time_steps):
-        #     for origin in network.demand_simulation.demands[t].get_nnz_rows():
-        #         nodes_2_update[origin][t]=True
-        # we stick with the implementation where all are active and see if we can reduce later.
-        for origin in dynamic_demand.all_origins:
-            nodes_2_update[origin] = True
+    # in matlab all are active all the time .. however in our case this is not necessary, we'll see if it causes
+    # issues down the line ..
+    #
+    # for t in np.arange(tot_time_steps):
+    #     for origin in network.demand_simulation.demands[t].get_nnz_rows():
+    #         nodes_2_update[origin][t]=True
+    # we stick with the implementation where all are active and see if we can reduce later.
+    for origin in dynamic_demand.all_origins:
+        nodes_2_update[origin] = True
 
-        turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations))
-        # may investigate use of sparse structure for turning fractions
-        network.results = ILTMState(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
-                                       nodes_2_update, costs)
+    turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations))
+    # may investigate use of sparse structure for turning fractions
+    results = ILTMState(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
+                                   nodes_2_update, costs)
+    return results

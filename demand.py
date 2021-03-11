@@ -23,10 +23,12 @@ from json import loads
 import itertools
 from settings import parameters
 from network_data import sort_graph
+from utilities import log
 
-DEFAULT_CONNECTOR_SPEED = parameters.demand.default_connector_speed
-DEFAULT_CONNECTOR_CAPACITY = parameters.demand.default_connector_capacity
-DEFAULT_CONNECTOR_LANES = parameters.demand.default_connector_lanes
+default_connector_speed = parameters.demand.default_connector_speed
+default_connector_capacity = parameters.demand.default_connector_capacity
+default_connector_lanes = parameters.demand.default_connector_lanes
+default_centroid_spacing = parameters.demand.default_centroid_spacing
 
 
 def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
@@ -74,9 +76,9 @@ def __set_connector_default_attr(g):
     connector_sg = nx.edge_subgraph(g, connectors)
     for edge in connector_sg.edges:
         u, v = edge
-        g[u][v]['maxspeed'] = DEFAULT_CONNECTOR_SPEED
-        g[u][v]['capacity'] = DEFAULT_CONNECTOR_CAPACITY
-        g[u][v]['lanes'] = DEFAULT_CONNECTOR_LANES
+        g[u][v]['maxspeed'] = default_connector_speed
+        g[u][v]['capacity'] = default_connector_capacity
+        g[u][v]['lanes'] = default_connector_lanes
 
 
 def _check_centroid_connectivity(g: nx.DiGraph):
@@ -118,7 +120,7 @@ def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
     # TODO: add this functionality
 
 
-def get_centroid_grid_coords(name: str, spacing=1000):
+def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     """
     creates centroids on a grid that overlap with the polygon that is associated with city or region specified
     under 'name'
@@ -144,7 +146,9 @@ def get_centroid_grid_coords(name: str, spacing=1000):
     points = [Point(x, y) for x, y in zip(X, Y)]
     points = gpd.geoseries.GeoSeries(points, crs=4326)
     centroids = points[points.within(my_gdf.loc[0, 'geometry'])]
-    return np.array(centroids.x), np.array(centroids.y)
+    x,y = np.array(centroids.x), np.array(centroids.y)
+    log(f'found {x.size} centroids at {default_centroid_spacing=} meter', to_console=True)
+    return x,y
 
 
 def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
@@ -190,13 +194,13 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
                 v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
                 og_nodes.remove(v)
                 tmp = tmp.subgraph(og_nodes)
-                source_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
-                               'lanes': DEFAULT_CONNECTOR_LANES,
-                               'capacity': DEFAULT_CONNECTOR_CAPACITY, 'link_id': next(connector_id),
+                source_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
+                               'lanes': default_connector_lanes,
+                               'capacity': default_connector_capacity, 'link_id': next(connector_id),
                                'link_type': np.int8(1), 'from_node_id': u, 'to_node_id': v}  # length in km
-                sink_data = {'connector': True, 'length': length / 1000, 'free_speed': DEFAULT_CONNECTOR_SPEED,
-                             'lanes': DEFAULT_CONNECTOR_LANES,
-                             'capacity': DEFAULT_CONNECTOR_CAPACITY, 'link_id': next(connector_id),
+                sink_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
+                             'lanes': default_connector_lanes,
+                             'capacity': default_connector_capacity, 'link_id': next(connector_id),
                              'link_type': np.int8(-1), 'from_node_id': v, 'to_node_id': u}
                 new_g.add_edge(u, v, **source_data)
                 new_g.add_edge(v, u, **sink_data)

@@ -7,8 +7,9 @@
 #
 #
 import numpy as np
-from numba import uint32, ListType, boolean, njit
+from numba import uint32, boolean, njit
 from collections import OrderedDict
+from numba.core.types.containers import ListType
 
 from numba.experimental import jitclass
 
@@ -35,7 +36,6 @@ class Demand(object):
 
 spec_simulation = [('next', Demand.class_type.instance_type),
                    ('demands', ListType(Demand.class_type.instance_type)),
-                   ('is_loading', boolean),
                    ('__time_step', uint32),
                    ('tot_time_steps', uint32),
                    ('all_active_destinations', uint32[:]),
@@ -43,7 +43,8 @@ spec_simulation = [('next', Demand.class_type.instance_type),
                    ('all_centroids', uint32[:]),
                    ('tot_centroids', uint32),
                    ('tot_active_destinations', uint32),
-                   ('tot_active_origins', uint32)]
+                   ('tot_active_origins', uint32),
+                   ('loading_time_steps', uint32[:])]
 
 
 @jitclass(spec_simulation)
@@ -51,7 +52,7 @@ class InternalDynamicDemand(object):
     def __init__(self, demands, tot_time_steps, tot_centroids):
         self.demands = demands
         self.next = demands[0]
-        self.loading_time_steps = _get_loading_time_steps(demands, tot_time_steps)
+        self.loading_time_steps = _get_loading_time_steps(demands)
         # time step traffic is loaded into the network
         self.all_active_destinations = get_all_destinations(demands)
         self.all_active_origins = get_all_origins(demands)
@@ -77,11 +78,11 @@ class InternalDynamicDemand(object):
 
 @njit()
 def _get_loading_time_steps(demands):
-    loading = np.full(len(demands), dtype=np.uint32)
+    loading = np.empty(len(demands), dtype=np.uint32)
     for _id, demand in enumerate(demands):
         demand: Demand
         t = demand.time_step
-        loading[_id] = t
+        loading[_id] = np.uint32(t)
     return loading
 
 

@@ -10,11 +10,15 @@
 #
 from network_data import get_from_ox_and_save, relabel_graph, save_pickle, load_pickle, _filepath, sort_graph
 from demand import add_centroids_to_graph, get_centroid_grid_coords
+from settings import parameters
+from settings import default_city as city
 
-# our test are running on 'Durbuy', the smallest city in the world
-city = 'Durbuy'
+
+default_centroid_spacing =  parameters.demand.default_centroid_spacing
+
 (g, deleted) = get_from_ox_and_save(city, reload=False)
 x, y = get_centroid_grid_coords(city)
+
 
 # need to define the number of centroids and connectors first as they are the first 'nodes' and 'links' of our network
 # that needs to be accounted for in the labeling
@@ -24,5 +28,4 @@ tot_connectors = tot_centroids * k
 g = relabel_graph(g, tot_centroids, tot_connectors)
 print('relabeling passed')
 g = add_centroids_to_graph(g, x, y, k=k)
-save_pickle(g, city+'_grid_centroids')
-print(g.edges.data())
+save_pickle(g, city + '_grid_centroids')

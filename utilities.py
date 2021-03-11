@@ -84,7 +84,7 @@ def _name_test(data, key: str, value=None):
     return local_bool
 
 
-def log(message, level=None, print=False):
+def log(message, level=None, to_console=False):
     """
     Record a message in the log file or/and print to the console
 
@@ -112,7 +112,7 @@ def log(message, level=None, print=False):
             logger.warning(message)
         elif level == logging.ERROR:
             logger.error(message)
-    if print:
+    if to_console:
         print(message)
 
 

@@ -149,4 +149,11 @@ links, nodes and turns. It's likely that some sparse representations of the data
 feed this information into the node model. In the spirit of what has been done above to settle the mapping
 between turns and links inside it.
 
+#### Caching
+it would be nice to exploit numba's caching at some point .. 
+see https://numba.pydata.org/numba-doc/latest/developer/caching.html this would let us get rid of 
+recompilation in consecutive testing runs. 
+It's not included here by default because global variables are inside of the cache
+so changing something in the settings would have no effect inside jitted functions unless one were to consciously clear it.
+
  

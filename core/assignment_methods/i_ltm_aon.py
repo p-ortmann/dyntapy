@@ -7,19 +7,24 @@
 #
 #
 from core.route_choice.aon_setup import setup_aon
-from core.route_choice.aon import calc_turning_fractions
+from core.route_choice.aon import calc_turning_fractions, calc_source_connector_choice
 from core.network_loading.link_models.i_ltm_setup import i_ltm_setup
+from core.network_loading.link_models.i_ltm import i_ltm
 from core.supply import Network
 from core.demand import InternalDynamicDemand
 from core.time import SimulationTime
 
 
-def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime, network_loading_time:SimulationTime):
-
-
-    aon_state = setup_aon(network,route_choice_time, dynamic_demand)
+def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime,
+              network_loading_time: SimulationTime):
+    aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     # aon_state is updated in this routine
     print('aon passed')
     calc_turning_fractions(dynamic_demand, network, route_choice_time, aon_state)
     print('calc turnf')
-
+    calc_source_connector_choice(network, aon_state, dynamic_demand)
+    print('calc c choice')
+    iltm_state = i_ltm_setup(network, network_loading_time, dynamic_demand)
+    i_ltm(network, dynamic_demand, iltm_state, network_loading_time)
+    print(' iltm passing yahy')
+    print('hi')

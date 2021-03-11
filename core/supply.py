@@ -211,8 +211,8 @@ spec_network = [('links', Links.class_type.instance_type),
                 ('tot_links', uint32),
                 ('tot_nodes', uint32),
                 ('tot_turns', uint32),
-                ('tot_out_connectors', uint32),
-                ('tot_in_connectors', uint32)]
+                ('tot_source_connectors', uint32),
+                ('tot_sink_connectors', uint32)]
 
 
 @jitclass(spec_network)

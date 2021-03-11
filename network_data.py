@@ -60,11 +60,15 @@ def get_from_ox_and_save(name: str, reload=False):
                     nodes_to_be_removed.append(node)
         deleted = nx.subgraph(dir_g, nodes_to_be_removed)
         dir_g = nx.subgraph(dir_g, largest).copy()
+    else:
+        deleted=None
     __clean_up_data(dir_g)
     dir_g = convert_ox_to_gmns(dir_g)
     nx.write_gpickle(dir_g, _filepath(name + "_gmns"))
     assert 'crs' in dir_g.graph
     dir_g.graph['name'] = name
+    log(f'retrieved network graph for {name},'
+          f' with {dir_g.number_of_nodes()} nodes and {dir_g.number_of_edges()} edges after processing', to_console=True)
     return dir_g, deleted
 
 
@@ -138,6 +142,7 @@ def relabel_graph(g, tot_centroids, tot_connectors):
                 data['to_node_id'] = end_node
                 new_g.add_edge(_start_node, end_node, key=k, **data)
         # Note that the out_links of a given node always have consecutive ids
+        log('graph relabeled')
     return new_g
 
 
@@ -269,6 +274,7 @@ def __speed(highway_val):
 def save_pickle(g: nx.DiGraph, name: str):
     file_path = _filepath(name)
     nx.write_gpickle(g, file_path)
+    log(f'saved to disk, {file_path=} ')
 
 
 def load_pickle(name: str):

@@ -59,8 +59,9 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
     for t in dynamic_demand.loading_time_steps:
         _id = 0
-        index_array: ndarray = np.empty((network.tot_source_connectors * dynamic_demand.all_active_destinations, 2))
-        val = np.zeros(network.tot_source_connectors * dynamic_demand.all_active_destinations, dtype=np.float32)
+        index_array = np.empty((network.tot_source_connectors * dynamic_demand.tot_active_destinations,
+                                         np.uint32(2)), dtype=np.uint32)
+        val = np.zeros(network.tot_source_connectors * dynamic_demand.tot_active_destinations, dtype=np.float32)
         demand = dynamic_demand.get_demand(t)
         for origin in demand.origins:
             for destination in demand.to_destinations.get_nnz(origin):
@@ -69,7 +70,8 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                     _id += 1
         index_array = index_array[:_id].copy()
         val = val[:_id].copy()
-        source_connector_choice.apppend(
-            F32CSRMatrix(**csr_prep(index_array, val, shape=(last_source_connector, last_centroid))))
+        val,col,row=csr_prep(index_array, val, shape=(last_source_connector, last_centroid))
+        source_connector_choice.append(
+            F32CSRMatrix(val, col,row))
     return AONState(cur_costs, prev_costs, arrival_maps, turning_fractions,
                     interpolation_frac, link_time, source_connector_choice)
