@@ -6,7 +6,6 @@
 #
 #
 from numba import njit
-from assignment import Assignment
 from core.supply import Network
 from core.demand import InternalDynamicDemand
 from core.time import SimulationTime
@@ -14,13 +13,12 @@ from core.route_choice.aon_cls import AONState
 import numpy as np
 from settings import parameters
 from numba import prange
-from datastructures.csr import F32CSRMatrix
 
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
 
-#@njit
+# @njit
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, state: AONState):
     tot_time_steps = time.tot_time_steps
     from_node = network.links.from_node
@@ -29,8 +27,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     in_links = network.nodes.in_links
     all_destinations = dynamic_demand.all_active_destinations
     delta_costs = np.abs(state.cur_costs - state.prev_costs)
-    nodes_2_update = np.full(network.tot_nodes, np.iinfo(np.uint32).max, dtype=np.uint32)
-    next_nodes_2_update = np.full(network.tot_nodes, np.iinfo(np.uint32).max, dtype=np.uint32)  # nodes to be
+    next_nodes_2_update = np.full(network.tot_nodes, False, dtype=np.bool_)  # nodes to be
     # activated for earlier time steps
     arrival_maps = state.arrival_maps
     step_size = time.step_size
@@ -43,31 +40,20 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     # Himpe, Willem. "Integrated Algorithms for Repeated Dynamic Traffic Assignments The Iterative
     # Link Transmission Model with Equilibrium Assignment Procedure."(2016).
     # refer to page 48, algorithm 6 for details.
-    next_nodes_2_update_pointer = 0  # first elements in the array that are not nodes
-    tot_nodes_2_update = 0  # number of valid entries in nodes_2_update
-    tot_next_nodes_2_update = 0
     tot_active_nodes = 0  # number of nodes in this time step that still need to be considered
     for destination in range(all_destinations.size):
-        print(f'building map for destination {destination}')
+        next_nodes_2_update = np.full(network.tot_nodes, False, dtype=np.bool_)
         for t in range(tot_time_steps - 1, -1, -1):
-            print('building map for destination '+str(destination)+' , now in time step '+str(t) )
-            nodes_2_update[:tot_next_nodes_2_update] = next_nodes_2_update[:tot_next_nodes_2_update].copy()
-            tot_nodes_2_update = tot_next_nodes_2_update
-            print(' before ndenumerate')
+            #   print('building map for destination '+str(destination)+' , now in time step '+str(t) )
+            nodes_2_update = next_nodes_2_update.copy()
             for link, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
                 if delta > route_choice_delta:
                     node = from_node[link]
-                    nodes_2_update[tot_nodes_2_update] = node
-                    tot_nodes_2_update += 1
-            unique_nodes = np.unique(nodes_2_update[:tot_nodes_2_update])
-            tot_nodes_2_update = unique_nodes.size
-            nodes_2_update[:tot_nodes_2_update] = unique_nodes
-            tot_active_nodes = tot_nodes_2_update
-            print('starting with active nodes')
-            while tot_active_nodes > 0:
-                print('currently active nodes: ' + str(tot_active_nodes))
+                    nodes_2_update[node] = True
+            while np.any(nodes_2_update == True):
+                # print('currently active nodes: ' + str(np.argwhere(nodes_2_update==True)))
                 # going through all the nodes that need updating for the current time step
                 # note that nodes_2_update changes dynamically as we traverse the graph ..
                 # finding the node with the minimal arrival time to the destination is meant
@@ -77,17 +63,17 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 # not straight forward to do as the distance labels are dynamically changing inside a single time step.
 
                 min_dist = np.inf
-                min_idx = -1
-                for idx, node in enumerate(nodes_2_update[:tot_nodes_2_update]):
-                    if node != np.iinfo(np.uint32).max:
+                min_node = -1
+                for node, active in enumerate(nodes_2_update):
+                    if active:
                         if arrival_maps[destination, t, node] < min_dist:
-                            min_idx = idx
+                            min_node = node
                             min_dist = arrival_maps[destination, t, node]
-                node = nodes_2_update[min_idx]
-                nodes_2_update[min_idx] = np.iinfo(np.uint32).max  # no longer considered
-                tot_active_nodes = tot_active_nodes - 1
+
+                nodes_2_update[min_node] = False  # no longer considered
+                # print('deactivated node ' + str(min_node))
                 new_dist = np.inf
-                for link in out_links.get_nnz(node):
+                for link in out_links.get_nnz(min_node):
 
                     if t + np.uint32(link_time[t, link]) >= tot_time_steps - 1:
                         dist = arrival_maps[destination, tot_time_steps - 1, to_node[link]] + state.cur_costs[t, link] \
@@ -99,25 +85,20 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                                    destination, t + np.uint32(link_time[t, link]) + 1, to_node[link]]
                     if dist < new_dist:
                         new_dist = dist
-                if np.abs(new_dist - arrival_maps[destination, t, node]) > route_choice_delta:
+                if np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta:
                     # new arrival time found
-                    arrival_maps[destination, t, node] = new_dist
-                    if node > dynamic_demand.tot_centroids:
+                    arrival_maps[destination, t, min_node] = new_dist
+                    if min_node > dynamic_demand.tot_centroids:
                         # only adds the in_links if it's not a centroid
                         # the first nodes are centroids, see labelling in assignment.py
-                        for link in in_links.get_nnz(node):
-                            try:
-                                nodes_2_update[tot_nodes_2_update] = from_node[link]
-                            except IndexError:
-                                print('hi')
-                            next_nodes_2_update[tot_next_nodes_2_update] = from_node[link]
-                            tot_next_nodes_2_update += 1
-                            tot_nodes_2_update += 1
-                            tot_active_nodes += 1
+                        for link in in_links.get_nnz(min_node):
+                            # print('activated node ' + str(from_node[link]))
+                            nodes_2_update[from_node[link]] = True
+                            next_nodes_2_update[from_node[link]] = True
 
 
 # TODO: test the @njit(parallel=True) option here
-#@njit(parallel=True)
+# @njit(parallel=True)
 def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime,
                            state: AONState, departure_time_offset=route_choice_agg):
     """
@@ -169,10 +150,13 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                     if dist < min_dist:
                         next_link = link
                 for turn in network.links.in_turns.get_row(next_link):
-                    turning_fractions[dest_idx, t, turn] = 1
+                    try:
+                        turning_fractions[dest_idx, t, turn] = 1
+                    except IndexError:
+                        print('hi')
 
 
-#@njit
+# @njit
 def calc_source_connector_choice(network: Network, state: AONState,
                                  dynamic_demand: InternalDynamicDemand):
     for t in dynamic_demand.loading_time_steps:
