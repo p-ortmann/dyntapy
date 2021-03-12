@@ -16,6 +16,7 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes):
     typical dijkstra implementation with heaps, fills the distances array with the results
     Parameters
     ----------
+    tot_nodes : int, number of nodes
     costs : float32 vector
     out_links : CSR matrix, fromNode x Link
     source: integer ID of source node

@@ -159,14 +159,14 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
 # @njit
 def calc_source_connector_choice(network: Network, state: AONState,
                                  dynamic_demand: InternalDynamicDemand):
-    for t in dynamic_demand.loading_time_steps:
+    for t_id,t in enumerate(dynamic_demand.loading_time_steps):
         demand = dynamic_demand.get_demand(t)
         for origin in demand.origins:
             for _id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
                 dist = np.inf
                 min_link = -1
                 for node, link in zip(network.nodes.out_links.get_row(origin), network.nodes.out_links.get_nnz(origin)):
-                    if state.arrival_map[t, destination, node] < dist:
-                        dist = state.arrival_map[t, destination, node]
+                    if state.arrival_maps[destination, t, node] < dist:
+                        dist = state.arrival_maps[destination, t, node]
                         min_link = link
-                state.connector_choice.get_row(min_link)[_id] = 1.0
+                state.connector_choice[t_id].get_row(min_link)[_id] = 1.0
