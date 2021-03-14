@@ -65,12 +65,14 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
                      plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                      aspect_ratio=1, toolbar_location='below')
     # adding different coordinate attribute names to comply with osmnx
-    for _, data in g.edges.data():
-        data['x'] = data['x_coord']
-        data['y'] = data['y_coord']
+    for _,_, data in g.edges.data():
+        if 'x_coord' in data:
+            data['x'] = data['x_coord']
+            data['y'] = data['y_coord']
     for _,data in g.nodes.data():
         data['x'] = data['x_coord']
         data['y'] = data['y_coord']
+    title=_check_title(title,g, 'assignment ')
 
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     _output(notebook, title, plot_size)  # only made to work inside of notebooks
@@ -91,7 +93,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     all_x = []
     all_y = []
     for t in range(time.tot_time_steps):
-        c, x, y = _get_colors_and_coords(g, max_width_coords, max_flow, flows)
+        c, x, y = _get_colors_and_coords(g, max_width_coords, max_flow, flows[t])
         all_colors.append(c)
         all_x.append(x)
         all_y.append(y)
@@ -135,10 +137,10 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     # Set up callbacks
 
 
-    def update_title():
+    def update_title(attrname, old, new):
         plot.title.text = text.value
 
-    def update_data():
+    def update_data(attrname, old, new):
         # Get the current slider values
         t = time_slider.value
 
@@ -159,6 +161,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     inputs = widgetbox(text, time_slider)
     layout = row(plot,
                  widgetbox(text, time_slider))
+    output_notebook()
 
     def modify_doc(doc):
         doc.add_root(row(layout, width=800))
@@ -277,16 +280,17 @@ def _edge_cds(g,color, flow, x,y, cost, visualization_keys=parameters.visualizat
     return ColumnDataSource(data=edge_dict)
 
 
-def _get_colors_and_coords(g, max_width_coords, max_flow, flows, ):
+def _get_colors_and_coords(g, max_width_coords, max_flow, flows):
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords / 10
     colors = []
-    x = []
-    y = []
+    x_list = []
+    y_list = []
     for u, v, data in g.edges(data=True):
         try:
             try:
-                color = traffic_cm[np.int(round(flows[data['link_id']] / data['capacity'] * nr_of_colors))]
+                print()
+                color = traffic_cm[np.int(np.round(flows[data['link_id']] / data['capacity'] * nr_of_colors))]
             except IndexError:
                 color = traffic_cm[-1]  # flow larger then capacity!
             except KeyError:  # capacity or flow not defined
@@ -324,9 +328,9 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows, ):
             (x1, y1, x2, y2) = ls.xy + para_ls.xy
             x = x1 + x2
             y = y1 + y2
-        x.append(list(x))
-        y.append(list(y))
-    return colors, x, y
+        x_list.append(list(x))
+        y_list.append(list(y))
+    return colors, x_list, y_list
 
 
 def __linestring_from_node_cords(coord_list, width_coords):
