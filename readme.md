@@ -1,4 +1,4 @@
-##How to install
+## How to install
 
 we assume that you already have a virtual environment set up with conda.
 1. open a command line tool, on windows hit start and look for anaconda prompt.

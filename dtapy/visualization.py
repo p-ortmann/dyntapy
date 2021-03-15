@@ -25,7 +25,7 @@ import numpy as np
 from bokeh.application import Application
 from bokeh.application.handlers import FunctionHandler
 from shapely.geometry import LineString
-from utilities import __create_green_to_red_cm
+from dtapy.utilities import __create_green_to_red_cm
 import osmnx as ox
 from pyproj import CRS
 from __init__ import results_folder
@@ -40,7 +40,7 @@ default_max_links = parameters.visualization.max_links
 
 
 def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=np.double(0.006), background_map=True,
-                    title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False,
+                    title=None, plot_size=default_notebook_plot_size, osm_tap_tool=True, notebook=False,
                     max_links_visualized=default_max_links,
                     show_unloaded_links=False):
     """
@@ -124,7 +124,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
         nodetaptool = TapTool(renderers=[node_renderer])
         nodetaptool.callback = OpenURL(url=url)
 
-    time_slider = Slider(start=0, end=10, value=0, step=1, title="time")
+    time_slider = Slider(start=0, end=time.tot_time_steps-1, value=0, step=1, title="time")
     # TODO: add color converter for dynamic
 
     # layout with multiple convergence plots
