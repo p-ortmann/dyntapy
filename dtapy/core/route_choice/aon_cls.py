@@ -9,7 +9,7 @@
 from numba import float32, uint32
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
-from datastructures.csr import f32csr_type
+from dtapy.datastructures.csr import f32csr_type
 
 spec_aon_state = [('cur_costs', float32[:, :]),
                   ('prev_costs', float32[:, :]),

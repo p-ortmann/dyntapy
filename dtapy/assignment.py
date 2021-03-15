@@ -7,6 +7,8 @@
 #
 #
 #
+#
+#
 import numpy as np
 import networkx as nx
 from numba.typed import List
@@ -14,10 +16,10 @@ from dtapy.datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
 from dtapy.core.supply import Links, Nodes, Network, Turns
 from dtapy.core.demand import Demand, InternalDynamicDemand
 from dtapy.core.time import SimulationTime
-from demand import _check_centroid_connectivity
-from settings import parameters
+from dtapy.demand import _check_centroid_connectivity
+from dtapy.settings import parameters
 from dataclasses import dataclass
-from demand import DynamicDemand
+from dtapy.demand import DynamicDemand
 from typing import Callable
 
 v_wave_default = parameters.supply.v_wave_default

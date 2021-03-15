@@ -6,14 +6,14 @@
 #
 #
 #
-from core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMState
-from core.demand import Demand, InternalDynamicDemand
-from core.time import SimulationTime
+from dtapy.core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMState
+from dtapy.core.demand import Demand, InternalDynamicDemand
+from dtapy.core.time import SimulationTime
 import numpy as np
 from dtapy.settings import parameters
 from numba import njit
 from numba.typed import List
-from core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
+from dtapy.core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
 
 gap = parameters.network_loading.gap
 node_model_str = parameters.network_loading.node_model

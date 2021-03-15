@@ -7,7 +7,7 @@
 #
 #
 from collections import OrderedDict
-from datastructures.csr import UI32CSRMatrix, ui32csr_type, f32csr_type
+from dtapy.datastructures.csr import UI32CSRMatrix, ui32csr_type, f32csr_type
 from numba.core.types import float32, uint32, int8, uint8, boolean
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass

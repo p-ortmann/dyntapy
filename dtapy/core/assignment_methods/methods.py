@@ -8,7 +8,7 @@
 #
 from dataclasses import dataclass
 from typing import Callable
-from core.assignment_methods.i_ltm_aon import i_ltm_aon
+from dtapy.core.assignment_methods.i_ltm_aon import i_ltm_aon
 
 
 @dataclass

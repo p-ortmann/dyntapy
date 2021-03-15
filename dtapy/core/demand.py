@@ -10,10 +10,8 @@ import numpy as np
 from numba import uint32, boolean, njit
 from collections import OrderedDict
 from numba.core.types.containers import ListType
-
 from numba.experimental import jitclass
-
-from datastructures.csr import f32csr_type
+from dtapy.datastructures.csr import f32csr_type
 
 spec_demand = [('to_destinations', f32csr_type),
                ('to_origins', f32csr_type),

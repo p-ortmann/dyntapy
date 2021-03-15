@@ -6,14 +6,14 @@
 #
 #
 #
-from core.route_choice.aon_setup import setup_aon
-from core.route_choice.aon import calc_turning_fractions, calc_source_connector_choice
-from core.network_loading.link_models.i_ltm_setup import i_ltm_setup
-from core.network_loading.link_models.i_ltm import i_ltm
-from core.supply import Network
-from core.demand import InternalDynamicDemand
-from core.time import SimulationTime
 
+from dtapy.core.route_choice.aon_setup import setup_aon
+from dtapy.core.route_choice.aon import calc_turning_fractions, calc_source_connector_choice
+from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_setup
+from dtapy.core.network_loading.link_models.i_ltm import i_ltm
+from dtapy.core.supply import Network
+from dtapy.core.demand import InternalDynamicDemand
+from dtapy.core.time import SimulationTime
 
 def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime,
               network_loading_time: SimulationTime):

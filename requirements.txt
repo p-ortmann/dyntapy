@@ -6,3 +6,9 @@ scipy
 numpy
 geojson
 pyyaml
+networkx
+pyproj
+geopandas
+Shapely
+matplotlib
+setuptools

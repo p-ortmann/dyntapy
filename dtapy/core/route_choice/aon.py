@@ -6,10 +6,10 @@
 #
 #
 from numba import njit
-from core.supply import Network
+from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
-from core.time import SimulationTime
-from core.route_choice.aon_cls import AONState
+from dtapy.core.time import SimulationTime
+from dtapy.core.route_choice.aon_cls import AONState
 import numpy as np
 from dtapy.settings import parameters
 from numba import prange

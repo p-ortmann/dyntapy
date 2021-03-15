@@ -6,12 +6,14 @@
 #
 #
 #
+#
+#
 import os
 import networkx as nx
 import osmnx as ox
-from settings import parameters
+from dtapy.settings import parameters
 from __init__ import data_folder
-from utilities import log
+from dtapy.utilities import log
 from itertools import count
 import numpy as np
 import pandas as pd

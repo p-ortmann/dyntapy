@@ -6,13 +6,13 @@
 #
 #
 #
-from core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMNodes, ILTMState, ILTMLinks
+from dtapy.core.network_loading.link_models.i_ltm_cls import ILTMNetwork, ILTMNodes, ILTMState, ILTMLinks
 import numpy as np
 from numba import int32, float32
-from datastructures.csr import UI8CSRMatrix, csr_prep, F32CSRMatrix
-from core.supply import Network
-from core.demand import InternalDynamicDemand
-from core.time import SimulationTime
+from dtapy.datastructures.csr import UI8CSRMatrix, csr_prep, F32CSRMatrix
+from dtapy.core.supply import Network
+from dtapy.core.demand import InternalDynamicDemand
+from dtapy.core.time import SimulationTime
 
 
 def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):

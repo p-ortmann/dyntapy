@@ -7,11 +7,11 @@
 #
 #
 
-from core.supply import Nodes, UncompiledNodes, spec_node, Links, UncompiledLinks, spec_link, Network, \
+from dtapy.core.supply import Nodes, UncompiledNodes, spec_node, Links, UncompiledLinks, spec_link, Network, \
     UncompiledNetwork, spec_uncompiled_network, Turns
 from numba import boolean, float32, int32
 from numba.experimental import jitclass
-from datastructures.csr import ui8csr_type, f32csr_type
+from dtapy.datastructures.csr import ui8csr_type, f32csr_type
 
 spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
                   ('turn_based_in_links', ui8csr_type),

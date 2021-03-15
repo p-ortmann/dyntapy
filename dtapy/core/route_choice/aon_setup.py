@@ -7,13 +7,13 @@
 #
 #
 
-from core.route_choice.dynamic_dijkstra import dijkstra
+from dtapy.core.route_choice.dynamic_dijkstra import dijkstra
 import numpy as np
-from core.route_choice.aon_cls import AONState
-from core.supply import Network
+from dtapy.core.route_choice.aon_cls import AONState
+from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
-from core.time import SimulationTime
-from datastructures.csr import F32CSRMatrix, csr_prep
+from dtapy.core.time import SimulationTime
+from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
 
 

@@ -7,6 +7,8 @@
 #
 #
 #
+#
+#
 from scipy.spatial import cKDTree
 import pandas as pd
 import numpy as np
@@ -21,9 +23,9 @@ from shapely.geometry import LineString
 from collections import deque
 from json import loads
 import itertools
-from settings import parameters
-from network_data import sort_graph
-from utilities import log
+from dtapy.settings import parameters
+from dtapy.network_data import sort_graph
+from dtapy.utilities import log
 
 default_connector_speed = parameters.demand.default_connector_speed
 default_connector_capacity = parameters.demand.default_connector_capacity
