@@ -6,13 +6,13 @@
 #
 #
 #
-from demand import parse_demand, generate_od_xy, DynamicDemand
-from network_data import load_pickle
-from assignment import Assignment
-from settings import parameters
+from dtapy.demand import parse_demand, generate_od_xy, DynamicDemand
+from dtapy.network_data import load_pickle
+from dtapy.assignment import Assignment
+from dtapy.settings import parameters
 from core.time import SimulationTime
 import numpy as np
-from settings import default_city as city
+from dtapy.settings import default_city as city
 
 step_size = parameters.network_loading.step_size
 # loading from data folder, assumes road_network_and_centroids was run previously

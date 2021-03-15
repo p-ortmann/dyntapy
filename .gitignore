@@ -6,6 +6,6 @@ private.py
 /.vscode/
 /results/
 /data/
-slider.py
+dtapy/slider.py
 testing_dtapy/visualization.py
 

@@ -1,0 +1,8 @@
+numba
+bokeh
+osmnx
+pandas
+scipy
+numpy
+geojson
+pyyaml
