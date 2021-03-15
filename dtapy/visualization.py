@@ -1,8 +1,10 @@
-#  This file is part of the traffic assignment code base developed at KU Leuven.
+#  This file is part of the Traffic Assignment Package developed at KU Leuven.
 #  Copyright (c) 2020 Paul Ortmann
 #  License: GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007, see license.txt
-#  More information at: https://gitlab.kuleuven.be/ITSCreaLab
+#  More information at: https://gitlab.mech.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
+#
+#
 #
 #
 #
@@ -27,9 +29,9 @@ from utilities import __create_green_to_red_cm
 import osmnx as ox
 from pyproj import CRS
 from __init__ import results_folder
-from settings import parameters
+from dtapy.settings import parameters
 from dtapy.core.time import SimulationTime
-from utilities import log
+from dtapy.utilities import log
 
 traffic_cm = __create_green_to_red_cm('hex')
 default_plot_size = parameters.visualization.plot_size

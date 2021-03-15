@@ -10,7 +10,7 @@ from dtapy.demand import parse_demand, generate_od_xy, DynamicDemand
 from dtapy.network_data import load_pickle
 from dtapy.assignment import Assignment
 from dtapy.settings import parameters
-from core.time import SimulationTime
+from dtapy.core.time import SimulationTime
 import numpy as np
 from dtapy.settings import default_city as city
 

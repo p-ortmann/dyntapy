@@ -11,7 +11,7 @@
 import numpy as np
 
 # import node model you want to test
-from core.network_loading.node_models.orca_nodel_model import orca_node_model as node_model
+from dtapy.core.network_loading.node_models.orca_nodel_model import orca_node_model as node_model
 
 
 # defining the inputs, example taken from Chris MJ, et al. "A generic class of first order node models for
