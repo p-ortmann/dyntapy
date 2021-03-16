@@ -16,14 +16,10 @@ from bokeh.models import HoverTool, TapTool, OpenURL
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.models.glyphs import Asterisk, Patches
-from bokeh.models import CustomJS, Slider
-import bokeh.plotting.figure as bk_figure
-from bokeh.io import curdoc, show
-from bokeh.layouts import row, widgetbox
+from bokeh.layouts import row, column
 from bokeh.models.widgets import Slider, TextInput
+from bokeh.models.callbacks import CustomJS
 import numpy as np
-from bokeh.application import Application
-from bokeh.application.handlers import FunctionHandler
 from shapely.geometry import LineString
 from dtapy.utilities import __create_green_to_red_cm
 import osmnx as ox
@@ -40,7 +36,7 @@ default_max_links = parameters.visualization.max_links
 
 
 def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=np.double(0.006), background_map=True,
-                    title=None, plot_size=default_notebook_plot_size, osm_tap_tool=True, notebook=False,
+                    title=None, plot_size=800, osm_tap_tool=True, notebook=False,
                     max_links_visualized=default_max_links,
                     show_unloaded_links=False):
     """
@@ -63,7 +59,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     -------
 
     """
-    plot = bk_figure(plot_height=plot_size,
+    plot = figure(plot_height=1500,
                      plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                      aspect_ratio=1, toolbar_location='below')
     # adding different coordinate attribute names to comply with osmnx
@@ -77,8 +73,8 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     title=_check_title(title,g, 'assignment ')
 
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
-    _output(notebook, title, plot_size)  # only made to work inside of notebooks
-    # TODO: possibly add standalone version of this plot for static html (likely without slider)
+    print(tmp.nodes.data())
+    _output(notebook, title, plot_size)
     if background_map:
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
@@ -95,7 +91,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     all_x = []
     all_y = []
     for t in range(time.tot_time_steps):
-        c, x, y = _get_colors_and_coords(g, max_width_coords, max_flow, flows[t])
+        c, x, y = _get_colors_and_coords(tmp, max_width_coords, max_flow, flows[t])
         all_colors.append(c)
         all_x.append(x)
         all_y.append(y)
@@ -111,7 +107,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if item != 'flow']
     edge_tooltips.append(('flow', '@flow{(0.0)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Asterisk(x='x_coord', y='y_coord', size=max_width_bokeh * 3,
+                                   glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3,
                                                   line_color="black",
                                                   line_width=max_width_bokeh / 5))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
@@ -134,45 +130,28 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     # )
     plot.add_tools(node_hover, edge_hover, nodetaptool)
 
-    text = TextInput(title="title", value='my Assignment plot')
 
     # Set up callbacks
 
 
-    def update_title(attrname, old, new):
-        plot.title.text = text.value
+    callback = CustomJS(args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, costs = costs, all_colors = all_colors), code="""
+        var data = source.data;
+        var t = cb_obj.value
+        data['x'] = all_x[t]
+        data['y'] = all_y[t]
+        data['color'] = all_colors[t]
+        source.change.emit();
+    """)
+    time_slider.js_on_change('value', callback)
 
-    def update_data(attrname, old, new):
-        # Get the current slider values
-        t = time_slider.value
-
-        # Generate the new curve
-        cur_flows = flows[t]
-        cur_costs = costs[t]
-        cur_color = all_colors[t]
-        cur_x = all_x[t]
-        cur_y = all_y[t]
-        edge_source.data = {**edge_source.data, 'x_coord': cur_x, 'y_coord': cur_y, 'color': cur_color,
-                            'flow': cur_flows, 'cost': cur_costs}
-        ### I thought I might need a show() here, but it doesn't make a difference if I add one
-        # show(layout)
-
-    time_slider.on_change('value', update_data)
 
     # Set up layouts and add to document
-    inputs = widgetbox(text, time_slider)
+    inputs = column( time_slider)
     layout = row(plot,
-                 widgetbox(text, time_slider))
-    output_notebook()
+                 column( time_slider))
+    show(layout)
 
-    def modify_doc(doc):
-        doc.add_root(row(layout, width=800))
-        doc.title = "Sliders"
-        text.on_change('value', update_title)
 
-    handler = FunctionHandler(modify_doc)
-    app = Application(handler)
-    show(app)
     # TODO: add update function that pushes to the notebook for different times ..
     # TODO: add animation that can be interrupted
 
