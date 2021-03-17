@@ -30,15 +30,13 @@ node_model_str = parameters.network_loading.node_model
 
 
 # @njit
-def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime):
-    all_destinations = dynamic_demand.all_destinations
-    all_origins = dynamic_demand.all_origins
+def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime, turning_fractions, connector_choice):
     tot_time_steps = time.tot_time_steps
     step_size = time.step_size
 
     tot_links = network.tot_links
     tot_nodes = network.tot_nodes
-    tot_destinations = dynamic_demand.tot_destinations
+    tot_destinations = dynamic_demand.all_active_destinations.size
     tot_out_links = network.nodes.tot_out_links
     tot_in_links = network.nodes.tot_in_links
     max_out_links = np.max(network.nodes.tot_out_links)
@@ -67,7 +65,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     # allocate memory to local variables
     receiving_flow = np.zeros(tot_links)
     db_sending_flow = np.zeros((tot_links, tot_destinations))
-    turning_fractions = results.turning_fractions
     tot_sending_flow = np.empty(max_in_links)
     # variables with local_x always concern structures for the node model and it's surrounding links/turns
     local_receiving_flow = np.empty((max_out_links, tot_destinations))
@@ -90,13 +87,13 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         receiving_flow_init = np.full(tot_links, True)
         sending_flow_init = np.full(tot_links, True)
 
-        if dynamic_demand.is_loading:  # check if any origins are sending flow into the network this time step
-            current_demand: Demand = dynamic_demand.next
-            __load_origin_flows(current_demand, nodes_2_update, t, cvn_up, local_sending_flow, tot_nodes_updates,
+        if dynamic_demand.is_loading(t):  # check if any origins are sending flow into the network this time step
+            current_demand: Demand = dynamic_demand.get_demand(t)
+            __load_origin_flows(current_demand,connector_choice, nodes_2_update, t, cvn_up, local_sending_flow, tot_nodes_updates,
                                 out_links, cap, step_size, con_up, vind, tot_time_steps, to_node)
 
         # njit tests pass until here without failure
-        first_intersection = np.max([all_destinations[-1], all_origins[-1]]) + 1  # the first C nodes are centroids
+        first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
         node_processing_order = List(np.arange(first_intersection, tot_nodes))
 
         cur_nodes_2_update = len(node_processing_order)  # remaining nodes that need updating for the current iteration
@@ -128,35 +125,37 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                          local_turning_capacity, local_in_links)
 
 
-def __load_origin_flows(current_demand, nodes_2_update, t, cvn_up, tmp_sending_flow, tot_nodes_updates, out_links, cap,
+def __load_origin_flows(current_demand,connector_choice,  nodes_2_update, t, cvn_up, tmp_sending_flow, tot_nodes_updates, out_links, cap,
                         step_size, con_up, vind, tot_time_steps, to_node):
     for origin in current_demand.origins:
         if nodes_2_update[t, origin]:
             tot_nodes_updates += 1
-            for index, link in np.ndenumerate(out_links):
-                tmp_sending_flow[0, :] = cvn_up[t - 1, link, :]
-                for dest, val in zip(current_demand.to_destinations.get_nnz(origin),
-                                     current_demand.to_destinations.get_row(origin)):
-                    tmp_sending_flow[0, dest] += val
+            for index, connector in np.ndenumerate(out_links):
+                tmp_sending_flow[0, :] = cvn_up[t - 1, connector, :]
+                for flow, destination, fraction in zip(current_demand.to_destinations.get_row(origin),
+                                                       current_demand.to_destinations.get_nnz(origin),
+                                                       connector_choice.get_row(connector)):
+                    tmp_sending_flow[0, destination] += flow*fraction
 
-                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t - 1, link, :])) > gap:
+
+                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t - 1, connector, :])) > gap:
                     nodes_2_update[min(tot_time_steps, t + 1), origin] = True
-                    cvn_up[t, link, :] = tmp_sending_flow[:, 0]
-                    if np.sum(cvn_up[t, link, :] - cvn_up[t - 1, link, :]) < cap[link] * step_size:
-                        con_up[t, link] = False
+                    cvn_up[t, connector, :] = tmp_sending_flow[:, 0]
+                    if np.sum(cvn_up[t, connector, :] - cvn_up[t - 1, connector, :]) < cap[connector] * step_size:
+                        con_up[t, connector] = False
                     else:
-                        con_up[t, link] = True
+                        con_up[t, connector] = True
 
-                if vind[link] == -1:
-                    nodes_2_update[t, to_node[link]] = True
+                if vind[connector] == -1:
+                    nodes_2_update[t, to_node[connector]] = True
                 else:
                     try:
-                        nodes_2_update[t - vind[link] - 1, to_node[link]] = True
-                        nodes_2_update[t - vind[link], to_node[link]] = True
+                        nodes_2_update[t - vind[connector] - 1, to_node[connector]] = True
+                        nodes_2_update[t - vind[connector], to_node[connector]] = True
                     except Exception:
-                        assert t - vind[link] > tot_time_steps
-                        if t - vind[link] - 1 == tot_time_steps:
-                            nodes_2_update[tot_time_steps, to_node[link]] = True
+                        assert t - vind[connector] > tot_time_steps
+                        if t - vind[connector] - 1 == tot_time_steps:
+                            nodes_2_update[tot_time_steps, to_node[connector]] = True
                         else:
                             print('Simulation time period is too short for given demand.'
                                   ' Not all vehicles are able to exit the network')

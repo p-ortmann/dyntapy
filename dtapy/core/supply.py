@@ -25,7 +25,7 @@ import numpy as np
 # one simply needs to define new extending network, turn, node and link objects as needed and write a setup file,
 # as shown for i-ltm.
 
-spec_link = [('capacity', uint32[:]),
+spec_link = [('capacity', float32[:]),
              ('from_node', uint32[:]),
              ('to_node', uint32[:]),
              ('length', float32[:]),

@@ -121,7 +121,6 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
         nodetaptool.callback = OpenURL(url=url)
 
     time_slider = Slider(start=0, end=time.tot_time_steps-1, value=0, step=1, title="time")
-    # TODO: add color converter for dynamic
 
     # layout with multiple convergence plots
     # layout = row(

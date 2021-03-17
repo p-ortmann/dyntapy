@@ -89,7 +89,7 @@ class Assignment:
         turns = self.__build_turns(tot_nodes, nodes)
         print("turns passed")
 
-        link_capacity = np.array([d['capacity'] for (_, _, d) in sorted_edges], dtype=np.uint32)
+        link_capacity = np.array([d['capacity'] for (_, _, d) in sorted_edges], dtype=np.float32)
         free_speed = np.array([d['free_speed'] for (_, _, d) in sorted_edges], dtype=np.float32)
         lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
         length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)

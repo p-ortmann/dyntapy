@@ -24,12 +24,12 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     v_wave = network.links.v_wave
     vf_index = int32((length / v0) / step_size)  # uint works as floor in matlab
     vf_ratio = float32(vf_index - (length / v0) / step_size + 1)
-    vf_index = -vf_index - 1
+    vf_index = int32(-vf_index - 1)
     vw_index = int32((length / v_wave) / step_size)
     vw_ratio = float32(vw_index - (length / v_wave) / step_size + 1)
-    vw_index = -vw_index - 1
-    k_crit = capacity / v0
-    k_jam = capacity / v_wave + k_crit
+    vw_index = int32(-vw_index - 1)
+    k_crit = np.float32(capacity / v0)
+    k_jam = np.float32(capacity / v_wave + k_crit)
     iltm_links = ILTMLinks(network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 
@@ -71,8 +71,7 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
                                 network.nodes.out_links._row_index)
     iltm_nodes = ILTMNodes(network.nodes, turn_based_in_links, turn_based_out_links, in_link_cap,
                            out_link_cap)
-    network = ILTMNetwork(network, iltm_links, iltm_nodes,
-                                       network.turns)
+    network = ILTMNetwork(network, iltm_links, iltm_nodes,network.turns)
 
     # attributes that share the same sparsity structure should have the same index arrays and the underlying data
     # should be stored with a shared matrix where each row is an individual data array for a sparse matrix
@@ -80,9 +79,7 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     # setting up results object
     # cold start
     marg_comp = False
-    tot_origins = dynamic_demand.tot_origins
-    all_origins = dynamic_demand.next
-    tot_destinations = dynamic_demand.tot_destinations
+    tot_destinations = dynamic_demand.tot_active_destinations
     tot_links = network.tot_links
     tot_nodes = network.tot_nodes
     tot_turns = network.tot_turns
@@ -104,11 +101,11 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     #     for origin in network.demand_simulation.demands[t].get_nnz_rows():
     #         nodes_2_update[origin][t]=True
     # we stick with the implementation where all are active and see if we can reduce later.
-    for origin in dynamic_demand.all_origins:
+    for origin in dynamic_demand.all_active_origins:
         nodes_2_update[origin] = True
 
-    turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations))
+    turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations), dtype=np.float32)
     # may investigate use of sparse structure for turning fractions
     results = ILTMState(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
                                    nodes_2_update, costs)
-    return results
+    return results, network
