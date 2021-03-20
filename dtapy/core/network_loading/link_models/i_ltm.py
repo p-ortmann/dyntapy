@@ -65,8 +65,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
     # allocate memory to local variables
     tot_receiving_flow = np.zeros(max_out_links)
-    sending_flow = np.zeros((max_in_links, tot_destinations))
-    temp_sending_flow = np.empty((max_in_links, tot_destinations))
+    sending_flow = np.zeros((max_in_links, tot_destinations))  # what the in_links would like to send
+    temp_sending_flow = np.empty((max_in_links, tot_destinations))  # what they actually get to send
     tot_sending_flow = np.empty(max_in_links)
     # variables with local_x always concern structures for the node model and it's surrounding links/turns
     receiving_flow = np.empty((max_out_links, tot_destinations))
@@ -112,7 +112,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 delta_change[node] = 0
                 calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow,
                                    temp_sending_flow, tot_sending_flow, sending_flow_init)
-                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_receiving_flow, cvn_down, cvn_up,
+                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_receiving_flow, cvn_down,
+                                     cvn_up,
                                      receiving_flow_init, receiving_flow, step_size)
                 calc_turning_flows(tot_out_links, local_turning_fractions,
                                    network.nodes.turn_based_in_links.get_row(node),
@@ -171,10 +172,10 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
         if sending_flow_init[link]:
             sending_flow_init[link] = False
             sending_flow[_id, :] = cvn_up[max(0, t + vind[link]), link, :] * 1 - vrt[link] - cvn_down[t - 1,
-                                                                                                 link, :]
+                                                                                             link, :]
             if vind[link] < -1:  # for all links with free flow travel time larger than dt we interpolate
                 sending_flow[_id, :] = sending_flow[_id, :] + vrt[link] * cvn_up[max(0, t + vind[link] + 1),
-                                                                                  link, :]
+                                                                          link, :]
         if vind[link] == -1:
             sending_flow[_id, :] = sending_flow[_id, :] + vrt[link] * cvn_up[t, link, :]
         sending_flow[_id, :][sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
@@ -233,14 +234,41 @@ def calc_turning_flows(tot_out_links, local_turning_fractions, turn_in_links, tu
                 local_sending_flow[in_link, :] * turning_fractions[t - 1, turn, :])
 
 
-def update_cvns_and_delta_n(result_turning_flows, node, local_sending_flow, local_receiving_flow, tot_out_links,
-                            in_links, out_links, local_total_sending_flow, con_down):
-    to_update = False
-    result_sending_flow = np.sum(result_turning_flows, axis=1)
-    local_receiving_flow[:tot_out_links, :] = 0
+def update_cvns_and_delta_n(result_turning_flows, node, sending_flow, temp_sending_flow, receiving_flow, tot_out_links,
+                            in_links, out_links, total_sending_flow, con_down, in_link_capacity, time_step, t,
+                            cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps):
+    update_node = False
+    result_tot_sending_flow = np.sum(result_turning_flows, axis=1)
+    receiving_flow[:tot_out_links, :] = 0
     for _id, in_link in in_links:
-        if np.any(local_total_sending_flow[_id, :]) > 0:
-            if result_sending_flow[_id] < local_total_sending_flow[_id]:
+        if np.any(total_sending_flow[_id, :]) > 0:
+            if result_tot_sending_flow[_id] < total_sending_flow[_id] \
+                    or np.abs(result_tot_sending_flow[_id] - in_link_capacity[_id] * time_step) < gap:
+                con_down[in_link] = True
+                temp_sending_flow[_id, :] = sending_flow[_id, :] / total_sending_flow[_id] * result_tot_sending_flow[
+                                                                                             _id, :]
+            else:
                 con_down[in_link] = False
-                local_sending_flow[_id, :] = local_total_sending_flow[_id, :] / np.sum(
-                    local_total_sending_flow[_id, :]) * result_sendingFlow(l_index)
+                temp_sending_flow[_id, :] = sending_flow[_id, :]
+            update_in_link = np.sum(np.abs(
+                cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[_id, :]))) < gap
+            update_node = update_in_link or update_node
+            if update_in_link:
+                if wind[in_link] == -1:
+                    nodes_2_update[t, from_node[in_link]] = True
+                    delta_change[from_node[in_link]] = delta_change[from_node[in_link]] + wrt[in_link] * np.sum(
+                        np.abs(cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[_id, :])))
+                else:
+                    nodes_2_update[from_node[in_link], min(tot_time_steps + 1, t - wind[in_link]) - 1] = True
+                    nodes_2_update[from_node[in_link], min(tot_time_steps + 1, t - wind[in_link])] = True
+            active_destinations = np.where(sending_flow[_id, :] > 0)
+            if tot_out_links==1:
+                for destination in active_destinations:
+                    receiving_flow[0,destination] = receiving_flow[0,destination] + temp_sending_flow[_id, destination]
+            else:
+                outIndex = outTF_index(posTF(n):posTF(n) + nTF(n) - 1);
+                turn_index = find(inIndex == l_index);
+                l_index2 = outIndex(turn_index);
+                temp_receivingFlow(l_index2, active_d) = temp_receivingFlow(l_index2, active_d) + temp_sendingFlow(
+                    l_index, active_d). * TF_P(posTF(n) + turn_index - 1, active_d, t - 1);
+

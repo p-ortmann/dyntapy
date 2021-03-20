@@ -70,7 +70,8 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     for _,data in g.nodes.data():
         data['x'] = data['x_coord']
         data['y'] = data['y_coord']
-    title=_check_title(title,g, 'assignment ')
+    default_title=_check_title(title,g, 'assignment ')
+    plot.title =  default_title
 
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     print(tmp.nodes.data())
@@ -99,7 +100,6 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0],all_y[0], costs[0])
     node_source = _node_cds(tmp)
 
-    plot.title.text = title
 
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
@@ -119,7 +119,8 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
         url = "https://www.openstreetmap.org/node/@ext_id/"
         nodetaptool = TapTool(renderers=[node_renderer])
         nodetaptool.callback = OpenURL(url=url)
-
+    text_input = TextInput(title="Add new graph title", value='')
+    text_input.js_link('value', plot.title, 'text')
     time_slider = Slider(start=0, end=time.tot_time_steps-1, value=0, step=1, title="time")
 
     # layout with multiple convergence plots
@@ -145,7 +146,6 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
 
 
     # Set up layouts and add to document
-    inputs = column( time_slider)
     layout = row(plot,
                  column( time_slider))
     show(layout)
@@ -156,7 +156,6 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
 
 
 def show_demand(g, plot_size=1300, notebook=False, title=None):
-    _check_title(title, g, plot_type='Desire Lines ')
     if notebook:
         output_notebook(hide_banner=True)
         plot_size = 600
@@ -166,6 +165,10 @@ def show_demand(g, plot_size=1300, notebook=False, title=None):
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
     tmp = ox.project_graph(g, CRS.from_user_input(3857))
+    default_title = _check_title(title, g, plot_type='Desire Lines')
+    text_input = TextInput(title="Add new graph title", value='')
+    text_input.js_link('value', plot.title, 'text')
+    show(plot)
     # edge_renderer = plot.add_glyph(edge_source,
     #                                glyph=Patches(xs='x', ys='y', fill_color='green', line_color='green',
     #                                              line_alpha=0.8))

@@ -20,6 +20,8 @@ we now can install the package with
 ```shell
 python -m pip install -e path-to-your-folder 
 ```
+using -e makes the repo editable. If you make changes or add a functionality it will be available in a fresh session 
+or if you reload the module.
 3. verify that importing works as expected, open the interpreter
 ```shell
 python
