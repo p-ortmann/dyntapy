@@ -18,7 +18,6 @@ from dataclasses import dataclass
 log_to_file = True
 log_folder = 'logs'
 log_level = 20
-log_filename = ''
 
 default_city = 'Zinnowitz'
 # Parameters for various methods
@@ -54,7 +53,7 @@ class _Demand:
     default_connector_speed: np.float32 = np.float32(1000)
     default_connector_capacity: np.float32 = np.float32(10000)
     default_connector_lanes: np.uint8 = np.uint8(10)
-    default_centroid_spacing: int = 1000 # in meters
+    default_centroid_spacing: int = 500 # in meters
 
 
 @dataclass
@@ -75,12 +74,12 @@ class _Visualization:
     container for parameters that concern visualization
     """
     max_links: np.uint32 = np.uint32(1000)
-    plot_size: int = 1300
+    plot_size: int = 800
     notebook_plot_size: int = 600
     edge_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'max_speed', 'ext_id',
                  'name', 'facility_type', 'flow', 'cost']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'ext_id', 'node_type', 'ctrl_type']
-
+    edge_width_scaling = 0.006
 
 @dataclass
 class _RouteChoice:

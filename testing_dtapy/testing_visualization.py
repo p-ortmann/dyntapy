@@ -12,11 +12,22 @@ from dtapy.network_data import load_pickle
 import networkx as nx
 import numpy as np
 from dtapy.core.time import SimulationTime
-from dtapy.visualization import show_assignment
+from dtapy.visualization import show_assignment, show_demand
+from dtapy.demand import generate_od_xy, parse_demand
 
 g: nx.MultiDiGraph = load_pickle(city + '_grid_centroids')
 g.number_of_edges()
-time = SimulationTime(0,2,0.25)
-flows = np.random.rand(time.tot_time_steps*g.number_of_edges()).reshape((time.tot_time_steps,g.number_of_edges()))*1200
-costs = np.random.rand(time.tot_time_steps*g.number_of_edges()).reshape((time.tot_time_steps,g.number_of_edges()))*200
-show_assignment(g, flows,costs,time)
+time = SimulationTime(0, 2, 0.25)
+# show random link cost and flow state in a network
+flows = np.random.rand(time.tot_time_steps * g.number_of_edges()).reshape(
+    (time.tot_time_steps, g.number_of_edges())) * 1200
+costs = np.random.rand(time.tot_time_steps * g.number_of_edges()).reshape(
+    (time.tot_time_steps, g.number_of_edges())) * 200
+convergence = np.arange(1,0,-0.01)
+show_assignment(g, flows, costs, time, convergence)
+
+# visualize random demand for a single time period
+_json = generate_od_xy(170, city, seed=0)
+demand_graph = parse_demand(_json, g, time=0)
+show_demand(demand_graph)
+

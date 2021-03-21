@@ -15,8 +15,8 @@ from bokeh.io import show, output_file, output_notebook
 from bokeh.models import HoverTool, TapTool, OpenURL
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import ColumnDataSource, figure
-from bokeh.models.glyphs import Asterisk, Patches
-from bokeh.layouts import row, column
+from bokeh.models.glyphs import Scatter, Patches
+from bokeh.layouts import row, column, Spacer
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.models.callbacks import CustomJS
 import numpy as np
@@ -33,10 +33,12 @@ traffic_cm = __create_green_to_red_cm('hex')
 default_plot_size = parameters.visualization.plot_size
 default_notebook_plot_size = parameters.visualization.notebook_plot_size
 default_max_links = parameters.visualization.max_links
+default_edge_width_scaling = parameters.visualization.edge_width_scaling
 
 
-def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=np.double(0.006), background_map=True,
-                    title=None, plot_size=800, osm_tap_tool=True, notebook=False,
+def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime,convergence=None, scaling=default_edge_width_scaling,
+                    background_map=True,
+                    title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False,
                     max_links_visualized=default_max_links,
                     show_unloaded_links=False):
     """
@@ -59,34 +61,29 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     -------
 
     """
-    plot = figure(plot_height=1500,
-                     plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
-                     aspect_ratio=1, toolbar_location='below')
+    plot = figure(plot_height=plot_size,
+                  plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
+                  aspect_ratio=1, toolbar_location='below')
     # adding different coordinate attribute names to comply with osmnx
-    for _,_, data in g.edges.data():
+    for _, _, data in g.edges.data():
         if 'x_coord' in data:
             data['x'] = data['x_coord']
             data['y'] = data['y_coord']
-    for _,data in g.nodes.data():
+    for _, data in g.nodes.data():
         data['x'] = data['x_coord']
         data['y'] = data['y_coord']
-    default_title=_check_title(title,g, 'assignment ')
-    plot.title =  default_title
+    title = _check_title(title, g, 'assignment ')
+    plot.title.text = title
 
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
-    print(tmp.nodes.data())
     _output(notebook, title, plot_size)
     if background_map:
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
     # tmp = filter_links(tmp, max_links_visualized, show_unloaded_links, flows, costs)
-    max_flow = np.max(flows)
-    node_x = [x for _, x in tmp.nodes.data('x')]
-    node_y = [y for _, y in tmp.nodes.data('y')]
-    min_x, max_x, min_y, max_y = min(node_x), max(node_x), min(node_y), max(node_y)
-    max_width_coords = scaling * (0.5 * (max_x - min_x) + 0.5 * (max_y - min_y))
-    max_width_bokeh = plot_size * scaling
 
+    max_flow = np.max(flows)
+    max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)
     # calculate all colors and coordinates for the different time dependent flows
     all_colors = []
     all_x = []
@@ -97,9 +94,8 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
         all_x.append(x)
         all_y.append(y)
 
-    edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0],all_y[0], costs[0])
+    edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0], all_y[0], costs[0])
     node_source = _node_cds(tmp)
-
 
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
@@ -107,9 +103,9 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if item != 'flow']
     edge_tooltips.append(('flow', '@flow{(0.0)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3,
+                                   glyph=Scatter(x='x', y='y', size=max_width_bokeh * 3,
                                                   line_color="black",
-                                                  line_width=max_width_bokeh / 5))
+                                                  line_width=max_width_bokeh / 5, marker= 'asterisk'))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
@@ -121,7 +117,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
         nodetaptool.callback = OpenURL(url=url)
     text_input = TextInput(title="Add new graph title", value='')
     text_input.js_link('value', plot.title, 'text')
-    time_slider = Slider(start=0, end=time.tot_time_steps-1, value=0, step=1, title="time")
+    time_slider = Slider(start=0, end=time.tot_time_steps - 1, value=0, step=1, title="time")
 
     # layout with multiple convergence plots
     # layout = row(
@@ -130,11 +126,10 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
     # )
     plot.add_tools(node_hover, edge_hover, nodetaptool)
 
-
     # Set up callbacks
 
-
-    callback = CustomJS(args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, costs = costs, all_colors = all_colors), code="""
+    callback = CustomJS(
+        args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, costs=costs, all_colors=all_colors), code="""
         var data = source.data;
         var t = cb_obj.value
         data['x'] = all_x[t]
@@ -143,40 +138,83 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, scaling=n
         source.change.emit();
     """)
     time_slider.js_on_change('value', callback)
+    if convergence is not None:
+        iterations = np.arange(len(convergence))
+        conv_plot = figure(plot_width=400, plot_height=400, title=title, x_axis_label='Iterations', y_axis_label='Gap')
+        conv_plot.line(iterations, convergence, line_width=2)
+        conv_plot.circle(iterations, convergence, fill_color="white", size=8)
+        conv_plot.add_tools(HoverTool())
+        layout = row(plot,
+                     column(text_input,Spacer(height=20), time_slider,Spacer(height=260), conv_plot))
+        conv_plot.title='Convergence'
+        show(layout)
+    else:
+        layout = row(plot,
+                 column(text_input,Spacer(height=40), time_slider))
+        show(layout)
 
 
-    # Set up layouts and add to document
-    layout = row(plot,
-                 column( time_slider))
-    show(layout)
+
+def get_max_edge_width(g, scaling, plot_size):
+    node_x = [x for _, x in g.nodes.data('x')]
+    node_y = [y for _, y in g.nodes.data('y')]
+    min_x, max_x, min_y, max_y = min(node_x), max(node_x), min(node_y), max(node_y)
+    max_width_coords = scaling * (0.5 * (max_x - min_x) + 0.5 * (max_y - min_y))
+    max_width_bokeh = plot_size * scaling
+    return max_width_bokeh, max_width_coords
 
 
-    # TODO: add update function that pushes to the notebook for different times ..
-    # TODO: add animation that can be interrupted
-
-
-def show_demand(g, plot_size=1300, notebook=False, title=None):
+def show_demand(g, plot_size=default_plot_size, notebook=False):
+    default_title = str(g.graph['name'])
     if notebook:
         output_notebook(hide_banner=True)
         plot_size = 600
     else:
-        output_file(results_folder + f'/{title}.html')
+        output_file(results_folder + f'/{default_title}.html')
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
+    plot.title.text=default_title
+    tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+    plot.add_tile(tile_provider)
     tmp = ox.project_graph(g, CRS.from_user_input(3857))
-    default_title = _check_title(title, g, plot_type='Desire Lines')
+    max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
+    min_width_coords = max_width_coords / 10
+    all_flow = [flow for u,v, flow in tmp.edges.data('flow') if u!=v]
+    max_flow = max(all_flow)
+    x_list, y_list = [], []
+    for u, v, data in tmp.edges.data():
+        if u!=v: # not showing intrazonal traffic
+            flow = data['flow']
+            width_coords = min_width_coords + (max_width_coords - min_width_coords) * (
+                    flow / max_flow)
+            ls, para_ls = __linestring_from_node_cords(
+                [[tmp.nodes[u]['x'], tmp.nodes[u]['y']], [tmp.nodes[v]['x'], tmp.nodes[v]['y']]],
+                width_coords)
+            (x1, y1, x2, y2) = ls.xy + para_ls.xy
+            x = x2 + x1
+            y = y2 + y1
+            x_list.append(list(x))
+            y_list.append(list(y))
+    node_source = ColumnDataSource(data=dict(x=[x for _,x in tmp.nodes.data('x')], y =[y for _,y in tmp.nodes.data('y')], centroid_id = list(tmp.nodes.keys()) ))
+    edge_source = ColumnDataSource(data = dict( flow=all_flow, x=x_list, y=y_list))
+    # text_input = TextInput(title="Add new graph title", value='')
+    # text_input.js_link('value', plot.title, 'text')
+    edge_renderer = plot.add_glyph(edge_source,
+                                   glyph=Patches(xs='x', ys='y', fill_color='green', line_color='green',
+                                                 line_alpha=0.8))
+    edge_tooltips = [('flow', '@flow{(0.0)}')]
+    node_renderer = plot.add_glyph(node_source,
+                                   glyph=Scatter(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
+                                                  line_width=max_width_bokeh / 5, marker = 'asterisk'))
+    node_tooltips = [(item, f'@{item}') for item in ['x', 'y', 'centroid_id']]
+    edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
+    node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
+    plot.add_tools(node_hover, edge_hover)
     text_input = TextInput(title="Add new graph title", value='')
     text_input.js_link('value', plot.title, 'text')
-    show(plot)
-    # edge_renderer = plot.add_glyph(edge_source,
-    #                                glyph=Patches(xs='x', ys='y', fill_color='green', line_color='green',
-    #                                              line_alpha=0.8))
-    # edge_tooltips = [('flow', '@flow{(0.0)}')]
-    # node_renderer = plot.add_glyph(node_source,
-    #                                glyph=Asterisk(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
-    #                                               line_width=max_width_bokeh / 5))
-    # node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
+    layout = row(plot, text_input)
+    show(layout)
 
 
 def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links, flows, costs):
@@ -218,23 +256,6 @@ def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links, flows
 #     return new_time
 
 
-def show_convergence(g: nx.DiGraph, notebook=False):
-    assert 'iterations' in g.graph
-    assert 'gaps' in g.graph
-    assert 'name' in g.graph
-    name = g.graph['name']
-    title = f'convergence {name}'
-    if notebook:
-        output_notebook()
-    else:
-        output_file(results_folder + f"/{title}.html")
-    gaps = g.graph['gaps']
-    iterations = np.arange(len(gaps))
-    p = figure(plot_width=400, plot_height=400, title=title, x_axis_label='Iterations', y_axis_label='Gap')
-    p.line(iterations, gaps, line_width=2)
-    p.circle(iterations, gaps, fill_color="white", size=8)
-    p.add_tools(HoverTool())
-    show(p)
 
 
 def _node_cds(g, visualization_keys=parameters.visualization.node_keys):
@@ -248,7 +269,7 @@ def _node_cds(g, visualization_keys=parameters.visualization.node_keys):
     return ColumnDataSource(data=node_dict)
 
 
-def _edge_cds(g,color, flow, x,y, cost, visualization_keys=parameters.visualization.edge_keys):
+def _edge_cds(g, color, flow, x, y, cost, visualization_keys=parameters.visualization.edge_keys):
     # TODO: add dependence on cost and flow array.
     edge_dict = dict()
     for attr_key in visualization_keys:
@@ -259,7 +280,7 @@ def _edge_cds(g,color, flow, x,y, cost, visualization_keys=parameters.visualizat
     edge_dict['flow'] = flow
     edge_dict['x'] = x
     edge_dict['y'] = y
-    edge_dict['cost'] =cost
+    edge_dict['cost'] = cost
     return ColumnDataSource(data=edge_dict)
 
 
@@ -272,7 +293,6 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows):
     for u, v, data in g.edges(data=True):
         try:
             try:
-                print()
                 color = traffic_cm[np.int(np.round(flows[data['link_id']] / data['capacity'] * nr_of_colors))]
             except IndexError:
                 color = traffic_cm[-1]  # flow larger then capacity!

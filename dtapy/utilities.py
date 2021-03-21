@@ -58,32 +58,7 @@ def timeit(my_func):
     return timed
 
 
-def _name_test(data, key: str, value=None):
-    """
-    help function to check for used keys in nx graphs
 
-    examples:
-    list = [(u,v,data) for u,v,data in g.edges.data() if name_test(data,'key', 'value']
-    list will then contain all edges for which data contains 'key':'value'
-    Parameters
-    ----------
-    data :
-    key :
-    value :
-
-    Returns
-    -------
-
-    """
-    try:
-        if value is not None:
-            local_bool = data[f'{key}'] == f'{value}'
-        else:
-            data[f'{key}'] = data[f'{key}']  # simply accessing element to possibly trigger KeyError
-            local_bool = True  # no KeyError triggered, element has value for key
-    except KeyError:
-        local_bool = False
-    return local_bool
 
 
 def log(message, level=None, to_console=False):
@@ -137,14 +112,13 @@ def get_logger(name):
     """
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
-    filename = settings.log_filename
 
     # if a logger with this name is not already set up
     if not getattr(logger, 'handler_set', None):
 
         # get today's date and construct a log filename
         todays_date = datetime.datetime.today().strftime('%Y_%m_%d')
-        log_filename = os.path.join(settings.log_folder, '{}_{}.log'.format(filename, todays_date))
+        log_filename = os.path.join(settings.log_folder, '{}_{}.log'.format('dtapy', todays_date))
 
         # if the logs folder does not already exist, create it
         if not os.path.exists(settings.log_folder):
