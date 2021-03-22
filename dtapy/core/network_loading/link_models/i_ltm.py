@@ -234,41 +234,94 @@ def calc_turning_flows(tot_out_links, local_turning_fractions, turn_in_links, tu
                 local_sending_flow[in_link, :] * turning_fractions[t - 1, turn, :])
 
 
-def update_cvns_and_delta_n(result_turning_flows, node, sending_flow, temp_sending_flow, receiving_flow, tot_out_links,
+def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flow, temp_sending_flow, receiving_flow,
+                            tot_out_links,
                             in_links, out_links, total_sending_flow, con_down, in_link_capacity, time_step, t,
-                            cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps):
+                            cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps, in_turns,
+                            out_turns, cvn_up, total_receiving_flow, con_up, vind, to_nodes, vrt, marg_comp, node):
     update_node = False
     result_tot_sending_flow = np.sum(result_turning_flows, axis=1)
     receiving_flow[:tot_out_links, :] = 0
-    for _id, in_link in in_links:
-        if np.any(total_sending_flow[_id, :]) > 0:
-            if result_tot_sending_flow[_id] < total_sending_flow[_id] \
-                    or np.abs(result_tot_sending_flow[_id] - in_link_capacity[_id] * time_step) < gap:
+    for in_id, in_link in enumerate(in_links):
+        # calculate sending flows for all in_links with fixed reduction factors on the sending
+        # flows for all destinations
+        # based on the constraints imposed by the node model
+        # check for all of the in_links if any of their cvns change significantly enough to trigger
+        # recomputation of their tail nodes at backward time (spillback).
+        if np.any(total_sending_flow[in_id, :]) > 0:
+            if result_tot_sending_flow[in_id] < total_sending_flow[in_id] \
+                    or np.abs(result_tot_sending_flow[in_id] - in_link_capacity[in_id] * time_step) < gap:
                 con_down[in_link] = True
-                temp_sending_flow[_id, :] = sending_flow[_id, :] / total_sending_flow[_id] * result_tot_sending_flow[
-                                                                                             _id, :]
+                temp_sending_flow[in_id, :] = sending_flow[in_id, :] / total_sending_flow[
+                    in_id] * result_tot_sending_flow[
+                             in_id, :]
+                # Note to self: this is where FIFO violations occur and where cars are cut into pieces
             else:
                 con_down[in_link] = False
-                temp_sending_flow[_id, :] = sending_flow[_id, :]
+                temp_sending_flow[in_id, :] = sending_flow[in_id, :]
             update_in_link = np.sum(np.abs(
-                cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[_id, :]))) < gap
+                cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]))) < gap
             update_node = update_in_link or update_node
             if update_in_link:
                 if wind[in_link] == -1:
                     nodes_2_update[t, from_node[in_link]] = True
                     delta_change[from_node[in_link]] = delta_change[from_node[in_link]] + wrt[in_link] * np.sum(
-                        np.abs(cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[_id, :])))
+                        np.abs(cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :])))
                 else:
                     nodes_2_update[from_node[in_link], min(tot_time_steps + 1, t - wind[in_link]) - 1] = True
                     nodes_2_update[from_node[in_link], min(tot_time_steps + 1, t - wind[in_link])] = True
-            active_destinations = np.where(sending_flow[_id, :] > 0)
-            if tot_out_links==1:
+
+            active_destinations = np.where(sending_flow[in_id, :] > 0)
+
+            if tot_out_links == 1:
                 for destination in active_destinations:
-                    receiving_flow[0,destination] = receiving_flow[0,destination] + temp_sending_flow[_id, destination]
+                    receiving_flow[0, destination] = receiving_flow[0, destination] + \
+                                                     temp_sending_flow[in_id, destination]
             else:
-                outIndex = outTF_index(posTF(n):posTF(n) + nTF(n) - 1);
-                turn_index = find(inIndex == l_index);
-                l_index2 = outIndex(turn_index);
-                temp_receivingFlow(l_index2, active_d) = temp_receivingFlow(l_index2, active_d) + temp_sendingFlow(
-                    l_index, active_d). * TF_P(posTF(n) + turn_index - 1, active_d, t - 1);
+                for destination in active_destinations:
+                    for turn, out_link, out_id in zip(out_turns.get_row(in_link), out_turns.get_nnz(in_link),
+                                                      out_turns.get_row(in_link).size):
+                        receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + temp_sending_flow[
+                            in_id, destination] * turning_fractions[destination, t - 1, turn]
+        else:
+            # no flow on this link
+            temp_sending_flow[in_id, :] = 0
+            con_down[t, in_link] = 0
+
+        for out_id, out_link in enumerate(out_links):
+            update_out_link = np.sum(
+                np.abs(cvn_up[t, out_link, :] - cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :])) > gap
+            update_node = update_out_link or update_node
+
+            if np.sum(receiving_flow[out_id, :]) > total_receiving_flow[out_id]:
+                con_up[t, out_link] = True
+            else:
+                con_up[t, out_link] = False
+            if update_out_link:
+                if vind[out_link] == -1:
+                    nodes_2_update[t, to_nodes[out_link]] = True
+                    delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] + vrt[out_link] * np.sum(
+                        np.abs(cvn_up[t, out_link, :] - cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]))
+                else:
+                    nodes_2_update[min(t - vind[out_link] - 1, tot_time_steps), to_nodes[out_link]] = True
+                    nodes_2_update[min(t - vind[out_link], tot_time_steps), to_nodes[out_link]] = True
+
+            if marg_comp:
+                potential_destinations = receiving_flow <= gap
+                if np.any(potential_destinations):
+                    threshold = 0
+                    for destination in np.argwhere(potential_destinations == True)[0]:
+                        threshold += np.abs(cvn_up[t, out_link, destination]) - (
+                                cvn_up(t - 1, out_link, destination) + receiving_flow(out_id, destination))
+                    if threshold > gap:
+                        nodes_2_update[t, to_nodes[out_link]] = True
+                        nodes_2_update[min(tot_time_steps, t), to_nodes[out_link]] = True
+                        delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] - time_step * 1 / vind[
+                            out_link]
+    if update_node:
+        nodes_2_update[min(tot_time_steps, t+1), node] = True
+    for in_id,in_link in enumerate(in_links):
+        cvn_down[t,in_link, :]=cvn_down[t-1,in_link, :]+temp_sending_flow[in_id,:]
+    for out_id, out_link in enumerate(out_links):
+        cvn_up[t, out_link,:]=cvn_up[t-1, out_link,:]+receiving_flow[out_id,:]
 
