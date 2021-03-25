@@ -102,7 +102,8 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     #         nodes_2_update[origin][t]=True
     # we stick with the implementation where all are active and see if we can reduce later.
     for origin in dynamic_demand.all_active_origins:
-        nodes_2_update[origin] = True
+        for t in range(tot_time_steps):
+            nodes_2_update[t, origin] = True
 
     turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations), dtype=np.float32)
     # may investigate use of sparse structure for turning fractions

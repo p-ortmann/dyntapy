@@ -70,7 +70,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                   dtype=np.float32)  # what the in_links would like to send
     temp_local_sending_flow = np.empty((max_in_links, tot_destinations),
                                        dtype=np.float32)  # what they actually get to send
-    tot_local_sending_flow = np.empty(max_in_links, dtype=np.float32) # taking into account capacity constraints
+    tot_local_sending_flow = np.empty(max_in_links, dtype=np.float32)  # taking into account capacity constraints
     # variables with local_x always concern structures for the node model and it's surrounding links/turns
     local_receiving_flow = np.empty((max_out_links, tot_destinations), dtype=np.float32)
 
@@ -121,7 +121,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_receiving_flow, cvn_down,
                                      cvn_up,
                                      receiving_flow_init, local_receiving_flow, step_size)
-                if tot_out_links == 1:
+                if len(local_out_links) == 1:
                     calc_turning_flows_merge(in_links, local_turning_flows, local_sending_flow, local_turning_fractions)
                 else:
                     calc_turning_flows_general(local_turning_fractions,
@@ -129,15 +129,16 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                                network.nodes.turn_based_out_links.get_row(node),
                                                network.nodes.turn_based_out_links.get_nnz(node),
                                                local_sending_flow,
-                                               local_turning_flows, turning_fractions, t, tot_in_links, tot_out_links)
+                                               local_turning_flows, turning_fractions, t, len(local_in_links), len(local_out_links))
                 # todo: order arguments in some logical fashion and document these functions ..
 
                 # Node model call
-                local_turning_capacity = None
+                local_turning_capacity = np.full(len(local_out_links) * len(local_in_links), 100000.0, dtype=np.float32)
                 if node_model_str == 'orca':
-                    result_turning_flows = orca(temp_local_sending_flow, local_turning_fractions, local_turning_flows,
-                                                local_receiving_flow,
-                                                local_turning_capacity, local_in_links)
+                    result_turning_flows = orca(tot_local_sending_flow, local_turning_fractions, local_turning_flows,
+                                                np.sum(local_receiving_flow, axis=1),
+                                                local_turning_capacity, network.nodes.in_link_capacity.get_row(node))
+                    print('got past node model')
                 else:
                     raise ValueError('node model ' + str(node_model_str) + ' not defined')
                 update_cvns_and_delta_n(result_turning_flows, turning_fractions, local_sending_flow,
@@ -156,7 +157,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links)
 
 
-def unload_destination_flows(nodes_2_update, destinations, in_links, connector_choice, receiving_flow_init,
+def unload_destination_flows(nodes_2_update, destinations, in_links, receiving_flow_init,
                              receiving_flow):
     for destination in destinations:
         if nodes_2_update[destination]:
@@ -235,7 +236,7 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_re
             tot_receiving_flow[link] = 0
         if wind[link] == -1:
             tot_receiving_flow[link] = tot_receiving_flow[link] + wrt[link] * np.sum(cvn_down[t, link, :])
-        tot_receiving_flow[link] = min(cap[link] * step_size/3600, tot_receiving_flow[link])
+        tot_receiving_flow[link] = min(cap[link] * step_size / 3600, tot_receiving_flow[link])
 
 
 def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_links, turns, local_sending_flow,
