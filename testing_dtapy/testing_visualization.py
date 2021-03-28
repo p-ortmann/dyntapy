@@ -14,7 +14,9 @@ import numpy as np
 from dtapy.core.time import SimulationTime
 from dtapy.visualization import show_assignment, show_demand
 from dtapy.demand import generate_od_xy, parse_demand
-
+from dtapy.visualization import xt_plot
+rand_speed = np.random.rand(100,100)*120
+xt_plot(data_array=rand_speed,detector_locations=[2,4,8], X=10, T=1, title='xt_plot_test')
 g: nx.MultiDiGraph = load_pickle(city + '_grid_centroids')
 g.number_of_edges()
 time = SimulationTime(0, 2, 0.25)

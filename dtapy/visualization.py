@@ -368,3 +368,31 @@ def _output(notebook: bool, title, plot_size):
         if not plot_size:
             plot_size = default_plot_size
         output_file(results_folder + f'/{title}.html')
+
+
+def xt_plot(data_array, detector_locations, X, T, title='xt_plot', type='speed'):
+    """
+
+    Parameters
+    ----------
+    data_array: image data, 2D
+    detector_locations: array or list of locations of detectors along X
+    X: length of spatial axis to which the data corresponds
+    T: length of temporal axis to which the data corresponds
+    title: str
+    type: str
+
+    Returns
+    -------
+
+    """
+    p = figure(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
+    p.x_range.range_padding = p.y_range.range_padding = 0
+    p.image(image=[data_array], x=0, y=0, dw=T, dh=X, palette=traffic_cm, level="image")
+    from bokeh.models import Span
+    spans = [Span(location=loc, dimension='width', line_color='black', line_width=1) for loc in detector_locations]
+    for span in spans:
+        p.add_layout(span)
+    p.title = title
+    _output(False, title,800)
+    show(p)
