@@ -18,8 +18,11 @@ from dataclasses import dataclass
 log_to_file = True
 log_folder = 'logs'
 log_level = 20
+log_numba = True  # this will affect performance dramatically, and should only be set to true for development
 
 default_city = 'Zinnowitz'
+
+
 # Parameters for various methods
 @dataclass
 class _Supply:
@@ -53,7 +56,7 @@ class _Demand:
     default_connector_speed: np.float32 = np.float32(1000)
     default_connector_capacity: np.float32 = np.float32(10000)
     default_connector_lanes: np.uint8 = np.uint8(10)
-    default_centroid_spacing: int = 500 # in meters
+    default_centroid_spacing: int = 500  # in meters
 
 
 @dataclass
@@ -80,6 +83,7 @@ class _Visualization:
                  'name', 'facility_type', 'flow', 'cost']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'ext_id', 'node_type', 'ctrl_type']
     edge_width_scaling = 0.006
+
 
 @dataclass
 class _RouteChoice:

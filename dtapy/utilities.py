@@ -17,6 +17,9 @@ import os
 import datetime
 from functools import wraps
 import time
+from numba import objmode, njit
+from dtapy.settings import log_numba
+
 
 
 def __create_green_to_red_cm(color_format: str):
@@ -57,8 +60,24 @@ def timeit(my_func):
 
     return timed
 
+@njit()
+def _log(message):
+    """
 
+    Parameters
+    ----------
+    message : string to log
+    log_numba : whether to log inside jit compiled functions
 
+    Returns
+    -------
+
+    """
+    if log_numba:
+        with objmode():
+            log(message)
+    else:
+        pass
 
 
 def log(message, level=None, to_console=False):

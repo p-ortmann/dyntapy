@@ -14,18 +14,18 @@ from dtapy.core.network_loading.link_models.i_ltm import i_ltm
 from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
+from dtapy.utilities import _log
 
 def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime,
               network_loading_time: SimulationTime):
     aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     # aon_state is updated in this routine
-    print('aon passed')
-
+    _log('aon passed')
+    iteration_counter = 0
     calc_turning_fractions(dynamic_demand, network, route_choice_time, aon_state)
-    print('calc turnf')
+    _log('calc turnf')
     calc_source_connector_choice(network, aon_state, dynamic_demand)
-    print('calc c choice')
+    _log('calc c choice')
     iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
     i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, aon_state.connector_choice)
-    print(' iltm passing yahy')
-    print('hi')
+    _log(' iltm passed,  iteration ' + str(iteration_counter))

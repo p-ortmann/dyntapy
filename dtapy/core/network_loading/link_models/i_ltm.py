@@ -14,6 +14,7 @@ from dtapy.settings import parameters
 from numba import njit
 from numba.typed import List
 from dtapy.core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
+from dtapy.utilities import _log
 
 gap = parameters.network_loading.gap
 node_model_str = parameters.network_loading.node_model
@@ -88,7 +89,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     delta_change = np.zeros(tot_nodes, dtype=np.float32)
     # part of these assignments may be added eventually, let's see what we actually need with our TF notation
 
-    for t in range(1, tot_time_steps):
+    for t in range(tot_time_steps):
         if not nodes_2_update[t, :].any():
             continue
         # sending and receiving flow to be initialized for all links
@@ -96,11 +97,12 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         sending_flow_init = np.full(tot_links, True)
 
         if dynamic_demand.is_loading(t):  # check if any origins are sending flow into the network this time step
+            _log('demand at time step  ' + str(t) + ' is loading ')
             current_demand: Demand = dynamic_demand.get_demand(t)
-            t_id=np.argwhere(dynamic_demand.loading_time_steps==t)[0][0]
-            __load_origin_flows(current_demand, connector_choice, nodes_2_update, t,t_id, cvn_up, temp_local_sending_flow,
-                                tot_nodes_updates,
-                                out_links, cap, step_size, con_up, vind, tot_time_steps, to_node)
+            t_id = np.argwhere(dynamic_demand.loading_time_steps == t)[0][0]
+            __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up,
+                                temp_local_sending_flow, tot_nodes_updates, out_links, cap, step_size, con_up, vind,
+                                tot_time_steps, to_node, dynamic_demand.all_active_destinations)
 
         # njit tests pass until here without failure
         first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
@@ -130,7 +132,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                                network.nodes.turn_based_out_links.get_row(node),
                                                network.nodes.turn_based_out_links.get_nnz(node),
                                                local_sending_flow,
-                                               local_turning_flows, turning_fractions, t, len(local_in_links), len(local_out_links))
+                                               local_turning_flows, turning_fractions, t, len(local_in_links),
+                                               len(local_out_links))
                 # todo: order arguments in some logical fashion and document these functions ..
 
                 # Node model call
@@ -139,7 +142,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                     result_turning_flows = orca(tot_local_sending_flow, local_turning_fractions, local_turning_flows,
                                                 np.sum(local_receiving_flow, axis=1),
                                                 local_turning_capacity, network.nodes.in_link_capacity.get_row(node))
-                    print('got past node model')
+                    _log('got past node model')
                 else:
                     raise ValueError('node model ' + str(node_model_str) + ' not defined')
                 update_cvns_and_delta_n(result_turning_flows, turning_fractions, local_sending_flow,
@@ -166,9 +169,34 @@ def unload_destination_flows(nodes_2_update, destinations, in_links, receiving_f
                 receiving_flow[connector] = np.inf
 
 
-def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t,t_id, cvn_up, tmp_sending_flow,
+def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,
                         tot_nodes_updates, out_links, cap,
                         step_size, con_up, vind, tot_time_steps, to_node, all_active_destinations):
+    """
+
+    Parameters
+    ----------
+    current_demand :
+    connector_choice :
+    nodes_2_update :
+    t :
+    t_id :
+    cvn_up :
+    tmp_sending_flow :
+    tot_nodes_updates :
+    out_links :
+    cap :
+    step_size :
+    con_up :
+    vind :
+    tot_time_steps :
+    to_node :
+    all_active_destinations :
+
+    Returns
+    -------
+
+    """
     for origin in current_demand.origins:
         if nodes_2_update[t, origin]:
             tot_nodes_updates += 1
@@ -177,12 +205,12 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t,t_id
                 for flow, destination, fraction in zip(current_demand.to_destinations.get_row(origin),
                                                        current_demand.to_destinations.get_nnz(origin),
                                                        connector_choice[t_id].get_row(connector)):
-                    destination_id = np.argwhere(all_active_destinations==destination)[0,0]
+                    destination_id = np.argwhere(all_active_destinations == destination)[0, 0]
                     tmp_sending_flow[0, destination_id] += flow * fraction
 
                 if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t - 1, connector, :])) > gap:
-                    nodes_2_update[min(tot_time_steps, t + 1), origin] = True
-                    cvn_up[t, connector, :] = tmp_sending_flow[:, 0]
+                    nodes_2_update[min(tot_time_steps - 1, t + 1), origin] = True
+                    cvn_up[t, connector, :] = tmp_sending_flow[0, :]
                     if np.sum(cvn_up[t, connector, :] - cvn_up[t - 1, connector, :]) < cap[connector] * step_size:
                         con_up[t, connector] = False
                     else:
@@ -199,12 +227,35 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t,t_id
                         if t - vind[connector] - 1 == tot_time_steps:
                             nodes_2_update[tot_time_steps, to_node[connector]] = True
                         else:
-                            print('Simulation time period is too short for given demand.'
+                            _log('Simulation time period is too short for given demand.'
+                                  ' Not all vehicles are able to exit the network')
+                            raise Exception('Simulation time period is too short for given demand.'
                                   ' Not all vehicles are able to exit the network')
 
 
 def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
                        , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size):
+    """
+
+    Parameters
+    ----------
+    local_in_links :
+    cvn_up :
+    t :
+    cvn_down :
+    vind :
+    vrt :
+    cap :
+    sending_flow :
+    sending_flow_init :
+    local_sending_flow :
+    tot_local_sending_flow :
+    step_size :
+
+    Returns
+    -------
+
+    """
     for _id, link in enumerate(local_in_links):
         if sending_flow_init[link]:
             sending_flow_init[link] = False
@@ -222,6 +273,27 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
 
 def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_receiving_flow, cvn_down, cvn_up,
                          receiving_flow_init, step_size):
+    """
+
+    Parameters
+    ----------
+    local_out_links :
+    wrt :
+    wind :
+    kjm :
+    length :
+    cap :
+    t :
+    tot_receiving_flow :
+    cvn_down :
+    cvn_up :
+    receiving_flow_init :
+    step_size :
+
+    Returns
+    -------
+
+    """
     for _id, link in enumerate(local_out_links):
         if receiving_flow_init[link]:
             receiving_flow_init[link] = False
