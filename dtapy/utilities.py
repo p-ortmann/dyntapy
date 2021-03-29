@@ -19,6 +19,7 @@ from functools import wraps
 import time
 from numba import objmode, njit
 from dtapy.settings import log_numba
+from __init__ import data_folder
 
 
 
@@ -160,3 +161,13 @@ def np_to_py_type_conversion(value):
         return float(value)
     elif isinstance(value, np.ndarray):
         return value.tolist()
+
+
+def _filepath(name: str, check_path_valid=False):
+    assert isinstance(name, str)
+    file_path = os.path.join(data_folder, str(name.lower() + '.pickle'))
+    if check_path_valid:
+        if not os.path.isfile(file_path):
+            print(f'{name}.pickle not found in data folder!')
+            raise NameError.with_traceback()
+    return file_path

@@ -8,16 +8,12 @@
 #
 #
 #
-import os
 import networkx as nx
 import osmnx as ox
 from dtapy.settings import parameters
-from __init__ import data_folder
-from dtapy.utilities import log
+from dtapy.utilities import log, _filepath
 from itertools import count
 import numpy as np
-import pandas as pd
-from osmnx.distance import great_circle_vec, euclidean_dist_vec
 
 speed_mapping = parameters.supply.speed_mapping
 cap_mapping = parameters.supply.cap_mapping
@@ -284,11 +280,3 @@ def load_pickle(name: str):
     return nx.read_gpickle(file_path)
 
 
-def _filepath(name: str, check_path_valid=False):
-    assert isinstance(name, str)
-    file_path = os.path.join(data_folder, str(name.lower() + '.pickle'))
-    if check_path_valid:
-        if not os.path.isfile(file_path):
-            print(f'{name}.pickle not found in data folder!')
-            raise NameError.with_traceback()
-    return file_path
