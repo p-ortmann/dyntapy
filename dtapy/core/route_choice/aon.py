@@ -18,7 +18,7 @@ route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
 
-# @njit(parallel=True)
+@njit(parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, state: AONState):
     tot_time_steps = time.tot_time_steps
     from_node = network.links.from_node
@@ -98,14 +98,12 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                         # the first nodes are centroids, see labelling in assignment.py
                         for link in in_links.get_nnz(min_node):
                             #print('activated node ' + str(from_node[link]))
-                            #if from_node[link] == 22:
-                                #print('hi')
                             nodes_2_update[from_node[link]] = True
                             next_nodes_2_update[from_node[link]] = True
 
 
 # TODO: test the @njit(parallel=True) option here
-# @njit(parallel=True)
+@njit(parallel=True)
 def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime,
                            state: AONState, departure_time_offset=route_choice_agg):
     """

@@ -89,7 +89,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     # part of these assignments may be added eventually, let's see what we actually need with our TF notation
 
     for t in range(1, tot_time_steps):
-        if not nodes_2_update[:, t].any():
+        if not nodes_2_update[t, :].any():
             continue
         # sending and receiving flow to be initialized for all links
         receiving_flow_init = np.full(tot_links, True)
@@ -97,7 +97,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
         if dynamic_demand.is_loading(t):  # check if any origins are sending flow into the network this time step
             current_demand: Demand = dynamic_demand.get_demand(t)
-            __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, cvn_up, temp_local_sending_flow,
+            t_id=np.argwhere(dynamic_demand.loading_time_steps==t)[0][0]
+            __load_origin_flows(current_demand, connector_choice, nodes_2_update, t,t_id, cvn_up, temp_local_sending_flow,
                                 tot_nodes_updates,
                                 out_links, cap, step_size, con_up, vind, tot_time_steps, to_node)
 
@@ -165,18 +166,19 @@ def unload_destination_flows(nodes_2_update, destinations, in_links, receiving_f
                 receiving_flow[connector] = np.inf
 
 
-def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, cvn_up, tmp_sending_flow,
+def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t,t_id, cvn_up, tmp_sending_flow,
                         tot_nodes_updates, out_links, cap,
-                        step_size, con_up, vind, tot_time_steps, to_node):
+                        step_size, con_up, vind, tot_time_steps, to_node, all_active_destinations):
     for origin in current_demand.origins:
         if nodes_2_update[t, origin]:
             tot_nodes_updates += 1
-            for index, connector in np.ndenumerate(out_links):
+            for index, connector in np.ndenumerate(out_links.get_nnz(origin)):
                 tmp_sending_flow[0, :] = cvn_up[t - 1, connector, :]
                 for flow, destination, fraction in zip(current_demand.to_destinations.get_row(origin),
                                                        current_demand.to_destinations.get_nnz(origin),
-                                                       connector_choice.get_row(connector)):
-                    tmp_sending_flow[0, destination] += flow * fraction
+                                                       connector_choice[t_id].get_row(connector)):
+                    destination_id = np.argwhere(all_active_destinations==destination)[0,0]
+                    tmp_sending_flow[0, destination_id] += flow * fraction
 
                 if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t - 1, connector, :])) > gap:
                     nodes_2_update[min(tot_time_steps, t + 1), origin] = True

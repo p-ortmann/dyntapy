@@ -48,12 +48,11 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     arrival_maps = _init_arrival_maps(cur_costs, network.nodes.out_links,
                                       dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
                                       network.tot_nodes)
-    turning_fractions = np.zeros((tot_destinations,tot_time_steps , tot_turns), dtype=np.float32)
+    turning_fractions = np.zeros((tot_destinations, tot_time_steps, tot_turns), dtype=np.float32)
     link_time = np.floor(cur_costs / step_size)
     interpolation_frac = cur_costs / step_size - link_time
 
     source_connector_choice = List()
-    last_centroid = np.max(dynamic_demand.all_centroids)  # highest node id of centroids
     last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
     for t in dynamic_demand.loading_time_steps:
         _id = 0
@@ -63,12 +62,16 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
         demand = dynamic_demand.get_demand(t)
         for origin in demand.origins:
             for destination in demand.to_destinations.get_nnz(origin):
+                try:
+                    destination_id = np.argwhere(dynamic_demand.all_active_destinations == destination)[0, 0]
+                except IndexError:
+                    print('')
                 for connector in network.nodes.out_links.get_nnz(origin):
-                    index_array[_id] = [connector, destination]
+                    index_array[_id] = [connector, destination_id]
                     _id += 1
         index_array = index_array[:_id].copy()
         val = val[:_id].copy()
-        val, col, row = csr_prep(index_array, val, shape=(last_source_connector + 1, last_centroid + 1))
+        val, col, row = csr_prep(index_array, val, shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations+1))
         source_connector_choice.append(
             F32CSRMatrix(val, col, row))
     return AONState(cur_costs, prev_costs, arrival_maps, turning_fractions,

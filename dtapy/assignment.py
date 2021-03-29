@@ -240,7 +240,7 @@ class Assignment:
             to_destinations = F32CSRMatrix(*csr_prep(index_array_to_d, vals, (tot_centroids, tot_centroids)))
             to_origins = F32CSRMatrix(*csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids)))
             static_demands.append(Demand(to_origins, to_destinations,
-                                         to_origins.get_nnz_rows(), to_destinations.get_nnz_rows(),
+                                         to_destinations.get_nnz_rows(), to_origins.get_nnz_rows(),
                                          np.uint32(internal_time)))
         return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids)
 
