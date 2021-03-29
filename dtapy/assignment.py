@@ -21,6 +21,7 @@ from dtapy.settings import parameters
 from dataclasses import dataclass
 from dtapy.demand import DynamicDemand
 from typing import Callable
+from dtapy.utilities import log
 
 v_wave_default = parameters.supply.v_wave_default
 turn_capacity_default = parameters.supply.turn_capacity_default
@@ -32,9 +33,9 @@ network_loading_method = parameters.network_loading.link_model
 
 
 class Assignment:
-    """This class has no value when instantiated on its own,
-     it's basically just an interface class that takes all the information from the nx.MultiDiGraph and the
-     DynamicDemand and translates it into internal representations that can be understood by numba
+    """This class stores all the information needed for the assignment itself.
+     It takes all the information from the nx.MultiDiGraph and the
+     DynamicDemand and translates it into internal representations that can be understood by numba.
      """
 
     def __init__(self, g: nx.DiGraph, dynamic_demand: DynamicDemand, simulation_time: SimulationTime):
@@ -52,13 +53,12 @@ class Assignment:
         self.dynamic_demand = dynamic_demand
         self.time = self.__init_time_obj(simulation_time)
         # get adjacency from nx, and
-        self.number_of_time_steps = np.uint32(10)
         # self.demand = self.build_demand()
         self.nb_network = self.__build_network()
-        print('network build')
+        log('network build')
         self.nb_dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
                                                                                             simulation_time)
-        print('demand simulation build')
+        log('demand simulation build')
 
     def run(self, method: Callable):
         from dtapy.core.assignment_methods.methods import valid_methods
@@ -85,9 +85,9 @@ class Assignment:
         link_ids = np.arange(tot_links, dtype=np.uint32)
 
         nodes = self.__build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids)
-        print("nodes passed")
+        log("nodes passed")
         turns = self.__build_turns(tot_nodes, nodes)
-        print("turns passed")
+        log("turns passed")
 
         link_capacity = np.array([d['capacity'] for (_, _, d) in sorted_edges], dtype=np.float32)
         free_speed = np.array([d['free_speed'] for (_, _, d) in sorted_edges], dtype=np.float32)
@@ -100,7 +100,7 @@ class Assignment:
         tot_time_steps = self.time.network_loading.tot_time_steps
         links = self.__build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, link_capacity, free_speed,
                                    lanes, length, link_type)
-        print("links passed")
+        log("links passed")
         return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size, tot_connectors)
 
     @staticmethod
@@ -226,14 +226,13 @@ class Assignment:
                 'insertions is the internal simulation time step')
         if max(insertion_times > 24):
             raise ValueError('internally time is restricted to 24 hours')
-        time = np.arange(simulation_time.start, simulation_time.end, simulation_time.step_size)
-        loading_time_steps = [(np.abs(insertion_time - time)).argmin() for insertion_time in insertion_times]
+
         static_demands = List()
         rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
         cols = [np.asarray(lil_demand.nonzero()[1], dtype=np.uint32) for lil_demand in demand_data]
         tot_centroids = np.uint32(
             max([trip_graph.number_of_nodes() for _, trip_graph in dynamic_demand.trip_graphs.items()]))
-        for internal_time, lil_demand, row, col in zip(loading_time_steps, demand_data, rows, cols):
+        for internal_time, lil_demand, row, col in zip(insertion_times, demand_data, rows, cols):
             vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
             index_array_to_d = np.column_stack((row, col))
             index_array_to_o = np.column_stack((col, row))

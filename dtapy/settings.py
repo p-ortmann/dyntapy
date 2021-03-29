@@ -18,7 +18,7 @@ from dataclasses import dataclass
 log_to_file = True
 log_folder = 'logs'
 log_level = 20
-log_numba = True  # this will affect performance dramatically, and should only be set to true for development
+log_numba = True  # this will affect performance dramatically, and should only be set to true for debugging
 
 default_city = 'Zinnowitz'
 
