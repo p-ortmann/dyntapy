@@ -144,14 +144,14 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 if node_model_str == 'orca':
                     result_turning_flows = orca(tot_local_sending_flow, local_turning_fractions, local_turning_flows,
                                                 np.sum(local_receiving_flow, axis=1),
-                                                local_turning_capacity, network.nodes.in_link_capacity.get_row(node))
+                                                local_turning_capacity, network.nodes.in_link_capacity.get_row(node), len(local_in_links), len(local_out_links))
                     _log('got past node model')
                 else:
                     raise ValueError('node model ' + str(node_model_str) + ' not defined')
                 update_cvns_and_delta_n(result_turning_flows, turning_fractions, local_sending_flow,
                                         temp_local_sending_flow,
                                         local_receiving_flow,
-                                        tot_out_links,
+                                        len(local_out_links),
                                         in_links, out_links, tot_local_sending_flow, con_down,
                                         network.nodes.in_link_capacity.get_row(node), time.step_size,
                                         t,
@@ -335,7 +335,6 @@ def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_
     turning_fractions : array, dim tot_time_steps x tot_turns x destinations
     t : scalar, current time_step
     """
-    # TODO: make different functions based on the intersection type
     local_turning_flows[:, :] = np.float32(0)
     # multiple outgoing links
     for in_id, out_id, turn in zip(turn_in_links, turn_out_links, turns):
@@ -345,8 +344,12 @@ def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_
             local_sending_flow[in_id, :] * turning_fractions[t - 1, turn, :])
     for in_id in range(tot_in_links):
         max_desired_out_flow = np.sum(local_sending_flow[in_id, :])  # no capacity constraints considered yet
-        for out_id in range(tot_out_links):
-            local_turning_fractions[in_id, out_id] = local_turning_flows[in_id, out_id] / max_desired_out_flow
+        if max_desired_out_flow==np.float32(0):
+            for out_id in range(tot_out_links):
+                local_turning_fractions[in_id, out_id]=np.float32(0)
+        else:
+            for out_id in range(tot_out_links):
+                local_turning_fractions[in_id, out_id] = local_turning_flows[in_id, out_id] / max_desired_out_flow
 
 
 def calc_turning_flows_merge(in_links, local_turning_flows, local_sending_flow, local_turning_fractions):

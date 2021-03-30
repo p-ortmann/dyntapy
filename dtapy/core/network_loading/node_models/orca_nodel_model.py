@@ -4,9 +4,9 @@ from numba.core.types.containers import ListType
 from numba import float32, uint32
 from numba import int8, njit
 
-@njit()
+#@njit()
 def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
-                    turn_capacity, in_link_capacity):
+                    turn_capacity, in_link_capacity, tot_in_links, tot_out_links):
     """
 
     Parameters
@@ -27,14 +27,13 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     The variable and function names chosen here are aligned with what's shown in the paper
 
     """
-    (tot_in_links, tot_out_links) = turning_fractions.shape
     # changing names of variables so that they correspond to notation cited above
     R = np.copy(receiving_flow)
     S = turning_flows  # initialized externally
     s = sending_flow  # differs from paper
     c = in_link_capacity  # differs from paper
-    C = _calc_oriented_capacities(turning_fractions, in_link_capacity,
-                                  turn_capacity.reshape(turning_fractions.shape), use_turn_cap=True)
+    turn_capacity = turn_capacity.reshape((tot_in_links, tot_out_links))
+    C = _calc_oriented_capacities(turning_fractions, in_link_capacity,turn_capacity,tot_in_links, tot_out_links,  use_turn_cap=True)
     q = np.zeros((tot_in_links, tot_out_links), dtype=np.float32)
     # J being the set of out_links with demand towards them
     J = List(np.where(np.sum(turning_fractions, 0) > 0)[0])
@@ -54,7 +53,7 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     return q
 
 
-@njit
+#@njit
 def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
@@ -106,7 +105,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
         J.remove(j)
 
 
-@njit
+#@njit
 def __find_most_restrictive_constraint(J, R, U, C, a):
     # loosely corresponds to step 3, pg 301
     for j in J:
@@ -124,8 +123,8 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
     return a, a[_j], _j,  # determine most restrictive out_link j
 
 
-@njit
-def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, use_turn_cap=False):
+#@njit
+def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, tot_in_links, tot_out_links, use_turn_cap=False):
     """
 
     Parameters
@@ -139,9 +138,8 @@ def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity
     -------
 
     """
-    dim = turning_fractions.shape  # (tot_in_links x tot_out_links)
-    oriented_capacity = np.empty_like(turning_fractions)
-    turn_capacity.reshape(dim)
+    dim = (tot_in_links,tot_out_links) # (tot_in_links x tot_out_links)
+    oriented_capacity = np.empty(dim)
     if use_turn_cap:
         for in_link, cap in zip(range(dim[0]), in_link_capacity):
             for out_link in range(dim[1]):
