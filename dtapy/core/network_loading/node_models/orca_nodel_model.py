@@ -2,7 +2,7 @@ import numpy as np
 from numba.typed import List
 from numba.core.types.containers import ListType
 from numba import float32, uint32
-from numba import int8, njit
+from numba import int8, njit, int64
 
 #@njit()
 def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
@@ -38,11 +38,14 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     # J being the set of out_links with demand towards them
     J = List(np.where(np.sum(turning_fractions, 0) > 0)[0])
     # U is a list of lists with U[j] being the current contenders (in_links i) of out_link j
-    U = List()
+    U = List.empty_list(ListType(int64))
     j_bucket = List.empty_list(int8)
     i_bucket = List.empty_list(int8)
     for j in range(tot_out_links):
-        U.append(List(np.where(turning_fractions[:, j] > 0)[0]))
+        try:
+            U.append(List(np.where(turning_fractions[:, j] > 0)[0]))
+        except Exception: # type inference doesn't work if there are no active turning fractions
+            U.append(List.empty_list(int64))
     a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size
     while len(J) > 0:
         print(' iterations')
