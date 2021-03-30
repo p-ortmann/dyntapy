@@ -40,8 +40,8 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     J = List(np.where(np.sum(turning_fractions, 0) > 0)[0])
     # U is a list of lists with U[j] being the current contenders (in_links i) of out_link j
     U = List()
-    j_bucket = List(lsttype=ListType(int8))
-    i_bucket = List(lsttype=ListType(int8))
+    j_bucket = List.empty_list(int8)
+    i_bucket = List.empty_list(int8)
     for j in range(tot_out_links):
         U.append(List(np.where(turning_fractions[:, j] > 0)[0]))
     a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size

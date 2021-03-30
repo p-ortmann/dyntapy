@@ -33,6 +33,8 @@ node_model_str = parameters.network_loading.node_model
 # @njit
 def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime,
           turning_fractions, connector_choice):
+    turning_fractions = turning_fractions.transpose(1, 2, 0).copy()  # turning fractions in route choice typically get
+    # (destinations, time, turn)
     tot_time_steps = time.tot_time_steps
     step_size = time.step_size
 
@@ -84,7 +86,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     # forward implicit scheme
     # go sequentially over each time step
     mean_it_iltm = 0
-    max_it_iltm = 0
+    max_it_iltm = 100
     tot_nodes_updates = np.uint32(0)  # tracking node updates over the entire DNL
     delta_change = np.zeros(tot_nodes, dtype=np.float32)
     # part of these assignments may be added eventually, let's see what we actually need with our TF notation
@@ -116,14 +118,15 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             tot_nodes_updates = tot_nodes_updates + cur_nodes_2_update
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order:
+                _log('calculating node' + str(node))
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
                 delta_change[node] = 0
                 calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
-                                   , sending_flow_init, local_sending_flow)
+                                   , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size)
                 calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_receiving_flow, cvn_down,
                                      cvn_up,
-                                     receiving_flow_init, local_receiving_flow, step_size)
+                                     receiving_flow_init, step_size)
                 if len(local_out_links) == 1:
                     calc_turning_flows_merge(in_links, local_turning_flows, local_sending_flow, local_turning_fractions)
                 else:
@@ -228,9 +231,9 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                             nodes_2_update[tot_time_steps, to_node[connector]] = True
                         else:
                             _log('Simulation time period is too short for given demand.'
-                                  ' Not all vehicles are able to exit the network')
+                                 ' Not all vehicles are able to exit the network')
                             raise Exception('Simulation time period is too short for given demand.'
-                                  ' Not all vehicles are able to exit the network')
+                                            ' Not all vehicles are able to exit the network')
 
 
 def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
