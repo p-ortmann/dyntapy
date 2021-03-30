@@ -3,8 +3,10 @@ from numba.typed import List
 from numba.core.types.containers import ListType
 from numba import float32, uint32
 from numba import int8, njit, int64
+from dtapy.utilities import _log
 
-#@njit()
+
+# @njit()
 def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
                     turn_capacity, in_link_capacity, tot_in_links, tot_out_links):
     """
@@ -33,7 +35,8 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     s = sending_flow  # differs from paper
     c = in_link_capacity  # differs from paper
     turn_capacity = turn_capacity.reshape((tot_in_links, tot_out_links))
-    C = _calc_oriented_capacities(turning_fractions, in_link_capacity,turn_capacity,tot_in_links, tot_out_links,  use_turn_cap=True)
+    C = _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, tot_in_links, tot_out_links,
+                                  use_turn_cap=True)
     q = np.zeros((tot_in_links, tot_out_links), dtype=np.float32)
     # J being the set of out_links with demand towards them
     J = List(np.where(np.sum(turning_fractions, 0) > 0)[0])
@@ -41,14 +44,15 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     U = List.empty_list(ListType(int64))
     j_bucket = List.empty_list(int8)
     i_bucket = List.empty_list(int8)
+    iters = 0
     for j in range(tot_out_links):
         try:
             U.append(List(np.where(turning_fractions[:, j] > 0)[0]))
-        except Exception: # type inference doesn't work if there are no active turning fractions
+        except Exception:  # type inference doesn't work if there are no active turning fractions
             U.append(List.empty_list(int64))
     a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size
     while len(J) > 0:
-        print(' iterations')
+        _log(' iteration ' + str(iters) + ' in node model')
         a, min_a, _j = __find_most_restrictive_constraint(J, R, U, C, a)
         # print(f'new {_j}')
         __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket)
@@ -56,7 +60,7 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     return q
 
 
-#@njit
+# @njit
 def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
@@ -108,7 +112,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
         J.remove(j)
 
 
-#@njit
+# @njit
 def __find_most_restrictive_constraint(J, R, U, C, a):
     # loosely corresponds to step 3, pg 301
     for j in J:
@@ -126,8 +130,9 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
     return a, a[_j], _j,  # determine most restrictive out_link j
 
 
-#@njit
-def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, tot_in_links, tot_out_links, use_turn_cap=False):
+# @njit
+def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, tot_in_links, tot_out_links,
+                              use_turn_cap=False):
     """
 
     Parameters
@@ -141,7 +146,7 @@ def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity
     -------
 
     """
-    dim = (tot_in_links,tot_out_links) # (tot_in_links x tot_out_links)
+    dim = (tot_in_links, tot_out_links)  # (tot_in_links x tot_out_links)
     oriented_capacity = np.empty(dim)
     if use_turn_cap:
         for in_link, cap in zip(range(dim[0]), in_link_capacity):

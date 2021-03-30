@@ -124,12 +124,12 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 local_out_links = out_links.get_nnz(node)
                 tot_local_in_links = len(local_in_links)
                 tot_local_out_links = len(local_out_links)
-                _log('calculating node ' + str(node) + 'with ' + str(tot_local_out_links) + 'out_links and ' + str(
+                _log('calculating node ' + str(node) + ' with ' + str(tot_local_out_links) + ' out_links and ' + str(
                     tot_local_in_links) + ' in_links')
                 delta_change[node] = 0
                 calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
                                    , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size)
-                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, cvn_down,
+                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow, cvn_down,
                                      cvn_up,
                                      receiving_flow_init, step_size)
                 if len(local_out_links) == 1:
@@ -211,7 +211,11 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
     -------
 
     """
+    never_flow=True
     for origin in current_demand.origins:
+        _log('trying to load flow for origin ' + str(origin))
+        _log('destinations are ' + str( current_demand.to_destinations.get_nnz(origin)))
+        _log('with flow ' + str(current_demand.to_destinations.get_row(origin)))
         if nodes_2_update[t, origin]:
             tot_nodes_updates += 1
             for index, connector in np.ndenumerate(out_links.get_nnz(origin)):
@@ -220,6 +224,9 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                                                        current_demand.to_destinations.get_nnz(origin),
                                                        connector_choice[t_id].get_row(connector)):
                     destination_id = np.argwhere(all_active_destinations == destination)[0, 0]
+                    if flow * fraction>0.001:
+                        never_flow=False
+                        _log('flow ' + str (flow*fraction) + ' for destination ' + str(destination) + ' loaded on connector ' + str(connector))
                     tmp_sending_flow[0, destination_id] += flow * fraction
 
                 if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t - 1, connector, :])) > gap:
@@ -229,6 +236,7 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                         con_up[t, connector] = False
                     else:
                         con_up[t, connector] = True
+                        raise Exception(' connector congestion, this is not supposed to happen..')
 
                 if vind[connector] == -1:
                     nodes_2_update[t, to_node[connector]] = True
@@ -245,6 +253,8 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                                  ' Not all vehicles are able to exit the network')
                             raise Exception('Simulation time period is too short for given demand.'
                                             ' Not all vehicles are able to exit the network')
+    if never_flow:
+        raise Exception('no flow was loaded for this timestep, StaticDemand object issues ')
 
 
 def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
@@ -328,7 +338,7 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
         tot_local_receiving_flow[in_id] = tot_receiving_flow[link]
         if wind[link] == -1:
             tot_local_receiving_flow[in_id] = tot_local_receiving_flow[in_id] + wrt[link] * np.sum(cvn_down[t, link, :])
-        tot_local_receiving_flow[in_id] = min(cap[link] * step_size / 3600, tot_local_receiving_flow[in_id])
+        tot_local_receiving_flow[in_id] = min(cap[link] * step_size, tot_local_receiving_flow[in_id])
     _log('tot local receiving flow is ' + str(tot_local_receiving_flow))
 
 

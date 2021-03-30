@@ -30,6 +30,9 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     vw_index = int32(-vw_index - 1)
     k_crit = np.float32(capacity / v0)
     k_jam = np.float32(capacity / v_wave + k_crit)
+    for link, linktype in enumerate(network.links.link_type):
+        if linktype == 1 or linktype==-1: # we don't want queuing caused by access to connectors ..
+            k_jam[link] = 1000000
     iltm_links = ILTMLinks(network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 
@@ -71,7 +74,7 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
                                 network.nodes.out_links._row_index)
     iltm_nodes = ILTMNodes(network.nodes, turn_based_in_links, turn_based_out_links, in_link_cap,
                            out_link_cap)
-    network = ILTMNetwork(network, iltm_links, iltm_nodes,network.turns)
+    network = ILTMNetwork(network, iltm_links, iltm_nodes, network.turns)
 
     # attributes that share the same sparsity structure should have the same index arrays and the underlying data
     # should be stored with a shared matrix where each row is an individual data array for a sparse matrix
@@ -83,9 +86,10 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     tot_links = network.tot_links
     tot_nodes = network.tot_nodes
     tot_turns = network.tot_turns
-    costs = np.empty(( tot_links, tot_time_steps), dtype=np.float32) #order of arguments is changed here, for route choice
+    costs = np.empty((tot_links, tot_time_steps),
+                     dtype=np.float32)  # order of arguments is changed here, for route choice
     # iterate over multiple time steps for a single link ..
-    t0= length/v0
+    t0 = length / v0
     for t in range(tot_time_steps):
         costs[:, t] = t0
     cvn_up = np.zeros((tot_time_steps, tot_links, tot_destinations), dtype=np.float32)
@@ -108,5 +112,5 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations), dtype=np.float32)
     # may investigate use of sparse structure for turning fractions
     results = ILTMState(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
-                                   nodes_2_update, costs)
+                        nodes_2_update, costs)
     return results, network
