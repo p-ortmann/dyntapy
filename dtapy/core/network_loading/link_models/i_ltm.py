@@ -76,6 +76,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     tot_local_sending_flow = np.zeros(max_in_links, dtype=np.float32)  # taking into account capacity constraints
     # variables with local_x always concern structures for the node model and it's surrounding links/turns
     local_receiving_flow = np.zeros((max_out_links, tot_destinations), dtype=np.float32)
+    tot_local_receiving_flow = np.zeros(max_in_links, dtype=np.float32)
 
     local_turning_flows = np.zeros((max_in_links, max_out_links), dtype=np.float32)
     local_turning_fractions = np.zeros((max_in_links, max_out_links), dtype=np.float32)
@@ -114,23 +115,26 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         # TODO: maintaining nodes 2 update as priority queue?
         it = 0  # counter for current iteration
         while it < max_it_iltm and cur_nodes_2_update > 0:
+            _log('new iterations in main loop, time step ' + str(t))
             it = it + 1
             tot_nodes_updates = tot_nodes_updates + cur_nodes_2_update
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order:
-                _log('calculating node' + str(node))
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
-                tot_local_in_links =len(local_in_links)
+                tot_local_in_links = len(local_in_links)
                 tot_local_out_links = len(local_out_links)
+                _log('calculating node ' + str(node) + 'with ' + str(tot_local_out_links) + 'out_links and ' + str(
+                    tot_local_in_links) + ' in_links')
                 delta_change[node] = 0
                 calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
                                    , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size)
-                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_receiving_flow, cvn_down,
+                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, cvn_down,
                                      cvn_up,
                                      receiving_flow_init, step_size)
                 if len(local_out_links) == 1:
-                    calc_turning_flows_merge(in_links, local_turning_flows, local_sending_flow, local_turning_fractions)
+                    calc_turning_flows_merge(local_in_links, local_turning_flows, local_sending_flow,
+                                             local_turning_fractions)
                 else:
                     calc_turning_flows_general(local_turning_fractions,
                                                network.nodes.turn_based_in_links.get_row(node),
@@ -144,9 +148,12 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 # Node model call
                 local_turning_capacity = np.full(len(local_out_links) * len(local_in_links), 100000.0, dtype=np.float32)
                 if node_model_str == 'orca':
-                    result_turning_flows = orca(tot_local_sending_flow[:tot_local_in_links], local_turning_fractions[:tot_local_in_links,:tot_local_out_links], local_turning_flows[:tot_local_in_links,:tot_local_out_links],
+                    result_turning_flows = orca(tot_local_sending_flow[:tot_local_in_links],
+                                                local_turning_fractions[:tot_local_in_links, :tot_local_out_links],
+                                                local_turning_flows[:tot_local_in_links, :tot_local_out_links],
                                                 np.sum(local_receiving_flow, axis=1),
-                                                local_turning_capacity, network.nodes.in_link_capacity.get_row(node), len(local_in_links), len(local_out_links))
+                                                local_turning_capacity, network.nodes.in_link_capacity.get_row(node),
+                                                len(local_in_links), len(local_out_links))
                     _log('got past node model')
                 else:
                     raise ValueError('node model ' + str(node_model_str) + ' not defined')
@@ -163,11 +170,12 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                         node)
                 for centroid in dynamic_demand.all_centroids:
                     delta_change[centroid] = 0
-                unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links)
+                # unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links)
 
 
 def unload_destination_flows(nodes_2_update, destinations, in_links, receiving_flow_init,
                              receiving_flow):
+    _log('unloading destination traffic')
     for destination in destinations:
         if nodes_2_update[destination]:
             for connector in in_links.get_nnz(destination):
@@ -177,6 +185,7 @@ def unload_destination_flows(nodes_2_update, destinations, in_links, receiving_f
 def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,
                         tot_nodes_updates, out_links, cap,
                         step_size, con_up, vind, tot_time_steps, to_node, all_active_destinations):
+    _log('loading origin flow')
     """
 
     Parameters
@@ -240,6 +249,7 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
 
 def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
                        , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size):
+    _log('calc sending flows')
     """
 
     Parameters
@@ -274,10 +284,12 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
             local_sending_flow[_id, :] = local_sending_flow[_id, :] + vrt[link] * cvn_up[t, link, :]
         local_sending_flow[_id, :][local_sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
         tot_local_sending_flow[_id] = min(cap[link] * step_size / 3600, np.sum(local_sending_flow[_id, :]))
+    _log('tot local sending flow is ' + str(tot_local_sending_flow))
 
 
-def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_receiving_flow, cvn_down, cvn_up,
+def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow, cvn_down, cvn_up,
                          receiving_flow_init, step_size):
+    _log('calc receiving flows')
     """
 
     Parameters
@@ -299,7 +311,7 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_re
     -------
 
     """
-    for _id, link in enumerate(local_out_links):
+    for in_id, link in enumerate(local_out_links):
         if receiving_flow_init[link]:
             receiving_flow_init[link] = False
             tot_receiving_flow[link] = \
@@ -313,9 +325,11 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_re
         #   raise ValueError('negative RF')
         if tot_receiving_flow[link] < 0:
             tot_receiving_flow[link] = 0
+        tot_local_receiving_flow[in_id] = tot_receiving_flow[link]
         if wind[link] == -1:
-            tot_receiving_flow[link] = tot_receiving_flow[link] + wrt[link] * np.sum(cvn_down[t, link, :])
-        tot_receiving_flow[link] = min(cap[link] * step_size / 3600, tot_receiving_flow[link])
+            tot_local_receiving_flow[in_id] = tot_local_receiving_flow[in_id] + wrt[link] * np.sum(cvn_down[t, link, :])
+        tot_local_receiving_flow[in_id] = min(cap[link] * step_size / 3600, tot_local_receiving_flow[in_id])
+    _log('tot local receiving flow is ' + str(tot_local_receiving_flow))
 
 
 def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_links, turns, local_sending_flow,
@@ -337,6 +351,7 @@ def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_
     turning_fractions : array, dim tot_time_steps x tot_turns x destinations
     t : scalar, current time_step
     """
+    _log('calc turning flows')
     local_turning_flows[:, :] = np.float32(0)
     # multiple outgoing links
     for in_id, out_id, turn in zip(turn_in_links, turn_out_links, turns):
@@ -346,27 +361,30 @@ def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_
             local_sending_flow[in_id, :] * turning_fractions[t - 1, turn, :])
     for in_id in range(tot_in_links):
         max_desired_out_flow = np.sum(local_sending_flow[in_id, :])  # no capacity constraints considered yet
-        if max_desired_out_flow==np.float32(0):
+        if max_desired_out_flow == np.float32(0):
             for out_id in range(tot_out_links):
-                local_turning_fractions[in_id, out_id]=np.float32(0)
+                local_turning_fractions[in_id, out_id] = np.float32(0)
         else:
             for out_id in range(tot_out_links):
                 local_turning_fractions[in_id, out_id] = local_turning_flows[in_id, out_id] / max_desired_out_flow
+    _log('local_turning_fractions are ' + str(local_turning_fractions))
 
 
-def calc_turning_flows_merge(in_links, local_turning_flows, local_sending_flow, local_turning_fractions):
+def calc_turning_flows_merge(local_in_links, local_turning_flows, local_sending_flow, local_turning_fractions):
     # simple merge
     local_turning_fractions[:, 0] = 1
-    for in_link in zip(in_links):
-        local_turning_flows[in_link, 0] = np.sum(
-            local_sending_flow[in_link, :])
+    for in_id in range(len(local_in_links)):
+        local_turning_flows[in_id, 0] = np.sum(
+            local_sending_flow[in_id, :])
 
 
 def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flow, temp_sending_flow, receiving_flow,
                             tot_out_links,
-                            local_in_links, local_out_links, tot_local_sending_flow, con_down, in_link_capacity, time_step, t,
+                            local_in_links, local_out_links, tot_local_sending_flow, con_down, in_link_capacity,
+                            time_step, t,
                             cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps,
                             out_turns, cvn_up, total_receiving_flow, con_up, vind, to_nodes, vrt, marg_comp, node):
+    _log('updating cvns')
     update_node = False
     result_tot_sending_flow = np.sum(result_turning_flows, axis=1)
     receiving_flow[:tot_out_links, :] = 0
@@ -382,10 +400,10 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                 con_down[t, in_link] = True
                 temp_sending_flow[in_id, :] = sending_flow[in_id, :] / tot_local_sending_flow[
                     in_id] * result_tot_sending_flow[
-                             in_id, :]
+                             in_id]
                 # Note to self: this is where FIFO violations occur and where cars are cut into pieces
             else:
-                con_down[t,in_link] = False
+                con_down[t, in_link] = False
                 temp_sending_flow[in_id, :] = sending_flow[in_id, :]
             update_in_link = np.sum(np.abs(
                 cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]))) < gap
@@ -410,7 +428,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                     for turn, out_link, out_id in zip(out_turns.get_row(in_link), out_turns.get_nnz(in_link),
                                                       range(out_turns.get_row(in_link).size)):
                         receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + temp_sending_flow[
-                            in_id, destination] * turning_fractions[destination, t - 1, turn]
+                            in_id, destination] * turning_fractions[t - 1, turn, destination]
         else:
             # no flow on this link
             temp_sending_flow[in_id, :] = 0
@@ -447,6 +465,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                         delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] - time_step * 1 / vind[
                             out_link]
     if update_node:
+        _log('node change significant, updating cvns')
         nodes_2_update[min(tot_time_steps, t + 1), node] = True
     for in_id, in_link in enumerate(local_in_links):
         cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]

@@ -23,6 +23,7 @@ from __init__ import data_folder
 
 
 
+
 def __create_green_to_red_cm(color_format: str):
     """
 
