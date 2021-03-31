@@ -32,14 +32,14 @@ turning_fractions = np.array([[0, 0.1, 0.3, 0.6],
                               [0.125, 0.125, 0, 0.75],
                               [1 / 17, 8 / 17, 8 / 17, 0]])
 in_link_capacity = np.array([1000, 2000, 1000, 2000], dtype=np.float32)
-turn_capacity = np.full(16, 2000, dtype=np.float32)  # set to at least link capacity to avoid the results differing
+turn_capacity = np.full(16, 2000, dtype=np.float32)  # set to link capacity to avoid the results differing
 # from the paper example
 turning_flow = np.empty_like(turning_fractions)
 for in_link, flow in enumerate(sending_flow):
     turning_flow[in_link] = flow * turning_fractions[in_link]
 
 results = node_model(sending_flow, turning_fractions, turning_flow, receiving_flow, turn_capacity,
-                          in_link_capacity)
+                          in_link_capacity, len(sending_flow), len(receiving_flow))
 rounded_results = np.round(results, decimals=1)
 
 

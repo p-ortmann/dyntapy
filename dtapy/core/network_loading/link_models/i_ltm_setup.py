@@ -30,9 +30,9 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     vw_index = int32(-vw_index - 1)
     k_crit = np.float32(capacity / v0)
     k_jam = np.float32(capacity / v_wave + k_crit)
-    for link, linktype in enumerate(network.links.link_type):
-        if linktype == 1 or linktype==-1: # we don't want queuing caused by access to connectors ..
-            k_jam[link] = 1000000
+    for in_link, linktype in enumerate(network.links.link_type):
+        if linktype == 1 or linktype == -1:  # we don't want queuing caused by access to connectors ..
+            k_jam[in_link] = 1000000
     iltm_links = ILTMLinks(network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 
@@ -62,12 +62,16 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
             val_in_links[turn_counter] = np.uint8(np.where(node_in_links == from_link)[0])
             val_out_links[turn_counter] = np.uint8(np.where(node_out_links == to_link)[0])
             turn_counter += 1
+        for in_link in node_in_links:
+            val_in_link_cap[_in_l_counter] = capacity[in_link]
+            _in_l_counter += 1
+        for out_link in node_out_links:
+            val_out_link_cap[_out_link_counter] = capacity[out_link]
+            _out_link_counter += 1
     turn_based_in_links = UI8CSRMatrix(
         *csr_prep(index_array_node_turns, val_in_links, (network.tot_nodes, network.tot_turns)))
     turn_based_out_links = UI8CSRMatrix(
         *csr_prep(index_array_node_turns, val_out_links, (network.tot_nodes, network.tot_turns)))
-    val_in_link_cap[_in_l_counter:_in_l_counter + len(node_in_links)] = capacity[node_in_links]
-    val_out_link_cap[_out_link_counter:_out_link_counter + len(node_in_links)] = capacity[node_out_links]
     in_link_cap = F32CSRMatrix(val_in_link_cap, network.nodes.in_links._col_index,
                                network.nodes.in_links._row_index)
     out_link_cap = F32CSRMatrix(val_out_link_cap, network.nodes.out_links._col_index,

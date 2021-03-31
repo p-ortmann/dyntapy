@@ -33,6 +33,8 @@ class ILTMNodes(UncompiledNodes):
         nodes : Nodes.class_type.instance_type, baseline node object
         turn_based_in_links : csr matrix node x turns
         turn_based_out_links : csr matrix node x turns
+        in_link_cap : csr matrix node x links
+        out_link_cap: csr matrix node x links
 
         the values of the turn_based - in and out_link csr matrices are the index
         of the corresponding sending and receiving flow vector that the node model receives, capacities are also given

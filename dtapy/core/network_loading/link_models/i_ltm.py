@@ -151,7 +151,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                     result_turning_flows = orca(tot_local_sending_flow[:tot_local_in_links],
                                                 local_turning_fractions[:tot_local_in_links, :tot_local_out_links],
                                                 local_turning_flows[:tot_local_in_links, :tot_local_out_links],
-                                                np.sum(local_receiving_flow, axis=1),
+                                                np.sum(local_receiving_flow, axis=1)[:tot_local_out_links],
                                                 local_turning_capacity, network.nodes.in_link_capacity.get_row(node),
                                                 len(local_in_links), len(local_out_links))
                     _log('got past node model')
