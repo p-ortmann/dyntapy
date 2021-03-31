@@ -13091,7 +13091,7 @@ div#notebook {
 <span class="kn">from</span> <span class="nn">stapy.network_data</span> <span class="kn">import</span> <span class="n">get_from_ox_and_save</span><span class="p">,</span> <span class="n">load_pickle</span>
 <span class="kn">from</span> <span class="nn">stapy.assignment_methods</span> <span class="kn">import</span> <span class="n">DUE</span>
 <span class="kn">from</span> <span class="nn">stapy.demand</span> <span class="kn">import</span> <span class="n">generate_od</span><span class="p">,</span> <span class="n">generate_od_fixed</span>
-<span class="kn">from</span> <span class="nn">stapy.visualization</span> <span class="kn">import</span> <span class="n">plot_network</span><span class="p">,</span> <span class="n">show_desire_lines</span>
+<span class="kn">from</span> <span class="nn">stapy.visualization</span> <span class="kn">import</span> <span class="n">show_network</span><span class="p">,</span> <span class="n">show_desire_lines</span>
 </pre></div>
 
     </div>
@@ -13129,7 +13129,7 @@ div#notebook {
 <span class="c1"># Note that you can hover over the edges and nodes of the network to see some more information, a left-hand click</span>
 <span class="c1"># brings you to the corresponding entry in the OSM GUI.</span>
 <span class="c1"># Node and Edge tap tools need to be switched between manually and can be selected just underneath the canvas.</span>
-<span class="n">plot_network</span><span class="p">(</span><span class="n">deleted</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;deleted elements&#39;</span><span class="p">,</span> <span class="n">notebook</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> 
+<span class="n">show_network</span><span class="p">(</span><span class="n">deleted</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;deleted elements&#39;</span><span class="p">,</span> <span class="n">notebook</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -14006,7 +14006,7 @@ var element = $('#da37f2bd-8e6c-47a2-be5b-c838e36adeae');
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># we can now show the results on the canvas</span>
-<span class="n">plot_network</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">notebook</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_links_visualized</span><span class="o">=</span><span class="mi">15000</span><span class="p">)</span>
+<span class="n">show_network</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">notebook</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_links_visualized</span><span class="o">=</span><span class="mi">15000</span><span class="p">)</span>
 </pre></div>
 
     </div>

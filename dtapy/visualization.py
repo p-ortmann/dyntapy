@@ -15,7 +15,8 @@ from bokeh.io import show, output_file, output_notebook
 from bokeh.models import HoverTool, TapTool, OpenURL
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import ColumnDataSource, figure
-from bokeh.models.glyphs import Scatter, Patches
+from bokeh.models.glyphs import Patches
+from bokeh.models.markers import Circle
 from bokeh.layouts import row, column, Spacer
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.models.callbacks import CustomJS
@@ -36,7 +37,7 @@ default_max_links = parameters.visualization.max_links
 default_edge_width_scaling = parameters.visualization.edge_width_scaling
 
 
-def plot_network(g: nx.MultiDiGraph, background_map=True,
+def show_network(g: nx.MultiDiGraph, background_map=True,
                  title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
@@ -51,27 +52,26 @@ def plot_network(g: nx.MultiDiGraph, background_map=True,
         data['y'] = data['y_coord']
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
-    max_width_bokeh, max_width_coords = get_max_edge_width(g, default_edge_width_scaling, plot_size)
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
+    max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
     if background_map:
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
-    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()))
+    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()), patch_ratio=2)
     costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
              for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
-    edge_source = _edge_cds(tmp, c, x, y,costs )
-    node_source = _node_cds(tmp)
-    edge_renderer = plot.add_glyph(edge_source,
-                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
-                                                 line_alpha=0.8))
+    edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y, costs, dict())
+    node_source = _node_cds(tmp, dict())
+    edge_renderer = plot.add_glyph(edge_source, glyph=Patches(xs='x', ys='y', fill_color=traffic_cm[1], line_color=traffic_cm[0],
+                                                              line_alpha=0.8))
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if
                      item != 'flow']
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Scatter(x='x', y='y', size=3 * 3,
-                                                 line_color="black",
-                                                 line_width=max_width_bokeh / 5, marker='asterisk'))
-    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_vars.keys())]
+                                   glyph=Circle(x='x', y='y', size=max_width_bokeh,
+                                                line_color="black",
+                                                line_width=max_width_bokeh / 10))
+    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
@@ -145,15 +145,15 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_vars
     node_source = _node_cds(tmp, node_vars)
 
     edge_renderer = plot.add_glyph(edge_source,
-                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
+                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color=traffic_cm[0],
                                                  line_alpha=0.8))
-    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys + list(link_vars.keys) if
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys + list(link_vars.keys()) if
                      item != 'flow']
     edge_tooltips.append(('flow', '@flow{(0.0)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Scatter(x='x', y='y', size=max_width_bokeh * 3,
-                                                 line_color="black",
-                                                 line_width=max_width_bokeh / 5, marker='asterisk'))
+                                   glyph=Circle(x='x', y='y', size=max_width_bokeh,
+                                                line_color="black",
+                                                line_width=max_width_bokeh / 5))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_vars.keys())]
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
@@ -194,7 +194,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_vars
         conv_plot.add_tools(HoverTool())
         layout = row(plot,
                      column(text_input, Spacer(height=20), time_slider, Spacer(height=260), conv_plot))
-        conv_plot.title = 'Convergence'
+        conv_plot.title.text = 'Convergence'
         show(layout)
     else:
         layout = row(plot,
@@ -254,8 +254,8 @@ def show_demand(g, plot_size=default_plot_size, notebook=False):
                                                  line_alpha=0.8))
     edge_tooltips = [('flow', '@flow{(0.0)}')]
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Scatter(x='x', y='y', size=max_width_bokeh * 3, line_color="black",
-                                                 line_width=max_width_bokeh / 5, marker='asterisk'))
+                                   glyph=Circle(x='x', y='y', size=max_width_bokeh, line_color="black",
+                                                line_width=max_width_bokeh / 5))
     node_tooltips = [(item, f'@{item}') for item in ['x', 'y', 'centroid_id']]
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
@@ -335,9 +335,9 @@ def _edge_cds(g, color, flow, x, y, cost, link_vars, visualization_keys=paramete
     return ColumnDataSource(data=edge_dict)
 
 
-def _get_colors_and_coords(g, max_width_coords, max_flow, flows):
+def _get_colors_and_coords(g, max_width_coords, max_flow, flows, patch_ratio=10):
     nr_of_colors = len(traffic_cm)
-    min_width_coords = max_width_coords / 10
+    min_width_coords = max_width_coords / patch_ratio
     colors = []
     x_list = []
     y_list = []
@@ -418,7 +418,7 @@ def _output(notebook: bool, title, plot_size):
         output_file(results_folder + f'/{title}.html')
 
 
-def xt_plot(data_array, detector_locations, X, T, title='xt_plot',notebook=False, type='speed'):
+def xt_plot(data_array, detector_locations, X, T, title='xt_plot', notebook=False, type='speed'):
     """
 
     Parameters
@@ -442,6 +442,6 @@ def xt_plot(data_array, detector_locations, X, T, title='xt_plot',notebook=False
     spans = [Span(location=loc, dimension='width', line_color='black', line_width=1) for loc in detector_locations]
     for span in spans:
         p.add_layout(span)
-    p.title = title
+    p.title.text = title
     _output(notebook, title, 800)
     show(p)
