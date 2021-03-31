@@ -36,6 +36,54 @@ default_max_links = parameters.visualization.max_links
 default_edge_width_scaling = parameters.visualization.edge_width_scaling
 
 
+def plot_network(g: nx.MultiDiGraph, background_map=True,
+                 title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
+    plot = figure(plot_height=plot_size,
+                  plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
+                  aspect_ratio=1, toolbar_location='below')
+    # adding different coordinate attribute names to use osmnx functions
+    for _, _, data in g.edges.data():
+        if 'x_coord' in data:
+            data['x'] = data['x_coord']
+            data['y'] = data['y_coord']
+    for _, data in g.nodes.data():
+        data['x'] = data['x_coord']
+        data['y'] = data['y_coord']
+    title = _check_title(title, g, 'assignment ')
+    plot.title.text = title
+    max_width_bokeh, max_width_coords = get_max_edge_width(g, default_edge_width_scaling, plot_size)
+    tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
+    _output(notebook, title, plot_size)
+    if background_map:
+        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+        plot.add_tile(tile_provider)
+    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()))
+    costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
+             for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
+    edge_source = _edge_cds(tmp, c, x, y,costs )
+    node_source = _node_cds(tmp)
+    edge_renderer = plot.add_glyph(edge_source,
+                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color='color',
+                                                 line_alpha=0.8))
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if
+                     item != 'flow']
+    node_renderer = plot.add_glyph(node_source,
+                                   glyph=Scatter(x='x', y='y', size=3 * 3,
+                                                 line_color="black",
+                                                 line_width=max_width_bokeh / 5, marker='asterisk'))
+    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_vars.keys())]
+
+    edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
+    node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
+
+    if osm_tap_tool:
+        url = "https://www.openstreetmap.org/node/@ext_id/"
+        nodetaptool = TapTool(renderers=[node_renderer])
+        nodetaptool.callback = OpenURL(url=url)
+    plot.add_tools(node_hover, edge_hover, nodetaptool)
+    show(plot)
+
+
 def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_vars=dict(), node_vars=dict(),
                     convergence=None, scaling=default_edge_width_scaling,
                     background_map=True,
@@ -370,11 +418,12 @@ def _output(notebook: bool, title, plot_size):
         output_file(results_folder + f'/{title}.html')
 
 
-def xt_plot(data_array, detector_locations, X, T, title='xt_plot', type='speed'):
+def xt_plot(data_array, detector_locations, X, T, title='xt_plot',notebook=False, type='speed'):
     """
 
     Parameters
     ----------
+    notebook : whether or not to show this plot in a notebook
     data_array: image data, 2D
     detector_locations: array or list of locations of detectors along X
     X: length of spatial axis to which the data corresponds
@@ -394,5 +443,5 @@ def xt_plot(data_array, detector_locations, X, T, title='xt_plot', type='speed')
     for span in spans:
         p.add_layout(span)
     p.title = title
-    _output(False, title,800)
+    _output(notebook, title, 800)
     show(p)

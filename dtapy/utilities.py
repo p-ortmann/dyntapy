@@ -21,7 +21,7 @@ from numba import objmode, njit
 from dtapy.settings import log_numba
 from __init__ import data_folder
 
-
+cleared_log = False
 
 
 def __create_green_to_red_cm(color_format: str):
@@ -50,7 +50,7 @@ def __create_green_to_red_cm(color_format: str):
 
 
 def timeit(my_func):
-    #simple decorators that allows to time functions calls
+    # simple decorators that allows to time functions calls
     @wraps(my_func)
     def timed(*args, **kw):
         tstart = time.time()
@@ -61,6 +61,7 @@ def timeit(my_func):
         return output
 
     return timed
+
 
 @njit()
 def _log(message):
@@ -140,6 +141,13 @@ def get_logger(name):
         # get today's date and construct a log filename
         todays_date = datetime.datetime.today().strftime('%Y_%m_%d')
         log_filename = os.path.join(settings.log_folder, '{}_{}.log'.format('dtapy', todays_date))
+        global cleared_log
+        if not cleared_log:
+            try:
+                open(log_filename, 'w').close()  # clears the log from previous runs
+            except FileNotFoundError:
+                pass
+            cleared_log = True
 
         # if the logs folder does not already exist, create it
         if not os.path.exists(settings.log_folder):
