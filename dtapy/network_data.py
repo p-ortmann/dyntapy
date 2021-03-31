@@ -67,7 +67,7 @@ def get_from_ox_and_save(name: str, reload=False):
     dir_g.graph['name'] = name
     log(f'retrieved network graph for {name},'
           f' with {dir_g.number_of_nodes()} nodes and {dir_g.number_of_edges()} edges after processing', to_console=True)
-    return dir_g, deleted
+    return dir_g
 
 
 def convert_ox_to_gmns(g):
@@ -155,9 +155,6 @@ def __clean_up_data(g: nx.DiGraph):
 
             except (TypeError, ValueError) as e:
                 # maxspeed can be all over the place in format .. e.g. ['30', 'variable'] or ['none','100']
-                if key == 'lanes':
-                    print(data[key])
-                print()
                 assert key == 'maxspeed'
                 if isinstance(data[key], list):  # some tags, such as maxspeed may carry multiple values, if it's
                     # not a list but some other structure a new case should be defined to handle this  ..
@@ -183,7 +180,6 @@ def __clean_up_data(g: nx.DiGraph):
                 data['maxspeed'] = __speed(data['highway'])
             except KeyError:
                 # no highway tag..
-                print(data)
                 data['maxspeed'] = 50
         assert 'length' in data
         data['length'] = data['length'] / 1000

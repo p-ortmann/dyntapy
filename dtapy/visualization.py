@@ -28,6 +28,7 @@ from pyproj import CRS
 from __init__ import results_folder
 from dtapy.settings import parameters
 from dtapy.core.time import SimulationTime
+from dtapy.network_data import relabel_graph
 from dtapy.utilities import log
 
 traffic_cm = __create_green_to_red_cm('hex')
@@ -48,16 +49,20 @@ def show_network(g: nx.MultiDiGraph, background_map=True,
             data['x'] = data['x_coord']
             data['y'] = data['y_coord']
     for _, data in g.nodes.data():
-        data['x'] = data['x_coord']
-        data['y'] = data['y_coord']
+        if 'x_coord' in data:
+            data['x'] = data['x_coord']
+            data['y'] = data['y_coord']
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
+    if not all([val for _,_,val in g.edges.data('link_id')]):
+        g = relabel_graph(g,0,0)
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
     if background_map:
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
+
     c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()), patch_ratio=2)
     costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
              for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
