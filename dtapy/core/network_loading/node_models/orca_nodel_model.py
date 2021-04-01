@@ -30,8 +30,8 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
 
     """
     # changing names of variables so that they correspond to notation cited above
-    if (tot_in_links) == tot_out_links == 1:
-        print('special node')
+    # if (tot_in_links) == tot_out_links == 1:
+    #     print('special node')
     R = np.copy(receiving_flow)
     S = turning_flows  # initialized externally
     s = sending_flow  # differs from paper
@@ -54,10 +54,10 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
             U.append(List.empty_list(int64))
     a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size
     while len(J) > 0:
-        print(' iteration ' + str(iters) + ' in node model')
+        # print(' iteration ' + str(iters) + ' in node model')
         a, min_a, _j = __find_most_restrictive_constraint(J, R, U, C, a)
-        print(f'new {_j}')
-        print(f'set is {J=}')
+        # print(f'new {_j}')
+        # print(f'set is {J=}')
 
         __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket)
         iters += 1
@@ -69,7 +69,7 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
 def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
-    print(f'{_j=}')
+    # print(f'{_j=}')
     for i in U[_j]:
         if s[i] <= min_a * c[i]:  # if in_link i is not supply constrained
             all_in_links_supply_constrained = False
@@ -91,7 +91,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
                         j_bucket.append(j)  # to remove j after looping
         if s[i] == np.float(0):
             i_bucket.append(i)
-    print(f'{all_in_links_supply_constrained=}')
+    # print(f'{all_in_links_supply_constrained=}')
     while len(i_bucket) > 0:
         i = i_bucket.pop(0)
         U[_j].remove(i)
@@ -117,7 +117,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
     while len(j_bucket) > 0:
         j = j_bucket.pop(0)
         a[j] = np.inf
-        print('removing through j bucket')
+        # print('removing through j bucket')
         J.remove(j)
 
 

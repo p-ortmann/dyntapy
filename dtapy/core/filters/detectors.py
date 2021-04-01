@@ -8,12 +8,13 @@
 #
 
 import numpy as np
-from osmnx.distance import get_nearest_edges
+from osmnx.distance import get_nearest_edges, great_circle_vec
 import networkx as nx
+from dtapy.core.filters.helbing_treiber import treiber_helbing_asm
 
 
 class Detectors():
-    def __init__(self, x_coord, y_coord, speeds: np.ndarray, densities: np.ndarray = None, flows: np.ndarray = None,
+    def __init__(self, x_coord, y_coord, speeds: np.ndarray=None, densities: np.ndarray = None, flows: np.ndarray = None,
                  g: nx.MultiDiGraph = None):
         """
 
@@ -34,14 +35,13 @@ class Detectors():
         self.speeds = speeds
         self.flows = flows
         self.detector_ids = np.arange(self.tot_detectors)
-        if g is not None:
-            self.link_ids = self.get_link_ids(g)
-            self.per_link = [[] for _ in g.number_of_edges()]
-            for detector_id, link_id in self.link_ids:
-                self.per_link[link_id].append(detector_id)
-            self.g = g
-        else:
-            self.per_link, self.link_ids, self.g = None, None, None
+        self.link_ids = self.get_link_ids(g)
+        self.per_link = []
+        for _ in g.number_of_edges():
+            self.per_link.append([])  # each link may have multiple detectors
+        for detector_id, link_id in self.link_ids:
+            self.per_link[link_id].append(detector_id)
+        self.g = g
 
     def get_link_ids(self, g):
         """
@@ -89,11 +89,15 @@ class Detectors():
         -------
 
         """
+        detector_ids = []
+        detector_locations_on_path = []
         X = np.float(0)  # len of X axis in plot
-        if not self.g:
-            raise ValueError('No Network Graph given for Detectors')
         sorted_edges = sorted(self.g.edges(data=True), key=lambda t: t[2]['link_id'])
         for link in path:
             u, v, d = sorted_edges[link]
             X += d['length']
+
+            for detector_id in self.per_link[link]:
+                detector_ids.append(detector_id)
         pass
+        #treiber_helbing_asm()

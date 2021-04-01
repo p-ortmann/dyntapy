@@ -20,16 +20,6 @@ gap = parameters.network_loading.gap
 node_model_str = parameters.network_loading.node_model
 
 
-# for t in range(time.tot_time_steps):
-#     if dynamic_demand.is_loading(t):
-#         demand: Demand = dynamic_demand.get_demand(t)
-#         for origin in demand.origins:
-#             for connector in network.nodes.out_links.get_nnz(origin):
-#                 for flow, destination, fraction in zip(demand.to_destinations.get_row(origin),
-#                                                        demand.to_destinations.get_nnz(origin),
-#                                                        connector_choice.get_row(connector)):
-
-
 # @njit
 def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime,
           turning_fractions, connector_choice):
@@ -95,6 +85,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     for t in range(tot_time_steps):
         if not nodes_2_update[t, :].any():
             continue
+        _log('time step ' + str(t) + 'in iltm')
         # sending and receiving flow to be initialized for all links
         receiving_flow_init = np.full(tot_links, True)
         sending_flow_init = np.full(tot_links, True)
@@ -116,10 +107,11 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         it = 0  # counter for current iteration
         while it < max_it_iltm and cur_nodes_2_update > 0:
             _log('new iterations in main loop, time step ' + str(t))
+            _log('_____________________________________________________________________________________________')
             it = it + 1
             tot_nodes_updates = tot_nodes_updates + cur_nodes_2_update
             #  _______ main loops here, optimization crucial ______
-            for node in node_processing_order:
+            for node in node_processing_order[:cur_nodes_2_update]:
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
                 tot_local_in_links = len(local_in_links)
@@ -171,16 +163,24 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                         node)
                 for centroid in dynamic_demand.all_centroids:
                     delta_change[centroid] = 0
-                # unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links)
+            node_processing_order = np.argsort(delta_change)[::-1]
+            cur_nodes_2_update = np.sum(delta_change > gap)
+            _log('remaining nodes 2 update in this t are:  '+ str(cur_nodes_2_update))
+        unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links, tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down)
 
 
-def unload_destination_flows(nodes_2_update, destinations, in_links, receiving_flow_init,
-                             receiving_flow):
+def unload_destination_flows(nodes_2_update, destinations, in_links,
+                             tot_receiving_flow, t, tmp_sending_flow, vrt, cvn_up, vind, cvn_down):
     _log('unloading destination traffic')
     for destination in destinations:
-        if nodes_2_update[destination]:
+        if nodes_2_update[t, destination]:
             for connector in in_links.get_nnz(destination):
-                receiving_flow[connector] = np.inf
+                tot_receiving_flow[connector] = np.inf
+                tmp_sending_flow[0, :] = (1 - vrt[connector]) * cvn_up[max(0, t + vind[connector]), connector, :] + vrt[
+                    connector] * cvn_up[max(0, t + vind[connector] + 1), connector, :]
+                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_down[t, connector, :])) > gap:
+                    cvn_down[t, connector, :] = tmp_sending_flow[0, :]
+                    nodes_2_update[t + 1, destination] = True
 
 
 def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,

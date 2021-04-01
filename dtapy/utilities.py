@@ -90,6 +90,7 @@ def log(message, level=None, to_console=False):
 
     Parameters
     ----------
+    to_console : bool
     message : string
     level : int
         logger level
