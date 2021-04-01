@@ -17,6 +17,7 @@ from bokeh.tile_providers import get_provider, Vendors
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.models.glyphs import Patches
 from bokeh.models.markers import Circle
+from bokeh.models import Span, Label, ColorBar, LinearColorMapper
 from bokeh.layouts import row, column, Spacer
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.models.callbacks import CustomJS
@@ -54,8 +55,8 @@ def show_network(g: nx.MultiDiGraph, background_map=True,
             data['y'] = data['y_coord']
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
-    if not all([val for _,_,val in g.edges.data('link_id')]):
-        g = relabel_graph(g,0,0)
+    if not all([val for _, _, val in g.edges.data('link_id')]):
+        g = relabel_graph(g, 0, 0)
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
@@ -68,8 +69,9 @@ def show_network(g: nx.MultiDiGraph, background_map=True,
              for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
     edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y, costs, dict())
     node_source = _node_cds(tmp, dict())
-    edge_renderer = plot.add_glyph(edge_source, glyph=Patches(xs='x', ys='y', fill_color=traffic_cm[1], line_color=traffic_cm[0],
-                                                              line_alpha=0.8))
+    edge_renderer = plot.add_glyph(edge_source,
+                                   glyph=Patches(xs='x', ys='y', fill_color=traffic_cm[1], line_color=traffic_cm[0],
+                                                 line_alpha=0.8))
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if
                      item != 'flow']
     node_renderer = plot.add_glyph(node_source,
@@ -440,12 +442,22 @@ def xt_plot(data_array, detector_locations, X, T, title='xt_plot', notebook=Fals
     -------
 
     """
+    if type == 'density':
+        color_palette = traffic_cm[1:]
+    elif type == 'speed' or 'flow':
+        color_palette = traffic_cm[1:][::-1]
+    else:
+        raise ValueError('plot type not supported')
     p = figure(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
     p.x_range.range_padding = p.y_range.range_padding = 0
-    p.image(image=[data_array], x=0, y=0, dw=T, dh=X, palette=traffic_cm, level="image")
-    from bokeh.models import Span
+    p.image(image=[data_array], x=0, y=0, dw=T, dh=X, palette=color_palette, level="image")
     spans = [Span(location=loc, dimension='width', line_color='black', line_width=1) for loc in detector_locations]
-    for span in spans:
+    labels = [Label(x=0, y=loc, text='detector ' + str(_id)) for _id, loc in enumerate(detector_locations)]
+    lm_tm = LinearColorMapper(palette=color_palette, low=np.min(data_array), high=np.max(data_array))
+    color_bar = ColorBar(color_mapper=lm_tm, label_standoff=12)
+    p.add_layout(color_bar, 'right')
+    for label, span in zip(labels, spans):
+        p.add_layout(label)
         p.add_layout(span)
     p.title.text = title
     _output(notebook, title, 800)
