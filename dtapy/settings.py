@@ -20,7 +20,7 @@ log_folder = 'logs'
 log_level = 20
 log_numba = True  # this will affect performance dramatically, and should only be set to true for debugging
 
-default_city = 'Leuven'
+default_city = 'Zinnowitz'
 
 
 # Parameters for various methods

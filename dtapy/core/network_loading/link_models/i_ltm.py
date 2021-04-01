@@ -129,7 +129,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 delta_change[node] = 0
                 calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
                                    , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size)
-                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow, cvn_down,
+                calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow,
+                                     tot_receiving_flow, cvn_down,
                                      cvn_up,
                                      receiving_flow_init, step_size)
                 if len(local_out_links) == 1:
@@ -151,7 +152,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                     result_turning_flows = orca(tot_local_sending_flow[:tot_local_in_links],
                                                 local_turning_fractions[:tot_local_in_links, :tot_local_out_links],
                                                 local_turning_flows[:tot_local_in_links, :tot_local_out_links],
-                                                np.sum(local_receiving_flow, axis=1)[:tot_local_out_links],
+                                                tot_local_receiving_flow[:tot_local_out_links],
                                                 local_turning_capacity, network.nodes.in_link_capacity.get_row(node),
                                                 len(local_in_links), len(local_out_links))
                     _log('got past node model')
@@ -211,10 +212,10 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
     -------
 
     """
-    never_flow=True
+    never_flow = True
     for origin in current_demand.origins:
         _log('trying to load flow for origin ' + str(origin))
-        _log('destinations are ' + str( current_demand.to_destinations.get_nnz(origin)))
+        _log('destinations are ' + str(current_demand.to_destinations.get_nnz(origin)))
         _log('with flow ' + str(current_demand.to_destinations.get_row(origin)))
         if nodes_2_update[t, origin]:
             tot_nodes_updates += 1
@@ -224,9 +225,10 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                                                        current_demand.to_destinations.get_nnz(origin),
                                                        connector_choice[t_id].get_row(connector)):
                     destination_id = np.argwhere(all_active_destinations == destination)[0, 0]
-                    if flow * fraction>0.001:
-                        never_flow=False
-                        _log('flow ' + str (flow*fraction) + ' for destination ' + str(destination) + ' loaded on connector ' + str(connector))
+                    if flow * fraction > 0.001:
+                        never_flow = False
+                        _log('flow ' + str(flow * fraction) + ' for destination ' + str(
+                            destination) + ' loaded on connector ' + str(connector))
                     tmp_sending_flow[0, destination_id] += flow * fraction
 
                 if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t - 1, connector, :])) > gap:
@@ -297,7 +299,8 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
     _log('tot local sending flow is ' + str(tot_local_sending_flow))
 
 
-def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow, cvn_down, cvn_up,
+def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow,
+                         cvn_down, cvn_up,
                          receiving_flow_init, step_size):
     _log('calc receiving flows')
     """
@@ -339,6 +342,10 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
         if wind[link] == -1:
             tot_local_receiving_flow[in_id] = tot_local_receiving_flow[in_id] + wrt[link] * np.sum(cvn_down[t, link, :])
         tot_local_receiving_flow[in_id] = min(cap[link] * step_size, tot_local_receiving_flow[in_id])
+        if tot_local_receiving_flow[in_id] < 0:
+            _log('negative receiving flow,  not valid', to_console=True)
+            print("..")
+
     _log('tot local receiving flow is ' + str(tot_local_receiving_flow))
 
 
@@ -410,7 +417,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                 con_down[t, in_link] = True
                 temp_sending_flow[in_id, :] = sending_flow[in_id, :] / tot_local_sending_flow[
                     in_id] * result_tot_sending_flow[
-                             in_id]
+                                                  in_id]
                 # Note to self: this is where FIFO violations occur and where cars are cut into pieces
             else:
                 con_down[t, in_link] = False

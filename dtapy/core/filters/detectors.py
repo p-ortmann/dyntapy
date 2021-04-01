@@ -39,8 +39,9 @@ class Detectors():
             self.per_link = [[] for _ in g.number_of_edges()]
             for detector_id, link_id in self.link_ids:
                 self.per_link[link_id].append(detector_id)
+            self.g = g
         else:
-            self.per_link, self.link_ids = None, None
+            self.per_link, self.link_ids, self.g = None, None, None
 
     def get_link_ids(self, g):
         """
@@ -77,3 +78,22 @@ class Detectors():
 
         """
         self.link_ids[detector_id] = new_link_id
+
+    def get_xt_data(self, path):
+        """
+
+        Parameters
+        ----------
+        path : list of link_ids that form the path
+        Returns
+        -------
+
+        """
+        X = np.float(0)  # len of X axis in plot
+        if not self.g:
+            raise ValueError('No Network Graph given for Detectors')
+        sorted_edges = sorted(self.g.edges(data=True), key=lambda t: t[2]['link_id'])
+        for link in path:
+            u, v, d = sorted_edges[link]
+            X += d['length']
+        pass

@@ -64,13 +64,14 @@ def timeit(my_func):
 
 
 @njit()
-def _log(message):
+def _log(message, level=settings.log_level,to_console=False):
     """
 
     Parameters
     ----------
     message : string to log
-    log_numba : whether to log inside jit compiled functions
+    level: int, see py docs
+    to_console: whether to print
 
     Returns
     -------
@@ -78,7 +79,7 @@ def _log(message):
     """
     if log_numba:
         with objmode():
-            log(message)
+            log(message,level=level, to_console= to_console)
     else:
         pass
 
