@@ -172,7 +172,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
                      item != 'flow']
     #link_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(link_kwargs.keys())]
     #edge_tooltips = edge_tooltips + link_kwargs_tooltips
-    edge_tooltips.append(('flow', '@flow{(0.0)}'))
+    edge_tooltips.append(('flow', '@flow{(0.00)}'))
     node_renderer = plot.add_glyph(node_source,
                                    glyph=Circle(x='x', y='y', size=max_width_bokeh,
                                                 line_color="black",
