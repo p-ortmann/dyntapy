@@ -116,11 +116,10 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     -------
 
     """
-    for key,item in zip(link_kwargs.keys(),link_kwargs.values()):
+    for key, item in zip(link_kwargs.keys(), link_kwargs.values()):
         link_kwargs[key] = item.tolist()
-    for key,item in zip(node_kwargs.keys(),node_kwargs.values()):
+    for key, item in zip(node_kwargs.keys(), node_kwargs.values()):
         node_kwargs[key] = item.tolist()
-
 
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
@@ -157,21 +156,25 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     link_kwargs_t0 = {key: val[0] for key, val in
                       zip(link_kwargs.keys(), link_kwargs.values())}  # getting time step zero for all
     edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0], all_y[0], costs[0], **link_kwargs_t0)
-    node_kwargs_t0 =  {key: val[0] for key, val in
-                       zip(node_kwargs.keys(), node_kwargs.values())}
+    node_kwargs_t0 = {key: val[0] for key, val in
+                      zip(node_kwargs.keys(), node_kwargs.values())}
     node_source = _node_cds(tmp, **node_kwargs_t0)
 
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color=traffic_cm[0],
                                                  line_alpha=0.8))
-    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys + list(link_kwargs.keys()) if
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if
                      item != 'flow']
+    link_kwargs_tooltips = [(item, '@' + str(item)) + '{(0.00)}' for item in list(link_kwargs.keys())]
+    edge_tooltips = edge_tooltips + link_kwargs_tooltips
     edge_tooltips.append(('flow', '@flow{(0.0)}'))
     node_renderer = plot.add_glyph(node_source,
                                    glyph=Circle(x='x', y='y', size=max_width_bokeh,
                                                 line_color="black",
                                                 line_width=max_width_bokeh / 5))
-    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys())]
+    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys ]
+    node_kwargs_tooltips = [(item, '@' + str(item)) + '{(0.00)}' for item in list(node_kwargs.keys())]
+    node_tooltips= node_tooltips+node_kwargs_tooltips
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
@@ -193,9 +196,10 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
 
     # Set up callbacks
     link_kwargs = {key: list(val[0]) for key, val in
-                      zip(link_kwargs.keys(), link_kwargs.values())}
+                   zip(link_kwargs.keys(), link_kwargs.values())}
     link_call_back = CustomJS(
-        args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, costs=costs, all_colors=all_colors, link_kwargs =link_kwargs), code="""
+        args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, costs=costs, all_colors=all_colors,
+                  link_kwargs=link_kwargs), code="""
         var data = source.data;
         var t = cb_obj.value
         for(var key in link_kwargs) {
@@ -224,7 +228,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
             source.change.emit();
         """)
     time_slider.js_on_change('value', link_call_back)
-    time_slider.js_on_change('value', node_call_back) #TODO: add and test
+    time_slider.js_on_change('value', node_call_back)  # TODO: add and test
     if convergence is not None:
         iterations = np.arange(len(convergence))
         conv_plot = figure(plot_width=400, plot_height=400, title=title, x_axis_label='Iterations', y_axis_label='Gap')
