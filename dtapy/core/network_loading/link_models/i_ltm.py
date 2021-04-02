@@ -165,8 +165,10 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                     delta_change[centroid] = 0
             node_processing_order = np.argsort(delta_change)[::-1]
             cur_nodes_2_update = np.sum(delta_change > gap)
-            _log('remaining nodes 2 update in this t are:  '+ str(cur_nodes_2_update))
-        unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links, tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down, tot_time_steps)
+            _log('remaining nodes 2 update in this t are:  ' + str(cur_nodes_2_update))
+        unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links,
+                                 tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down,
+                                 tot_time_steps)
 
 
 def unload_destination_flows(nodes_2_update, destinations, in_links,
@@ -180,7 +182,7 @@ def unload_destination_flows(nodes_2_update, destinations, in_links,
                     connector] * cvn_up[max(0, t + vind[connector] + 1), connector, :]
                 if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_down[t, connector, :])) > gap:
                     cvn_down[t, connector, :] = tmp_sending_flow[0, :]
-                    nodes_2_update[min(t + 1, tot_time_steps-1), destination] = True
+                    nodes_2_update[min(t + 1, tot_time_steps - 1), destination] = True
 
 
 def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,
@@ -247,9 +249,9 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                         nodes_2_update[t - vind[connector] - 1, to_node[connector]] = True
                         nodes_2_update[t - vind[connector], to_node[connector]] = True
                     except Exception:
-                        assert t - vind[connector] > tot_time_steps-1
-                        if t - vind[connector] - 1 == tot_time_steps-1:
-                            nodes_2_update[tot_time_steps-1, to_node[connector]] = True
+                        assert t - vind[connector] > tot_time_steps - 1
+                        if t - vind[connector] - 1 == tot_time_steps - 1:
+                            nodes_2_update[tot_time_steps - 1, to_node[connector]] = True
                         else:
                             _log('Simulation time period is too short for given demand.'
                                  ' Not all vehicles are able to exit the network')
@@ -432,7 +434,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                         np.abs(cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :])))
                 else:
                     nodes_2_update[min(tot_time_steps - 1, t - wind[in_link]) - 1, from_node[in_link]] = True
-                    nodes_2_update[ min(tot_time_steps - 1, t - wind[in_link]), from_node[in_link]] = True
+                    nodes_2_update[min(tot_time_steps - 1, t - wind[in_link]), from_node[in_link]] = True
 
             active_destinations = np.where(sending_flow[in_id, :] > 0)
 
@@ -466,8 +468,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                     delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] + vrt[out_link] * np.sum(
                         np.abs(cvn_up[t, out_link, :] - cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]))
                 else:
-                    nodes_2_update[min(t - vind[out_link] - 1, tot_time_steps-1), to_nodes[out_link]] = True
-                    nodes_2_update[min(t - vind[out_link], tot_time_steps-1), to_nodes[out_link]] = True
+                    nodes_2_update[min(t - vind[out_link] - 1, tot_time_steps - 1), to_nodes[out_link]] = True
+                    nodes_2_update[min(t - vind[out_link], tot_time_steps - 1), to_nodes[out_link]] = True
 
             if marg_comp:
                 potential_destinations = receiving_flow <= gap
@@ -478,13 +480,35 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                                 cvn_up(t - 1, out_link, destination) + receiving_flow(out_id, destination))
                     if threshold > gap:
                         nodes_2_update[t, to_nodes[out_link]] = True
-                        nodes_2_update[min(tot_time_steps-1, t), to_nodes[out_link]] = True
+                        nodes_2_update[min(tot_time_steps - 1, t), to_nodes[out_link]] = True
                         delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] - time_step * 1 / vind[
                             out_link]
     if update_node:
         _log('node change significant, updating cvns')
-        nodes_2_update[min(tot_time_steps-1, t + 1), node] = True
+        nodes_2_update[min(tot_time_steps - 1, t + 1), node] = True
     for in_id, in_link in enumerate(local_in_links):
         cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
     for out_id, out_link in enumerate(local_out_links):
         cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
+
+
+@njit
+def cvn_to_flows(cvn):
+    """
+
+    Parameters
+    ----------
+    cvn :
+
+    Returns
+    -------
+
+    """
+    tot_time_steps = cvn.shape[0]
+    tot_links = cvn.shape[1]
+    cvn = np.sum(cvn, axis=2)
+    flows = np.empty((tot_time_steps, tot_links), dtype=np.float32)
+    flows[0, :] = cvn[0, :]
+    for time in range(1, tot_time_steps):
+        flows[time, :] = -cvn[time - 1, :] + cvn[time, :]
+    return flows
