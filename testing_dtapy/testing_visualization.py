@@ -27,7 +27,8 @@ flows = np.random.rand(time.tot_time_steps * g.number_of_edges()).reshape(
 costs = np.random.rand(time.tot_time_steps * g.number_of_edges()).reshape(
     (time.tot_time_steps, g.number_of_edges())) * 200
 convergence = np.arange(1, 0, -0.01)
-show_assignment(g, flows, costs, time, convergence=convergence)
+link_kwargs = {'other_flows':flows*0.7}
+show_assignment(g, flows, costs, time, link_kwargs=link_kwargs, convergence=convergence)
 show_network(g)
 
 # visualize random demand for a single time period

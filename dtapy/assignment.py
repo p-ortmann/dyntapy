@@ -32,6 +32,7 @@ turn_t0_default = parameters.supply.turn_t0_default
 node_control_default = parameters.supply.node_control_default
 network_loading_method = parameters.network_loading.link_model
 
+cur_network = None # here to be able to retrieve the latest used network from any context
 
 class Assignment:
     """This class stores all the information needed for the assignment itself.
@@ -51,6 +52,8 @@ class Assignment:
         # you have to be familiar with numba
         _check_centroid_connectivity(g)
         self.g = g
+        global cur_network
+        cur_network = g
         self.dynamic_demand = dynamic_demand
         self.time = self.__init_time_obj(simulation_time)
         # get adjacency from nx, and

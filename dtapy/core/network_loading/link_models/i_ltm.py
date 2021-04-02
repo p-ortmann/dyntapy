@@ -15,6 +15,8 @@ from numba import njit
 from numba.typed import List
 from dtapy.core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
 from dtapy.utilities import _log
+from dtapy.visualization import numba_show_assignment
+
 
 gap = parameters.network_loading.gap
 node_model_str = parameters.network_loading.node_model
@@ -101,7 +103,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         # njit tests pass until here without failure
         first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
         node_processing_order = List(np.arange(first_intersection, tot_nodes))
-        """
+
         cur_nodes_2_update = len(node_processing_order)  # remaining nodes that need updating for the current iteration
         # TODO: maintaining nodes 2 update as priority queue?
         it = 0  # counter for current iteration
@@ -171,8 +173,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                  tot_time_steps)
     print('iltm finished')
     print(f'total cvn up {np.sum(cvn_up)}')
-    """
-    results.cvn_up
+
 
 
 def unload_destination_flows(nodes_2_update, destinations, in_links,
@@ -515,4 +516,5 @@ def cvn_to_flows(cvn):
     flows[0, :] = cvn[0, :]
     for time in range(1, tot_time_steps):
         flows[time, :] = -cvn[time - 1, :] + cvn[time, :]
+        flows[time, :][flows[time, :] < 0] = 0
     return flows
