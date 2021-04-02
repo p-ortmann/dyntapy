@@ -205,24 +205,19 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     """)
 
     node_call_back = CustomJS(
-        args=dict(source=node_source, all_x=all_x, all_y=all_y, flows=flows, costs=costs, all_colors=all_colors,
+        args=dict(source=node_source,
                   node_kwargs=node_kwargs), code="""
             var data = source.data;
             var t = cb_obj.value
-            for(var key in link_kwargs) {
-                var value = dict[key][t];
+            for(var key in node_kwargs) {
+                var value = node_kwargs[key][t];
                 data[key] = value
                 }
 
-            data['x'] = all_x[t]
-            data['y'] = all_y[t]
-            data['color'] = all_colors[t]
-            data['flow']  = flows[t]
-            data['cost'] = costs[t]
             source.change.emit();
         """)
     time_slider.js_on_change('value', link_call_back)
-    #time_slider.js_on_change('value', node_call_back) #TODO: add and test
+    time_slider.js_on_change('value', node_call_back) #TODO: add and test
     if convergence is not None:
         iterations = np.arange(len(convergence))
         conv_plot = figure(plot_width=400, plot_height=400, title=title, x_axis_label='Iterations', y_axis_label='Gap')
