@@ -28,7 +28,7 @@ costs = np.random.rand(time.tot_time_steps * g.number_of_edges()).reshape(
     (time.tot_time_steps, g.number_of_edges())) * 200
 convergence = np.arange(1, 0, -0.01)
 link_kwargs = {'other_flows':flows*0.7}
-node_kwargs = {'random_node_property':np.arange(g.number_of_nodes()*time.tot_time_steps* 3).reshape(time.tot_time_steps,g.number_of_nodes(),3) }
+node_kwargs = {'random_node_property':np.random.rand(g.number_of_nodes()*time.tot_time_steps* 3).reshape(time.tot_time_steps,g.number_of_nodes(),3) }
 
 show_assignment(g, flows, costs, time, link_kwargs=link_kwargs,node_kwargs=node_kwargs, convergence=convergence)
 show_network(g)

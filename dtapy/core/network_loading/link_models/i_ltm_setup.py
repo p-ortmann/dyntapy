@@ -90,14 +90,14 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     tot_links = network.tot_links
     tot_nodes = network.tot_nodes
     tot_turns = network.tot_turns
-    costs = np.empty((tot_links, tot_time_steps),
+    costs = np.zeros((tot_links, tot_time_steps),
                      dtype=np.float32)  # order of arguments is changed here, for route choice
     # iterate over multiple time steps for a single link ..
     t0 = length / v0
     for t in range(tot_time_steps):
         costs[:, t] = t0
     cvn_up = np.zeros((tot_time_steps, tot_links, tot_destinations), dtype=np.float32)
-    cvn_down = np.empty_like(cvn_up)
+    cvn_down = np.zeros_like(cvn_up)
     con_up = np.full((tot_time_steps, tot_links), False, dtype=np.bool_)
     con_down = np.full((tot_time_steps, tot_links), False, dtype=np.bool_)
     nodes_2_update = np.full((tot_time_steps, tot_nodes), False, dtype=np.bool_)
