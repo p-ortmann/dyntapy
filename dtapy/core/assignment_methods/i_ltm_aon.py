@@ -36,6 +36,6 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     _log(' iltm passed,  iteration ' + str(iteration_counter))
     flows = cvn_to_flows(iltm_state.cvn_up)
     costs = np.zeros(flows.shape, dtype=np.float32)
-    numba_show_assignment(flows, costs, route_choice_time,
+    numba_show_assignment(flows, costs, route_choice_time,link_vars=
                           {'cvn_up': iltm_state.cvn_up, 'cvn_down': iltm_state.cvn_down})
     return flows, costs

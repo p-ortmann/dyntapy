@@ -116,6 +116,12 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     -------
 
     """
+    for key,item in zip(link_kwargs.keys(),link_kwargs.values()):
+        link_kwargs[key] = item.tolist()
+    for key,item in zip(node_kwargs.keys(),node_kwargs.values()):
+        node_kwargs[key] = item.tolist()
+
+
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
@@ -186,7 +192,8 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     plot.add_tools(node_hover, edge_hover, nodetaptool)
 
     # Set up callbacks
-
+    link_kwargs = {key: list(val[0]) for key, val in
+                      zip(link_kwargs.keys(), link_kwargs.values())}
     link_call_back = CustomJS(
         args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, costs=costs, all_colors=all_colors, link_kwargs =link_kwargs), code="""
         var data = source.data;
