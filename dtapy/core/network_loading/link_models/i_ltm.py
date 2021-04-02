@@ -101,7 +101,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         # njit tests pass until here without failure
         first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
         node_processing_order = List(np.arange(first_intersection, tot_nodes))
-
+        """
         cur_nodes_2_update = len(node_processing_order)  # remaining nodes that need updating for the current iteration
         # TODO: maintaining nodes 2 update as priority queue?
         it = 0  # counter for current iteration
@@ -169,6 +169,10 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links,
                                  tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down,
                                  tot_time_steps)
+    print('iltm finished')
+    print(f'total cvn up {np.sum(cvn_up)}')
+    """
+    results.cvn_up
 
 
 def unload_destination_flows(nodes_2_update, destinations, in_links,
@@ -507,7 +511,7 @@ def cvn_to_flows(cvn):
     tot_time_steps = cvn.shape[0]
     tot_links = cvn.shape[1]
     cvn = np.sum(cvn, axis=2)
-    flows = np.empty((tot_time_steps, tot_links), dtype=np.float32)
+    flows = np.zeros((tot_time_steps, tot_links), dtype=np.float32)
     flows[0, :] = cvn[0, :]
     for time in range(1, tot_time_steps):
         flows[time, :] = -cvn[time - 1, :] + cvn[time, :]

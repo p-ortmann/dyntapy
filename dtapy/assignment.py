@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from dtapy.demand import DynamicDemand
 from typing import Callable
 from dtapy.utilities import log
+from dtapy.visualization import show_assignment, show_demand
 
 v_wave_default = parameters.supply.v_wave_default
 turn_capacity_default = parameters.supply.turn_capacity_default
@@ -63,8 +64,11 @@ class Assignment:
     def run(self, method: Callable):
         from dtapy.core.assignment_methods.methods import valid_methods
         # TODO: generic way for adding keyword args
-        results: AssignmentResults = method(self.nb_network, self.nb_dynamic_demand, self.time.route_choice, self.time.network_loading)
-        return results
+        flows, costs = method(self.nb_network, self.nb_dynamic_demand, self.time.route_choice,
+                              self.time.network_loading)
+        show_assignment(self.g, flows, costs, time=self.time.network_loading)
+
+
 
     @staticmethod
     def get_methods():
@@ -94,14 +98,15 @@ class Assignment:
         lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
         length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)
         link_type = np.array([np.int8(d.get('link_type', 0)) for (_, _, d) in sorted_edges], dtype=np.int8)
-        tot_connectors = np.argwhere(link_type==1).size+np.argwhere(link_type==-1).size
+        tot_connectors = np.argwhere(link_type == 1).size + np.argwhere(link_type == -1).size
         # 1 is for sources (connectors leading out of a centroid)
         # -1 for sinks (connectors leading towards a centroid)
         tot_time_steps = self.time.network_loading.tot_time_steps
         links = self.__build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, link_capacity, free_speed,
                                    lanes, length, link_type)
         log("links passed")
-        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size, tot_connectors)
+        return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size,
+                       tot_connectors)
 
     @staticmethod
     def __build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids):

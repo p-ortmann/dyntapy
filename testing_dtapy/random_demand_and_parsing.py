@@ -13,6 +13,7 @@ from dtapy.settings import parameters
 from dtapy.core.time import SimulationTime
 import numpy as np
 from dtapy.settings import default_city as city
+from dtapy.visualization import show_demand
 
 step_size = parameters.network_loading.step_size
 # loading from data folder, assumes road_network_and_centroids was run previously
@@ -27,4 +28,7 @@ assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.fl
 # TODO: add tests for multi-edge parsing
 methods = assignment.get_methods()
 assignment.run(methods.i_ltm_aon)
+# show_demand(trip_graphs[0])
+# show_demand([trip_graphs[1]])
+# show_demand(trip_graphs[2])
 print('ran successfully')

@@ -348,7 +348,8 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows, patch_ratio=10)
     colors = []
     x_list = []
     y_list = []
-    for u, v, data in g.edges(data=True):
+
+    for u,v,data in sorted(g.edges(data=True), key=lambda t: t[2]['link_id']):
         try:
             try:
                 color = traffic_cm[np.int(np.round(flows[data['link_id']] / data['capacity'] * nr_of_colors))]
