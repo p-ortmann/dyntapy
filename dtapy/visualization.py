@@ -42,6 +42,7 @@ link_highlight_color = parameters.visualization.link_highlight_color
 node_highlight_color = parameters.visualization.node_highlight_color
 node_color = parameters.visualization.node_color
 centroid_color = parameters.visualization.centroid_color
+node_scaling = parameters.visualization.node_scaling
 
 
 def show_network(g: nx.MultiDiGraph, background_map=True,
@@ -80,7 +81,7 @@ def show_network(g: nx.MultiDiGraph, background_map=True,
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys if
                      item != 'flow']
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=max_width_bokeh,
+                                   glyph=Circle(x='x', y='y', size=max_width_bokeh * node_scaling,
                                                 line_color="black",
                                                 line_width=max_width_bokeh / 10))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys]
@@ -137,10 +138,10 @@ def show_assignment(g: nx.DiGraph, flows, time: SimulationTime, link_kwargs=dict
                 link_kwargs[key] = item.tolist()
             if static:
                 static_link_kwargs[key] = link_kwargs[key]
-                del link_kwargs[key]
-
         else:
             raise ValueError('values in link_kwargs need to be numpy.ndarray')
+    for key in static_link_kwargs.keys():
+        del link_kwargs[key]
     for key, item in zip(node_kwargs.keys(), node_kwargs.values()):
         if type(node_kwargs[key]) == np.ndarray:
             if item.shape == (g.number_of_nodes(),):
@@ -156,10 +157,11 @@ def show_assignment(g: nx.DiGraph, flows, time: SimulationTime, link_kwargs=dict
                 node_kwargs[key] = item.tolist()
             if static:
                 static_node_kwargs[key] = node_kwargs[key]
-                del node_kwargs[key]
 
         else:
             raise ValueError('values in node_kwargs need to be numpy.ndarray')
+    for key in static_node_kwargs.keys():
+        del node_kwargs[key]
 
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
@@ -204,17 +206,17 @@ def show_assignment(g: nx.DiGraph, flows, time: SimulationTime, link_kwargs=dict
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color=traffic_cm[0],
                                                  line_alpha=0.8))
-    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys + list(link_kwargs)
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys + list(link_kwargs.keys()) + list(static_link_kwargs.keys())
                      if
                      item != 'flow']
     # link_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(link_kwargs.keys())]
     # edge_tooltips = edge_tooltips + link_kwargs_tooltips
     edge_tooltips.append(('flow', '@flow{(0.00)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=max_width_bokeh,fill_color ='color',
+                                   glyph=Circle(x='x', y='y', size=max_width_bokeh*node_scaling,fill_color ='color',
                                                 line_color="black",
                                                 line_width=max_width_bokeh / 5))
-    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys())]
+    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys()) + list(static_node_kwargs.keys())]
     # node_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(node_kwargs.keys())]
     # node_tooltips= node_tooltips+node_kwargs_tooltips
 
@@ -336,8 +338,8 @@ def show_demand(g, plot_size=default_plot_size, notebook=False):
                                                  line_alpha=0.8))
     edge_tooltips = [('flow', '@flow{(0.0)}')]
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=max_width_bokeh, line_color="black",
-                                                line_width=max_width_bokeh / 5))
+                                   glyph=Circle(x='x', y='y', size=max_width_bokeh*node_scaling, line_color="black",
+                                                line_width=max_width_bokeh / 10))
     node_tooltips = [(item, f'@{item}') for item in ['x', 'y', 'centroid_id']]
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])

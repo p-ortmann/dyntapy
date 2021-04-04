@@ -76,17 +76,18 @@ class _Visualization:
     """
     container for parameters that concern visualization
     """
-    max_links: np.uint32 = np.uint32(1000)
+    max_links: np.uint32 = np.uint32(10000)
     plot_size: int = 800
     notebook_plot_size: int = 600
     link_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'free_speed', 'ext_id',
-                 'name', 'facility_type', 'flow', 'cost', 'connector']
+                 'name', 'facility_type', 'flow', 'connector']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'ext_id', 'node_type', 'ctrl_type', 'centroid']
     link_width_scaling = 0.006
-    link_highlight_color = '#0000FF'  # blue
-    node_highlight_color = '#0000FF'  # blue
-    node_color = '#808080'  # black
-    centroid_color = '#00FFFF'  # cyan
+    node_scaling = 1.7
+    link_highlight_color = '#ff6ec7'  # neon pink
+    node_highlight_color = '#ff6ec7'  # neon pink
+    node_color = '#808080'  # gray
+    centroid_color = '#9063CD'  # purple
 
 
 @dataclass
