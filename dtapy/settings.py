@@ -79,10 +79,14 @@ class _Visualization:
     max_links: np.uint32 = np.uint32(1000)
     plot_size: int = 800
     notebook_plot_size: int = 600
-    edge_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'free_speed', 'ext_id',
+    link_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'free_speed', 'ext_id',
                  'name', 'facility_type', 'flow', 'cost', 'connector']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'ext_id', 'node_type', 'ctrl_type', 'centroid']
-    edge_width_scaling = 0.006
+    link_width_scaling = 0.006
+    link_highlight_color = '#0000FF'  # blue
+    node_highlight_color = '#0000FF'  # blue
+    node_color = '#808080'  # black
+    centroid_color = '#00FFFF'  # cyan
 
 
 @dataclass

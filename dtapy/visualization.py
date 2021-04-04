@@ -37,7 +37,11 @@ traffic_cm = __create_green_to_red_cm('hex')
 default_plot_size = parameters.visualization.plot_size
 default_notebook_plot_size = parameters.visualization.notebook_plot_size
 default_max_links = parameters.visualization.max_links
-default_edge_width_scaling = parameters.visualization.edge_width_scaling
+default_edge_width_scaling = parameters.visualization.link_width_scaling
+link_highlight_color = parameters.visualization.link_highlight_color
+node_highlight_color = parameters.visualization.node_highlight_color
+node_color = parameters.visualization.node_color
+centroid_color = parameters.visualization.centroid_color
 
 
 def show_network(g: nx.MultiDiGraph, background_map=True,
@@ -66,14 +70,14 @@ def show_network(g: nx.MultiDiGraph, background_map=True,
         plot.add_tile(tile_provider)
 
     c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()), patch_ratio=2)
-    costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
-             for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
-    edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y, costs, dict())
-    node_source = _node_cds(tmp, dict())
+    # costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
+    #        for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
+    edge_source = _edge_cds(tmp, c,np.zeros(g.number_of_edges()), x, y, )
+    node_source = _node_cds(tmp)
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color=traffic_cm[1], line_color=traffic_cm[0],
                                                  line_alpha=0.8))
-    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys if
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys if
                      item != 'flow']
     node_renderer = plot.add_glyph(node_source,
                                    glyph=Circle(x='x', y='y', size=max_width_bokeh,
@@ -92,9 +96,9 @@ def show_network(g: nx.MultiDiGraph, background_map=True,
     show(plot)
 
 
-def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwargs=dict(), node_kwargs=dict(),
-                    convergence=None, scaling=default_edge_width_scaling,
-                    background_map=True,
+def show_assignment(g: nx.DiGraph, flows, time: SimulationTime, link_kwargs=dict(), node_kwargs=dict(),
+                    convergence=None,
+                    background_map=True, highlight_nodes=np.array([]), highlight_links=np.array([]),
                     title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
     """
 
@@ -105,7 +109,6 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     max_links_visualized
     show_unloaded_links
     flows
-    costs
     g : nx.Digraph
     scaling : width of the widest link in relation to plot_size
     background_map : bool, show the background map
@@ -116,14 +119,47 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     -------
 
     """
+    static_link_kwargs = dict()
+    static_node_kwargs = dict()
+    scaling = default_edge_width_scaling
     for key, item in zip(link_kwargs.keys(), link_kwargs.values()):
-        if type(link_kwargs[key])==np.ndarray:
-            if item.dtype == np.float32:
+        if type(link_kwargs[key]) == np.ndarray:
+            if item.shape == (g.number_of_edges(),):
+                static = True
+            elif item.shape[0] == time.tot_time_steps and item.shape[1] == g.number_of_edges():
+                static = False
+            else:
+                raise ValueError('dimension mismatch')
+
+            if np.issubdtype(item.dtype, np.floating):
                 link_kwargs[key] = item.astype(np.float64).round(2).tolist()
+            else:
+                link_kwargs[key] = item.tolist()
+            if static:
+                static_link_kwargs[key] = link_kwargs[key]
+                del link_kwargs[key]
+
+        else:
+            raise ValueError('values in link_kwargs need to be numpy.ndarray')
     for key, item in zip(node_kwargs.keys(), node_kwargs.values()):
-            if type(node_kwargs[key]) == np.ndarray:
-                if item.dtype == np.float32:
-                    node_kwargs[key] = item.astype(np.float64).round(2).tolist()
+        if type(node_kwargs[key]) == np.ndarray:
+            if item.shape == (g.number_of_nodes(),):
+                static = True
+            elif item.shape[0] == time.tot_time_steps and item.shape[1] == g.number_of_nodes():
+                static = False
+            else:
+                raise ValueError('dimension mismatch')
+
+            if np.issubdtype(item.dtype, np.floating):
+                node_kwargs[key] = item.astype(np.float64).round(2).tolist()
+            else:
+                node_kwargs[key] = item.tolist()
+            if static:
+                static_node_kwargs[key] = node_kwargs[key]
+                del node_kwargs[key]
+
+        else:
+            raise ValueError('values in node_kwargs need to be numpy.ndarray')
 
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
@@ -144,7 +180,6 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     if background_map:
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
-    # tmp = filter_links(tmp, max_links_visualized, show_unloaded_links, flows, costs)
 
     max_flow = np.max(flows)
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)
@@ -153,33 +188,35 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
     all_x = []
     all_y = []
     for t in range(time.tot_time_steps):
-        c, x, y = _get_colors_and_coords(tmp, max_width_coords, max_flow, flows[t])
-        all_colors.append(c)
+        c, x, y = _get_colors_and_coords(tmp, max_width_coords, max_flow, flows[t], highlight_links)
         all_x.append(x)
         all_y.append(y)
+        all_colors.append(c)
     link_kwargs_t0 = {key: val[0] for key, val in
                       zip(link_kwargs.keys(), link_kwargs.values())}  # getting time step zero for all
-    edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0], all_y[0], costs[0], **link_kwargs_t0)
+    link_kwargs_t0 = {**link_kwargs_t0, **static_link_kwargs}
+    edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0], all_y[0], **link_kwargs_t0)
     node_kwargs_t0 = {key: val[0] for key, val in
                       zip(node_kwargs.keys(), node_kwargs.values())}
-    node_source = _node_cds(tmp, **node_kwargs_t0)
+    node_kwargs_t0 = {**node_kwargs_t0, **static_node_kwargs}
+    node_source = _node_cds(tmp, highlight_nodes, **node_kwargs_t0)
 
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color=traffic_cm[0],
                                                  line_alpha=0.8))
-    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.edge_keys + list(link_kwargs)
-                                                                                              if
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys + list(link_kwargs)
+                     if
                      item != 'flow']
-    #link_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(link_kwargs.keys())]
-    #edge_tooltips = edge_tooltips + link_kwargs_tooltips
+    # link_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(link_kwargs.keys())]
+    # edge_tooltips = edge_tooltips + link_kwargs_tooltips
     edge_tooltips.append(('flow', '@flow{(0.00)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=max_width_bokeh,
+                                   glyph=Circle(x='x', y='y', size=max_width_bokeh,fill_color ='color',
                                                 line_color="black",
                                                 line_width=max_width_bokeh / 5))
-    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys()) ]
-    #node_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(node_kwargs.keys())]
-    #node_tooltips= node_tooltips+node_kwargs_tooltips
+    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys())]
+    # node_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(node_kwargs.keys())]
+    # node_tooltips= node_tooltips+node_kwargs_tooltips
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
@@ -201,7 +238,7 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
 
     # Set up callbacks
     link_call_back = CustomJS(
-        args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, costs=costs, all_colors=all_colors,
+        args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, all_colors=all_colors,
                   link_kwargs=link_kwargs), code="""
         var data = source.data;
         var t = cb_obj.value
@@ -214,7 +251,6 @@ def show_assignment(g: nx.DiGraph, flows, costs, time: SimulationTime, link_kwar
         data['y'] = all_y[t]
         data['color'] = all_colors[t]
         data['flow']  = flows[t]
-        data['cost'] = costs[t]
         source.change.emit();
     """)
 
@@ -343,29 +379,28 @@ def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links, flows
     return g, flows, costs
 
 
-# def filter_time(time: SimulationTime, flows, costs):
-#     last = np.max(np.argwhere(np.sum(flows, axis=0) > 0))
-#     flows = flows[:last, :]
-#     costs = costs[:last, :]
-#     new_time = SimulationTime(time.start, last * time.step_size, time.step_size)
-#     return new_time
-
-
-def _node_cds(g, **kwargs):
+def _node_cds(g, highlight_nodes=np.array([]), **kwargs):
     visualization_keys = parameters.visualization.node_keys
     node_dict = dict()
     visualization_keys.append('x')
     visualization_keys.append('y')
+    node_colors = [node_color for _ in range(g.number_of_nodes())]
+    for _,  data in sorted(g.nodes(data=True), key=lambda t: t[1]['node_id']):
+        if data.get('centroid', False):
+            node_colors[data['node_id']] = centroid_color
+    for node in highlight_nodes:
+        node_colors[node] = node_highlight_color
+    node_dict['color'] = node_colors
     for attr_key in visualization_keys:
         values = [node_attr[attr_key] if attr_key in node_attr.keys() else 'None'
-                  for _, node_attr in g.nodes(data=True)]
+                  for _, node_attr in sorted(g.nodes(data=True), key=lambda t: t[1]['node_id'])]
         node_dict[attr_key] = values
     node_dict = {**node_dict, **kwargs}
     return ColumnDataSource(data=node_dict)
 
 
-def _edge_cds(g, color, flow, x, y, cost, **kwargs):
-    visualization_keys = parameters.visualization.edge_keys
+def _edge_cds(g, color, flow, x, y, **kwargs):
+    visualization_keys = parameters.visualization.link_keys
     edge_dict = dict()
     for attr_key in visualization_keys:
         values = [edge_attr[attr_key] if attr_key in edge_attr.keys() else 'None'
@@ -375,12 +410,11 @@ def _edge_cds(g, color, flow, x, y, cost, **kwargs):
     edge_dict['flow'] = flow
     edge_dict['x'] = x
     edge_dict['y'] = y
-    edge_dict['cost'] = cost
     edge_dict = {**edge_dict, **kwargs}
     return ColumnDataSource(data=edge_dict)
 
 
-def _get_colors_and_coords(g, max_width_coords, max_flow, flows, patch_ratio=10):
+def _get_colors_and_coords(g, max_width_coords, max_flow, flows, highlight_links=np.array([]), patch_ratio=10):
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords / patch_ratio
     colors = []
@@ -430,6 +464,9 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows, patch_ratio=10)
             y = y1 + y2
         x_list.append(list(x))
         y_list.append(list(y))
+
+    for link in highlight_links:
+        colors[link] = link_highlight_color
     return colors, x_list, y_list
 
 
@@ -493,7 +530,7 @@ def xt_plot(data_array, detector_locations, X, T, title='xt_plot', notebook=Fals
     spans = [Span(location=loc, dimension='width', line_color='black', line_width=1) for loc in detector_locations]
     labels = [Label(x=0, y=loc, text='detector ' + str(_id)) for _id, loc in enumerate(detector_locations)]
     lm_tm = LinearColorMapper(palette=color_palette, low=np.min(data_array), high=np.max(data_array))
-    color_bar = ColorBar(color_mapper=lm_tm, label_standoff=12)
+    color_bar = ColorBar(color_mapper=lm_tm, label_standoff=20)
     p.add_layout(color_bar, 'right')
     for label, span in zip(labels, spans):
         p.add_layout(label)
@@ -503,15 +540,16 @@ def xt_plot(data_array, detector_locations, X, T, title='xt_plot', notebook=Fals
     show(p)
 
 
-def numba_show_assignment(flows, costs, time, link_vars=dict(), node_vars=dict()):
+def numba_show_assignment(flows, time, link_vars=dict(), node_vars=dict()):
     """
     convenience function to plot from inside code that is to be jit compiled,
     typically there's no assignment object around ..
+    this is _just_ for debugging purposes
     check show assignment for docs
 
     Returns
     -------
 
     """
-    from dtapy.assignment import cur_network
-    show_assignment(cur_network, flows, costs, time, link_vars, node_vars)
+    from dtapy.assignment import cur_network  # retrieving network from global var in assignment object, dirty ...
+    show_assignment(cur_network, flows, time, link_vars, node_vars)
