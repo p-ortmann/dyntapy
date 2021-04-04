@@ -47,6 +47,7 @@ node_scaling = parameters.visualization.node_scaling
 
 def show_network(g: nx.MultiDiGraph, background_map=True,
                  title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
+
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
@@ -100,18 +101,15 @@ def show_network(g: nx.MultiDiGraph, background_map=True,
 def show_assignment(g: nx.DiGraph, flows, time: SimulationTime, link_kwargs=dict(), node_kwargs=dict(),
                     convergence=None,
                     background_map=True, highlight_nodes=np.array([]), highlight_links=np.array([]),
-                    title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
+                    title=None, plot_size=default_plot_size, notebook=False):
     """
 
     Parameters
     ----------
     osm_tap_tool
     notebook
-    max_links_visualized
-    show_unloaded_links
     flows
     g : nx.Digraph
-    scaling : width of the widest link in relation to plot_size
     background_map : bool, show the background map
     title : str, plot title
     plot_size : height and width measurement in pixel
@@ -204,7 +202,7 @@ def show_assignment(g: nx.DiGraph, flows, time: SimulationTime, link_kwargs=dict
     node_source = _node_cds(tmp, highlight_nodes, **node_kwargs_t0)
 
     edge_renderer = plot.add_glyph(edge_source,
-                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color=traffic_cm[0],
+                                   glyph=Patches(xs='x', ys='y', fill_color='color', line_color="black",
                                                  line_alpha=0.8))
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys + list(link_kwargs.keys()) + list(static_link_kwargs.keys())
                      if
@@ -223,10 +221,10 @@ def show_assignment(g: nx.DiGraph, flows, time: SimulationTime, link_kwargs=dict
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
 
-    if osm_tap_tool:
-        url = "https://www.openstreetmap.org/node/@ext_id/"
-        nodetaptool = TapTool(renderers=[node_renderer])
-        nodetaptool.callback = OpenURL(url=url)
+
+    url = "https://www.openstreetmap.org/node/@ext_id/"
+    nodetaptool = TapTool(renderers=[node_renderer])
+    nodetaptool.callback = OpenURL(url=url)
     text_input = TextInput(title="Add new graph title", value='')
     text_input.js_link('value', plot.title, 'text')
     time_slider = Slider(start=0, end=time.tot_time_steps - 1, value=0, step=1, title="time")
@@ -334,7 +332,7 @@ def show_demand(g, plot_size=default_plot_size, notebook=False):
     # text_input = TextInput(title="Add new graph title", value='')
     # text_input.js_link('value', plot.title, 'text')
     edge_renderer = plot.add_glyph(edge_source,
-                                   glyph=Patches(xs='x', ys='y', fill_color='green', line_color='green',
+                                   glyph=Patches(xs='x', ys='y', fill_color='green', line_color='black',
                                                  line_alpha=0.8))
     edge_tooltips = [('flow', '@flow{(0.0)}')]
     node_renderer = plot.add_glyph(node_source,
@@ -419,6 +417,8 @@ def _edge_cds(g, color, flow, x, y, **kwargs):
 def _get_colors_and_coords(g, max_width_coords, max_flow, flows, highlight_links=np.array([]), patch_ratio=10):
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords / patch_ratio
+    if max_flow == 0: # geometries cannot be computed, may sometimes happen in debugging.
+        max_flow=1
     colors = []
     x_list = []
     y_list = []
@@ -526,7 +526,7 @@ def xt_plot(data_array, detector_locations, X, T, title='xt_plot', notebook=Fals
         color_palette = traffic_cm[1:][::-1]
     else:
         raise ValueError('plot type not supported')
-    p = figure(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")])
+    p = figure(tooltips=[("x", "$x"), ("y", "$y"), ("value", "@image")], toolbar_location = 'below')
     p.x_range.range_padding = p.y_range.range_padding = 0
     p.image(image=[data_array], x=0, y=0, dw=T, dh=X, palette=color_palette, level="image")
     spans = [Span(location=loc, dimension='width', line_color='black', line_width=1) for loc in detector_locations]
@@ -542,16 +542,4 @@ def xt_plot(data_array, detector_locations, X, T, title='xt_plot', notebook=Fals
     show(p)
 
 
-def numba_show_assignment(flows, time, link_vars=dict(), node_vars=dict()):
-    """
-    convenience function to plot from inside code that is to be jit compiled,
-    typically there's no assignment object around ..
-    this is _just_ for debugging purposes
-    check show assignment for docs
 
-    Returns
-    -------
-
-    """
-    from dtapy.assignment import cur_network  # retrieving network from global var in assignment object, dirty ...
-    show_assignment(cur_network, flows, time, link_vars, node_vars)
