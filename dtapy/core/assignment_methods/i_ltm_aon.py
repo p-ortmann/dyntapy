@@ -16,7 +16,7 @@ from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from dtapy.utilities import _log
 from dtapy.core.network_loading.link_models.i_ltm import cvn_to_flows
-from dtapy.visualization import numba_show_assignment
+from dtapy.visualization import show_assignment
 import numpy as np
 
 
@@ -36,7 +36,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     _log(' iltm passed,  iteration ' + str(iteration_counter))
     flows = cvn_to_flows(iltm_state.cvn_up)
     costs = np.zeros(flows.shape, dtype=np.float32)
-    numba_show_assignment(flows, costs, route_choice_time, link_vars=
+    show_assignment(flows, costs, route_choice_time, link_vars=
     {'cvn_up':iltm_state.cvn_up, 'cvn_down':iltm_state.cvn_up})
     print('plotted')
     return flows, costs

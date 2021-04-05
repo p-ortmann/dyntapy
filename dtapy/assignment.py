@@ -23,6 +23,7 @@ from dtapy.demand import DynamicDemand
 from typing import Callable
 from dtapy.utilities import log
 from dtapy.visualization import show_assignment, show_demand
+import __init__
 
 v_wave_default = parameters.supply.v_wave_default
 turn_capacity_default = parameters.supply.turn_capacity_default
@@ -32,7 +33,6 @@ turn_t0_default = parameters.supply.turn_t0_default
 node_control_default = parameters.supply.node_control_default
 network_loading_method = parameters.network_loading.link_model
 
-cur_network = None # here to be able to retrieve the latest used network from any context
 
 class Assignment:
     """This class stores all the information needed for the assignment itself.
@@ -52,14 +52,15 @@ class Assignment:
         # you have to be familiar with numba
         _check_centroid_connectivity(g)
         self.g = g
-        global cur_network
-        cur_network = g
+        __init__.current_network = g
         self.dynamic_demand = dynamic_demand
         self.time = self.__init_time_obj(simulation_time)
         # get adjacency from nx, and
         # self.demand = self.build_demand()
+        show_assignment(g, np.zeros((simulation_time.tot_time_steps, g.number_of_edges())), simulation_time)
         self.nb_network = self.__build_network()
         log('network build')
+
         self.nb_dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
                                                                                             simulation_time)
         log('demand simulation build')

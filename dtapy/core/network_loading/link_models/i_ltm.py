@@ -15,9 +15,7 @@ from numba import njit
 from numba.typed import List
 from dtapy.core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
 from dtapy.utilities import _log
-from dtapy.visualization import numba_show_assignment
-from dtapy.visualization import numba_show_assignment
-
+from dtapy.visualization import show_assignment
 
 gap = parameters.network_loading.gap
 node_model_str = parameters.network_loading.node_model
@@ -80,9 +78,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     mean_it_iltm = 0
     max_it_iltm = 100
     tot_nodes_updates = np.uint32(0)  # tracking node updates over the entire DNL
-    delta_change = np.zeros((time.tot_time_steps,tot_nodes), dtype=np.float32)
+    delta_change = np.zeros(tot_nodes, dtype=np.float32)
     # part of these assignments may be added eventually, let's see what we actually need with our TF notation
-
     for t in range(tot_time_steps):
         if not nodes_2_update[t, :].any():
             continue
@@ -113,7 +110,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             tot_nodes_updates = tot_nodes_updates + cur_nodes_2_update
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node in [193,19]:
+                if node in [193, 122, 19]:
                     print(f'hi i am node {node}')
                     print('')
                 local_in_links = in_links.get_nnz(node)
@@ -122,7 +119,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 tot_local_out_links = len(local_out_links)
                 _log('calculating node ' + str(node) + ' with ' + str(tot_local_out_links) + ' out_links and ' + str(
                     tot_local_in_links) + ' in_links')
-                delta_change[t,node] = 0
+                delta_change[node] = 0
                 calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
                                    , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size)
                 calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow,
@@ -161,21 +158,20 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                         local_in_links, local_out_links, tot_local_sending_flow, con_down,
                                         network.nodes.in_link_capacity.get_row(node), time.step_size,
                                         t,
-                                        cvn_down, wind, wrt, from_node, nodes_2_update, delta_change[t], tot_time_steps,
+                                        cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps,
                                         network.links.out_turns, cvn_up, tot_receiving_flow, con_up, vind, to_node, vrt,
                                         marg_comp,
                                         node)
                 for centroid in dynamic_demand.all_centroids:
-                    delta_change[t,centroid] = 0
-            node_processing_order = np.argsort(delta_change[t])[::-1]
-            cur_nodes_2_update = np.sum(delta_change[t] > gap)
+                    delta_change[centroid] = 0
+            node_processing_order = np.argsort(delta_change)[::-1]
+            cur_nodes_2_update = np.sum(delta_change > gap)
             _log('remaining nodes 2 update in this t are:  ' + str(cur_nodes_2_update))
         unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links,
                                  tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down,
                                  tot_time_steps)
     print('iltm finished')
     print(f'total cvn up {np.sum(cvn_up)}')
-
 
 
 def unload_destination_flows(nodes_2_update, destinations, in_links,
@@ -307,7 +303,7 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
         if vind[link] == -1:
             local_sending_flow[_id, :] = local_sending_flow[_id, :] + vrt[link] * cvn_up[t, link, :]
         local_sending_flow[_id, :][local_sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
-        tot_local_sending_flow[_id] = min(cap[link] * step_size / 3600, np.sum(local_sending_flow[_id, :]))
+        tot_local_sending_flow[_id] = min(cap[link] * step_size , np.sum(local_sending_flow[_id, :]))
     _log('tot local sending flow is ' + str(tot_local_sending_flow))
     
 
@@ -524,8 +520,12 @@ def cvn_to_flows(cvn):
         flows[time, :] = -cvn[time - 1, :] + cvn[time, :]
         flows[time, :][flows[time, :] < 0] = 0
     return flows
-def debug_plot(iltm_state, delta_change, time):
-    flows =cvn_to_flows(iltm_state.cvn_up)
-    costs = np.zeros(flows.shape, dtype=np.float32)
-    numba_show_assignment(flows, costs,time, link_vars=
-    {'cvn_up': iltm_state.cvn_up, 'cvn_down': iltm_state.cvn_down}, node_vars={'delta_change': delta_change})
+
+
+def _debug_plot(iltm_state, network: ILTMNetwork, delta_change, time):
+    from __init__ import current_network
+    flows = cvn_to_flows(iltm_state.cvn_up)
+    show_assignment(current_network, flows, time, link_kwargs=
+    {'cvn_up': iltm_state.cvn_up, 'cvn_down': iltm_state.cvn_down, 'vind': network.links.vf_index,
+     'wind': network.links.vw_index}, node_kwargs={'delta_change': delta_change}, highlight_links=[100, 58, 19],
+                    highlight_nodes=[193, 122, 19])
