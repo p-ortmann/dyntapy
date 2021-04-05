@@ -86,8 +86,9 @@ class _Visualization:
     node_scaling = 1.7
     link_highlight_color = '#ff6ec7'  # neon pink
     node_highlight_color = '#ff6ec7'  # neon pink
-    node_color = '#808080'  # gray
+    node_color = '#424949'  # dark gray
     centroid_color = '#9063CD'  # purple
+    link_color = ' #f2f4f4' #light gray,  only for no flow scenarios
 
 
 @dataclass

@@ -8,7 +8,7 @@
 #
 #
 import numpy as np
-from matplotlib.colors import to_hex
+from matplotlib.colors import to_hex, to_rgba
 import matplotlib.cm as cm
 import logging
 import dtapy.settings as settings
@@ -18,20 +18,19 @@ import datetime
 from functools import wraps
 import time
 from numba import objmode, njit
-from dtapy.settings import log_numba
+from dtapy.settings import log_numba, parameters
 from __init__ import data_folder
+
+default_link_color=parameters.visualization.link_color
+
 
 cleared_log = False
 
 
-def __create_green_to_red_cm(color_format: str):
+def __create_green_to_red_cm():
     """
 
-    Parameters
-    ----------
-    color_format : either 'hex' or 'rgba' to get the map in different formats
-
-    Returns colormap as list
+    Returns colormap as hex list
     -------
 
     """
@@ -42,11 +41,9 @@ def __create_green_to_red_cm(color_format: str):
     np.negative(temp[:, 1:2], temp[:, 1:2])  # negative sign for green --> minimizing rowsum corresponds to green
     index_green = temp.sum(axis=1).argmin()
     rgba = np.flipud(rgba[:index_green, :])  # inverse the resulting colormap to get (green --> yellow--> red)
-    rgba = np.insert(rgba, 0, np.array([0.5, 0.5, 0.5, 1]), axis=0)  # adding grey as baseline color for no load
-    if color_format == 'hex':
-        return [to_hex(color, keep_alpha=False) for color in rgba]
-    else:
-        return rgba
+    new_cm = [to_hex(color, keep_alpha=False) for color in rgba]
+    new_cm.insert(0, default_link_color)
+    return new_cm
 
 
 def timeit(my_func):

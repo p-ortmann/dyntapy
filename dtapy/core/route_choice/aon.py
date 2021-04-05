@@ -74,7 +74,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 #_log('deactivated node ' + str(min_node))
                 new_dist = np.inf
                 for out_node, link in zip(out_links.get_row(min_node),out_links.get_nnz(min_node)):
-                    if out_node < dynamic_demand.tot_centroids:
+                    if out_node !=dynamic_demand.all_active_destinations[destination] and out_node < dynamic_demand.tot_centroids:
                         # centroids cannot be part of a path and not be a terminal node
                         continue
                     else:
