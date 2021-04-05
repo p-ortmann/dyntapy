@@ -113,7 +113,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             tot_nodes_updates = tot_nodes_updates + cur_nodes_2_update
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node in [193,122,19]:
+                if node in [193,19]:
                     print(f'hi i am node {node}')
                     print('')
                 local_in_links = in_links.get_nnz(node)
@@ -295,9 +295,12 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
     for _id, link in enumerate(local_in_links):
         if sending_flow_init[link]:
             sending_flow_init[link] = False
-            sending_flow[link, :] = cvn_up[max(0, t + vind[link]), link, :] * 1 - vrt[link] - cvn_down[t - 1,
+            if t==0:
+                sending_flow[link, :] = cvn_up[max(0, t + vind[link]), link, :] * (1 - vrt[link])
+            else:
+                sending_flow[link, :] = cvn_up[max(0, t + vind[link]), link, :] * (1 - vrt[link]) - cvn_down[min(0,t - 1),
                                                                                               link, :]
-            if vind[link] < -1:  # for all links with free flow travel time larger than dt we interpolate
+            if vind[link] < -1 and t>0:  # for all links with free flow travel time larger than dt we interpolate
                 sending_flow[link, :] = sending_flow[link, :] + vrt[link] * cvn_up[max(0, t + vind[link] + 1),
                                                                             link, :]
         local_sending_flow[_id, :] = sending_flow[link, :]
@@ -306,6 +309,7 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
         local_sending_flow[_id, :][local_sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
         tot_local_sending_flow[_id] = min(cap[link] * step_size / 3600, np.sum(local_sending_flow[_id, :]))
     _log('tot local sending flow is ' + str(tot_local_sending_flow))
+    
 
 
 def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow,
