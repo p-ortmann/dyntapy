@@ -18,7 +18,7 @@ route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
 
-@njit(parallel=True)
+#@njit(parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, state: AONState):
     tot_time_steps = time.tot_time_steps
     from_node = network.links.from_node
@@ -32,8 +32,8 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     arrival_maps = state.arrival_maps
     step_size = time.step_size
     np.floor_divide(state.cur_costs, step_size)
-    link_time = np.floor_divide(state.cur_costs, step_size)
-    interpolation_frac = np.divide(state.cur_costs, step_size) - link_time
+    link_time = np.floor_divide(state.cur_costs, step_size*3600)
+    interpolation_frac = np.divide(state.cur_costs, step_size*3600) - link_time
     # TODO: revisit structuring of the travel time arrays
     # could be worth while to copy and reverse the order depending on where you're at in these loops ..
     # the following implementation closely follows the solution presented in
@@ -79,8 +79,8 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                         continue
                     else:
                         if t + np.uint32(link_time[t, link]) >= tot_time_steps - 1:
-                            dist = arrival_maps[destination, tot_time_steps - 1, to_node[link]] + state.cur_costs[t, link] \
-                                   - (tot_time_steps - t) * step_size
+                            dist = arrival_maps[destination, tot_time_steps - 1, to_node[link]] + state.cur_costs[t, link]
+                            - (tot_time_steps-1-t)*step_size*3600
                         else:
                             dist = (1 - interpolation_frac[t, link]) * arrival_maps[
                                 destination, t + np.uint32(link_time[t, link]), to_node[link]] + interpolation_frac[
@@ -103,7 +103,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
 
 # TODO: test the @njit(parallel=True) option here
-@njit(parallel=True)
+#@njit(parallel=True)
 def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime,
                            state: AONState, departure_time_offset=route_choice_agg):
     """
@@ -157,17 +157,17 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                     turning_fractions[dest_idx, t, turn] = 1
 
 
-@njit
+#@njit
 def calc_source_connector_choice(network: Network, state: AONState,
                                  dynamic_demand: InternalDynamicDemand):
     for t_id, t in enumerate(dynamic_demand.loading_time_steps):
         demand = dynamic_demand.get_demand(t)
         for origin in demand.origins:
-            for _id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
+            for d_id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
                 dist = np.inf
                 min_link = -1
                 for node, link in zip(network.nodes.out_links.get_row(origin), network.nodes.out_links.get_nnz(origin)):
-                    if state.arrival_maps[destination, t, node] < dist:
-                        dist = state.arrival_maps[destination, t, node]
+                    if state.arrival_maps[d_id, t, node] < dist:
+                        dist = state.arrival_maps[d_id, t, node]
                         min_link = link
-                state.connector_choice[t_id].get_row(min_link)[_id] = 1.0
+                state.connector_choice[t_id].get_row(min_link)[d_id] = 1.0

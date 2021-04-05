@@ -57,7 +57,6 @@ class Assignment:
         self.time = self.__init_time_obj(simulation_time)
         # get adjacency from nx, and
         # self.demand = self.build_demand()
-        show_assignment(g, np.zeros((simulation_time.tot_time_steps, g.number_of_edges())), simulation_time)
         self.nb_network = self.__build_network()
         log('network build')
 

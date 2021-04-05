@@ -103,6 +103,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         cur_nodes_2_update = len(node_processing_order)  # remaining nodes that need updating for the current iteration
         # TODO: maintaining nodes 2 update as priority queue?
         it = 0  # counter for current iteration
+        _debug_plot(results, network, delta_change, time)
+        print('it comp')
         while it < max_it_iltm and cur_nodes_2_update > 0:
             _log('new iterations in main loop, time step ' + str(t))
             _log('_____________________________________________________________________________________________')
@@ -110,7 +112,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             tot_nodes_updates = tot_nodes_updates + cur_nodes_2_update
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node in [193, 122, 19]:
+                if node in [ 193, 146]:
+                    _debug_plot(results, network, delta_change, time)
                     print(f'hi i am node {node}')
                     print('')
                 local_in_links = in_links.get_nnz(node)
@@ -164,6 +167,10 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                         node)
                 for centroid in dynamic_demand.all_centroids:
                     delta_change[centroid] = 0
+                if node in [193, 146]:
+                    _debug_plot(results, network, delta_change, time)
+                    print(f'bye i am node {node}')
+                    print('')
             node_processing_order = np.argsort(delta_change)[::-1]
             cur_nodes_2_update = np.sum(delta_change > gap)
             _log('remaining nodes 2 update in this t are:  ' + str(cur_nodes_2_update))
@@ -333,12 +340,12 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
     -------
 
     """
-    for in_id, link in enumerate(local_out_links):
+    for out_id, link in enumerate(local_out_links):
         if receiving_flow_init[link]:
             receiving_flow_init[link] = False
             tot_receiving_flow[link] = \
-                np.sum(cvn_down[max(1, t + wind[link]), link, :]) * \
-                (1 - wrt[link] - np.sum(cvn_up[t - 1, link, :]) + kjm[link] * length[link])
+                np.sum(cvn_down[max(0, t + wind[link]), link, :] * \
+                (1 - wrt[link]) - np.sum(cvn_up[max(t - 1,0), link, :])) + kjm[link] * length[link]
             if wind[link] < -1:
                 tot_receiving_flow[link] = tot_receiving_flow[link] + wrt[link] * np.sum(
                     cvn_down[max(0, t + wind[link] + 1), link, :])
@@ -347,11 +354,11 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
         #   raise ValueError('negative RF')
         if tot_receiving_flow[link] < 0:
             tot_receiving_flow[link] = 0
-        tot_local_receiving_flow[in_id] = tot_receiving_flow[link]
+        tot_local_receiving_flow[out_id] = tot_receiving_flow[link]
         if wind[link] == -1:
-            tot_local_receiving_flow[in_id] = tot_local_receiving_flow[in_id] + wrt[link] * np.sum(cvn_down[t, link, :])
-        tot_local_receiving_flow[in_id] = min(cap[link] * step_size, tot_local_receiving_flow[in_id])
-        if tot_local_receiving_flow[in_id] < 0:
+            tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + wrt[link] * np.sum(cvn_down[t, link, :])
+        tot_local_receiving_flow[out_id] = min(cap[link] * step_size, tot_local_receiving_flow[out_id])
+        if tot_local_receiving_flow[out_id] < 0:
             _log('negative receiving flow,  not valid', to_console=True)
             print("..")
 
@@ -527,5 +534,5 @@ def _debug_plot(iltm_state, network: ILTMNetwork, delta_change, time):
     flows = cvn_to_flows(iltm_state.cvn_up)
     show_assignment(current_network, flows, time, link_kwargs=
     {'cvn_up': iltm_state.cvn_up, 'cvn_down': iltm_state.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index}, node_kwargs={'delta_change': delta_change}, highlight_links=[100, 58, 19],
-                    highlight_nodes=[193, 122, 19])
+     'wind': network.links.vw_index}, node_kwargs={'delta_change': delta_change}, highlight_links=[56, 58],
+                    highlight_nodes=[14, 19])
