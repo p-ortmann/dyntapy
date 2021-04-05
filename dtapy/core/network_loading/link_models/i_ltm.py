@@ -300,7 +300,7 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
         if vind[link] == -1:
             local_sending_flow[_id, :] = local_sending_flow[_id, :] + vrt[link] * cvn_up[t, link, :]
         local_sending_flow[_id, :][local_sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
-        tot_local_sending_flow[_id] = min(cap[link] * step_size / 3600, np.sum(local_sending_flow[_id, :]))
+        tot_local_sending_flow[_id] = min(cap[link] * step_size , np.sum(local_sending_flow[_id, :]))
     _log('tot local sending flow is ' + str(tot_local_sending_flow))
 
 
