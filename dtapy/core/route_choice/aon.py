@@ -73,26 +73,25 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 nodes_2_update[min_node] = False  # no longer considered
                 #_log('deactivated node ' + str(min_node))
                 new_dist = np.inf
-                for in_node, link in zip(in_links.get_row(min_node),in_links.get_nnz(min_node)):
-                    if in_node !=dynamic_demand.all_active_destinations[destination] and in_node < dynamic_demand.tot_centroids:
+                for out_node, link in zip(out_links.get_row(min_node),out_links.get_nnz(min_node)):
+                    if out_node !=dynamic_demand.all_active_destinations[destination] and out_node < dynamic_demand.tot_centroids:
                         # centroids cannot be part of a path and not be a terminal node
                         continue
                     else:
                         if t + np.uint32(link_time[t, link]) >= tot_time_steps - 1:
-                            dist = arrival_maps[destination, tot_time_steps - 1,in_node] + state.cur_costs[t, link]
+                            dist = arrival_maps[destination, tot_time_steps - 1,out_node] + state.cur_costs[t, link]
                             - (tot_time_steps-1-t)*step_size*3600
                         else:
                             dist = (1 - interpolation_frac[t, link]) * arrival_maps[
-                                destination, t + np.uint32(link_time[t, link]), in_node] + interpolation_frac[
+                                destination, t + np.uint32(link_time[t, link]), out_node] + interpolation_frac[
                                        t, link] * arrival_maps[
-                                       destination, t + np.uint32(link_time[t, link]) + 1, in_node]
+                                       destination, t + np.uint32(link_time[t, link]) + 1, out_node]
                         # _log(f'distance to {min_node} via out_link node {to_node[link]} is {dist} ')
                         if dist < new_dist:
                             new_dist = dist
                 # _log(f'result for node {min_node} written back? {np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta}')
                 if np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta:
                     # new arrival time found
-                    print('oh no')
                     arrival_maps[destination, t, min_node] = new_dist
                     if min_node > dynamic_demand.tot_centroids:
                         # only adds the in_links if it's not a centroid

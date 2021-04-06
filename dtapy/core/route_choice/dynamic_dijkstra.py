@@ -12,7 +12,7 @@ import numpy as np
 from dtapy.datastructures.csr import UI32CSRMatrix
 
 
-def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes, is_centroid):
+def dijkstra(costs, in_links: UI32CSRMatrix, target, tot_nodes, is_centroid):
     """
     typical dijkstra implementation with heaps, fills the distances array with the results
     Parameters
@@ -21,19 +21,19 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes, is_centroid):
     tot_nodes : int, number of nodes
     costs : float32 vector
     out_links : CSR matrix, fromNode x Link
-    source: integer ID of source node
+    target: integer ID of target node
 
     Returns
     -------
-    distances: array 1D, dim tot_nodes
+    distances: array 1D, dim tot_nodes. Distances from all nodes to the target node
     """
     # some minor adjustments from the static version to allow for the use of the csr structures
     # also removed conditional checks/ functionality that are not needed when this is integrated into route choice
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     seen = np.copy(distances)
     my_heap = []
-    seen[source] = np.float32(0)
-    heap_item = (np.float32(0), np.float32(source))
+    seen[target] = np.float32(0)
+    heap_item = (np.float32(0), np.float32(target))
     my_heap.append(heap_item)
     while my_heap:
         heap_item = heappop(my_heap)
@@ -42,11 +42,11 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes, is_centroid):
         if distances[i] != np.inf:
             continue  # had this node already
         distances[i] = d
-        if is_centroid[i] and not i == source:
+        if is_centroid[i] and not i == target:
             # centroids do not get unpacked, no connector routing..
             continue
-        for out_link, j in zip(out_links.get_nnz(i), out_links.get_row(i)):
-            ij_dist = distances[i] + costs[out_link]
+        for in_link, j in zip(in_links.get_nnz(i), in_links.get_row(i)):
+            ij_dist = distances[i] + costs[in_link]
             if seen[j] == np.inf or ij_dist < seen[j]:
                 seen[j] = ij_dist
                 heap_item = (ij_dist, np.float32(j))

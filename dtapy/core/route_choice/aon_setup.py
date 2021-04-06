@@ -17,14 +17,14 @@ from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
 
 
-def _init_arrival_maps(costs, out_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
+def _init_arrival_maps(costs,in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
         is_centroid[centroid] = True
     arrival_map = np.empty((len(destinations), tot_time_steps, tot_nodes), dtype=np.float32)
 
     for _id, destination in enumerate(destinations):
-        arrival_map[_id, 0, :] = dijkstra(costs[0, :], out_links, destination, tot_nodes, is_centroid)
+        arrival_map[_id, 0, :] = dijkstra(costs[0, :],in_links, destination, tot_nodes, is_centroid)
         for t in range(1, tot_time_steps):
             arrival_map[_id, t, :] = arrival_map[_id, 0,
                                      :] + t * step_size * 3600  # init of all time steps with free flow vals
@@ -49,7 +49,7 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
             prev_costs[:, c] = np.inf
             # triggering recomputations along all paths towards the destination
 
-    arrival_maps = _init_arrival_maps(cur_costs, network.nodes.out_links,
+    arrival_maps = _init_arrival_maps(cur_costs,network.nodes.in_links,
                                       dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
                                       network.tot_nodes, dynamic_demand.all_centroids)
     turning_fractions = np.zeros((tot_destinations, tot_time_steps, tot_turns), dtype=np.float32)
