@@ -153,7 +153,7 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     return x, y
 
 
-def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
+def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
     """
     adds centroids to g as the first C-1 nodes, with C the number of centroids.
     g.nodes.c contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y  and 'centroid' a boolean
@@ -211,8 +211,6 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, sort=True):
                              'link_type': np.int8(-1), 'from_node_id': v, 'to_node_id': u}
                 new_g.add_edge(u, v, **source_data)
                 new_g.add_edge(v, u, **sink_data)
-    if sort:
-        new_g = sort_graph(new_g)
     return new_g
 
 

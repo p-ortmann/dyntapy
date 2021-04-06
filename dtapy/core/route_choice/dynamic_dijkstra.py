@@ -12,7 +12,7 @@ import numpy as np
 from dtapy.datastructures.csr import UI32CSRMatrix
 
 
-@njit
+
 def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes):
     """
     typical dijkstra implementation with heaps, fills the distances array with the results
@@ -43,6 +43,8 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes):
             continue  # had this node already
         distances[i] = d
         for out_link, j in zip(out_links.get_nnz(i), out_links.get_row(i)):
+            if out_link==541:
+                print('ye')
             ij_dist = distances[i] + costs[out_link]
             if seen[j] == np.inf or ij_dist < seen[j]:
                 seen[j] = ij_dist

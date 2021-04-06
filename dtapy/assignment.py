@@ -79,17 +79,27 @@ class Assignment:
         return valid_methods
 
     def __build_network(self):
-        sorted_edges = sorted(self.g.edges(data=True), key=lambda t: t[2]['link_id'])
-        node_ids = np.array([node_id for (_, node_id) in self.g.nodes.data('node_id')], dtype=np.uint32)
+        edge_data = [(_,_,data) for _,_,data in self.g.edges.data()]
+        sorted_edges = sorted( edge_data, key=lambda t: t[2]['link_id'])
+        sorted_nodes = sorted(self.g.nodes(data=True), key=lambda t: t[1]['node_id'])
+        node_ids = np.array([data['node_id'] for (_, data) in sorted_nodes], dtype=np.uint32)
         # for the future: remove this requirement of pre sorting of nodes.
-        if not np.all(node_ids[1:] >= node_ids[:-1]):
+        if not np.all(node_ids[1:] == node_ids[:-1]+1):
             raise ValueError('the node_ids in the graph are assumed to be monotonously increasing and have to be '
                              'added accordingly')
         tot_nodes = np.uint32(self.g.number_of_nodes())
         tot_links = np.uint32(self.g.number_of_edges())
         from_nodes = np.array([d['from_node_id'] for (_, _, d) in sorted_edges], dtype=np.uint32)
         to_nodes = np.array([d['to_node_id'] for _, _, d in sorted_edges], dtype=np.uint32)
-        link_ids = np.arange(tot_links, dtype=np.uint32)
+        link_ids = np.array([d['link_id'] for _, _, d in sorted_edges], dtype=np.uint32)
+        if not np.all(link_ids[1:] == link_ids[:-1]+1):
+            raise ValueError('the node_ids in the graph are assumed to be monotonously increasing and have to be '
+                             'added accordingly')
+        for from_node, to_node , _id in zip(from_nodes, to_nodes, link_ids):
+            link_id=self.g[from_node][to_node][0].get('link_id',None)
+            if link_id is None:
+                print(f'edge {from_node=}{to_node=}....')
+                print('')
 
         nodes = self.__build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids)
         log("nodes passed")
@@ -108,6 +118,9 @@ class Assignment:
         links = self.__build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, link_capacity, free_speed,
                                    lanes, length, link_type)
         log("links passed")
+        from dtapy.visualization import show_network
+        show_network(self.g)
+
         return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size,
                        tot_connectors)
 
@@ -115,9 +128,6 @@ class Assignment:
     def __build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids):
         values, col, row = csr_prep(np.column_stack((from_nodes, link_ids)), to_nodes,
                                     (tot_nodes, tot_links))
-        # Note: links are labelled consecutively in the order of their start nodes
-        # node 0 has outgoing link(s) [0]
-        # node 1 outgoing link(s)  [1,2] and so on
         out_links = UI32CSRMatrix(values, col, row)
         values, col, row = csr_prep(np.column_stack((to_nodes, link_ids)),
                                     from_nodes, (tot_nodes, tot_links))

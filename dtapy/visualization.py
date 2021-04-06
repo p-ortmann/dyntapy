@@ -45,7 +45,8 @@ centroid_color = parameters.visualization.centroid_color
 node_scaling = parameters.visualization.node_scaling
 
 
-def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs = dict(),highlight_links = np.array([]), highlight_nodes= np.array([]) ,background_map=True,
+def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), highlight_links=np.array([]),
+                 highlight_nodes=np.array([]), background_map=True,
                  title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
@@ -61,8 +62,9 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs = dict(),hi
             data['y'] = data['y_coord']
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
-    if not all([val for _, _, val in g.edges.data('link_id')]):
+    if None in [val for _, _, val in g.edges.data('link_id')]:
         g = relabel_graph(g, 0, 0)
+        raise Warning('graph was relabelled during plotting, link_ids were not fully provided')
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
@@ -70,19 +72,20 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs = dict(),hi
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
 
-    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()),highlight_links=highlight_links, patch_ratio=3)
+    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()),
+                                     highlight_links=highlight_links, patch_ratio=3)
     # costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
     #        for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
-    edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y,**link_kwargs )
-    node_source = _node_cds(tmp,highlight_nodes=highlight_nodes, **node_kwargs)
+    edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y, **link_kwargs)
+    node_source = _node_cds(tmp, highlight_nodes, **node_kwargs)
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color="black",
                                                  line_alpha=0.8))
-    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys+list(link_kwargs.keys()) if
+    edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys + list(link_kwargs.keys()) if
                      item != 'flow']
     node_renderer = plot.add_glyph(node_source,
                                    glyph=Circle(x='x', y='y', size=max_width_bokeh * node_scaling,
-                                                line_color="black",fill_color = 'color',
+                                                line_color="black", fill_color='color',
                                                 line_width=max_width_bokeh / 10))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys())]
 
@@ -97,7 +100,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs = dict(),hi
     show(plot)
 
 
-def show_assignment( g: nx.DiGraph , time: SimulationTime,flows=None,  link_kwargs=dict(), node_kwargs=dict(),
+def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs=dict(), node_kwargs=dict(),
                     convergence=None,
                     background_map=True, highlight_nodes=np.array([]), highlight_links=np.array([]),
                     title=None, plot_size=default_plot_size, notebook=False):

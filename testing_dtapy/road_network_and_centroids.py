@@ -16,7 +16,7 @@ from dtapy.utilities import log, _filepath
 
 default_centroid_spacing =  parameters.demand.default_centroid_spacing
 
-(g, deleted) = get_from_ox_and_save(city, reload=False)
+g = get_from_ox_and_save(city, reload=False)
 x, y = get_centroid_grid_coords(city)
 
 
