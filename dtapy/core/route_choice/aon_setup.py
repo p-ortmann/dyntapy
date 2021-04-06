@@ -17,10 +17,14 @@ from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
 
 
-def _init_arrival_maps(costs, out_links, destinations, step_size, tot_time_steps, tot_nodes):
+def _init_arrival_maps(costs, out_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
+    is_centroid = np.full(tot_nodes, False)
+    for centroid in centroids:
+        is_centroid[centroid] = True
     arrival_map = np.empty((len(destinations), tot_time_steps, tot_nodes), dtype=np.float32)
+
     for _id, destination in enumerate(destinations):
-        arrival_map[_id, 0, :] = dijkstra(costs[0, :], out_links, destination, tot_nodes)
+        arrival_map[_id, 0, :] = dijkstra(costs[0, :], out_links, destination, tot_nodes, is_centroid)
         for t in range(1, tot_time_steps):
             arrival_map[_id, t, :] = arrival_map[_id, 0,
                                      :] + t * step_size * 3600  # init of all time steps with free flow vals
@@ -47,7 +51,8 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
 
     arrival_maps = _init_arrival_maps(cur_costs, network.nodes.out_links,
                                       dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
-                                      network.tot_nodes)
+                                      network.tot_nodes, dynamic_demand.all_centroids)
+    turning_fractions = np.zeros((tot_destinations, tot_time_steps, tot_turns), dtype=np.float32)
     turning_fractions = np.zeros((tot_destinations, tot_time_steps, tot_turns), dtype=np.float32)
     link_time = np.floor(cur_costs / step_size)
     interpolation_frac = cur_costs / step_size - link_time
@@ -71,7 +76,8 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                     _id += 1
         index_array = index_array[:_id].copy()
         val = val[:_id].copy()
-        val, col, row = csr_prep(index_array, val, shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations+1))
+        val, col, row = csr_prep(index_array, val,
+                                 shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations + 1))
         source_connector_choice.append(
             F32CSRMatrix(val, col, row))
     return AONState(cur_costs, prev_costs, arrival_maps, turning_fractions,

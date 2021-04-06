@@ -12,12 +12,12 @@ import numpy as np
 from dtapy.datastructures.csr import UI32CSRMatrix
 
 
-
-def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes):
+def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes, is_centroid):
     """
     typical dijkstra implementation with heaps, fills the distances array with the results
     Parameters
     ----------
+    is_centroid : bool array, dim tot_nodes, true if node is centroid, false otherwise
     tot_nodes : int, number of nodes
     costs : float32 vector
     out_links : CSR matrix, fromNode x Link
@@ -42,9 +42,10 @@ def dijkstra(costs, out_links: UI32CSRMatrix, source, tot_nodes):
         if distances[i] != np.inf:
             continue  # had this node already
         distances[i] = d
+        if is_centroid[i] and not i == source:
+            # centroids do not get unpacked, no connector routing..
+            continue
         for out_link, j in zip(out_links.get_nnz(i), out_links.get_row(i)):
-            if out_link==541:
-                print('ye')
             ij_dist = distances[i] + costs[out_link]
             if seen[j] == np.inf or ij_dist < seen[j]:
                 seen[j] = ij_dist

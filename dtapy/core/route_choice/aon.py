@@ -73,26 +73,26 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 nodes_2_update[min_node] = False  # no longer considered
                 #_log('deactivated node ' + str(min_node))
                 new_dist = np.inf
-                for out_node, link in zip(out_links.get_row(min_node),out_links.get_nnz(min_node)):
-                    if out_node !=dynamic_demand.all_active_destinations[destination] and out_node < dynamic_demand.tot_centroids:
+                for in_node, link in zip(in_links.get_row(min_node),in_links.get_nnz(min_node)):
+                    if in_node !=dynamic_demand.all_active_destinations[destination] and in_node < dynamic_demand.tot_centroids:
                         # centroids cannot be part of a path and not be a terminal node
                         continue
                     else:
                         if t + np.uint32(link_time[t, link]) >= tot_time_steps - 1:
-                            dist = arrival_maps[destination, tot_time_steps - 1, to_node[link]] + state.cur_costs[t, link]
+                            dist = arrival_maps[destination, tot_time_steps - 1,in_node] + state.cur_costs[t, link]
                             - (tot_time_steps-1-t)*step_size*3600
                         else:
                             dist = (1 - interpolation_frac[t, link]) * arrival_maps[
-                                destination, t + np.uint32(link_time[t, link]), to_node[link]] + interpolation_frac[
+                                destination, t + np.uint32(link_time[t, link]), in_node] + interpolation_frac[
                                        t, link] * arrival_maps[
-                                       destination, t + np.uint32(link_time[t, link]) + 1, to_node[link]]
+                                       destination, t + np.uint32(link_time[t, link]) + 1, in_node]
                         # _log(f'distance to {min_node} via out_link node {to_node[link]} is {dist} ')
                         if dist < new_dist:
                             new_dist = dist
-                            print(f'new dist with link {link} ')
                 # _log(f'result for node {min_node} written back? {np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta}')
                 if np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta:
                     # new arrival time found
+                    print('oh no')
                     arrival_maps[destination, t, min_node] = new_dist
                     if min_node > dynamic_demand.tot_centroids:
                         # only adds the in_links if it's not a centroid
@@ -126,6 +126,9 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
     """
     # calculation for the experienced travel times
     _log('calculating arrival maps ')
+    from dtapy.visualization import show_network
+    from __init__ import current_network
+    show_network(current_network, node_kwargs={'arrival_at_dest_8':state.arrival_maps[0,0,:]},link_kwargs={'costs':network.links.length/network.links.v0*3600}, highlight_nodes=[8])
     update_arrival_maps(network, time, dynamic_demand, state)
     _log('got past arrival maps')
     arrival_maps = state.arrival_maps
@@ -134,7 +137,6 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
     next_node = np.int32(-1)
     turning_fractions = state.turning_fractions
     for dest_idx in prange(dynamic_demand.all_active_destinations.size):
-        dists = state.arrival_maps[dest_idx, :, :]
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
             # print(f'time {t}')

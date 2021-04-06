@@ -118,8 +118,6 @@ class Assignment:
         links = self.__build_links(turns, tot_time_steps, tot_links, from_nodes, to_nodes, link_capacity, free_speed,
                                    lanes, length, link_type)
         log("links passed")
-        from dtapy.visualization import show_network
-        show_network(self.g)
 
         return Network(links, nodes, turns, self.g.number_of_edges(), self.g.number_of_nodes(), turns.capacity.size,
                        tot_connectors)

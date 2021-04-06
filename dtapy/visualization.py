@@ -30,6 +30,7 @@ from __init__ import results_folder, current_network
 from dtapy.settings import parameters
 from dtapy.core.time import SimulationTime
 from dtapy.network_data import relabel_graph
+from warnings import warn
 from dtapy.utilities import log
 from numba import njit, objmode
 
@@ -63,8 +64,8 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
     if None in [val for _, _, val in g.edges.data('link_id')]:
-        g = relabel_graph(g, 0, 0)
-        raise Warning('graph was relabelled during plotting, link_ids were not fully provided')
+        g =relabel_graph(g, 0, 0)
+        warn('graph was relabelled during plotting, link_ids were not fully provided')
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
