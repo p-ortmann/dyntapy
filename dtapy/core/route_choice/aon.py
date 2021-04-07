@@ -18,7 +18,7 @@ route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
 
-#@njit(parallel=True)
+@njit(parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, state: AONState):
     tot_time_steps = time.tot_time_steps
     from_node = network.links.from_node
@@ -124,18 +124,17 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
 
     """
     # calculation for the experienced travel times
-    _log('calculating arrival maps ')
-    from dtapy.visualization import show_network
-    from __init__ import current_network
-    show_network(current_network, node_kwargs={'arrival_at_dest_8':state.arrival_maps[0,0,:]},link_kwargs={'costs':network.links.length/network.links.v0*3600}, highlight_nodes=[8])
+    #_log('calculating arrival maps ')
     update_arrival_maps(network, time, dynamic_demand, state)
-    _log('got past arrival maps')
+    _log('updated arrival maps')
     arrival_maps = state.arrival_maps
     step_size = time.step_size
     next_link = np.int32(-1)
     next_node = np.int32(-1)
     turning_fractions = state.turning_fractions
     for dest_idx in prange(dynamic_demand.all_active_destinations.size):
+        if dest_idx==1:
+            print('hi')
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
             # print(f'time {t}')
@@ -143,11 +142,13 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                 next_node = node
                 start_time = t + departure_time_offset
                 min_dist = np.inf
+                if node==91:
+                    print(f' hi {node}')
                 for link, to_node in zip(network.nodes.out_links.get_nnz(next_node),
                                          network.nodes.out_links.get_row(next_node)):
-                    link_time = np.floor(start_time + state.cur_costs[t, link])
+                    link_time = np.floor(start_time + state.cur_costs[t, link]/3600*step_size)
                     if t + np.uint32(link_time) < time.tot_time_steps - 1:
-                        interpolation_fraction = start_time + state.cur_costs[t, link] - link_time
+                        interpolation_fraction = start_time + state.cur_costs[t, link]/3600*step_size - link_time
                         dist = (1 - interpolation_fraction) * arrival_maps[
                             dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
                                    dest_idx, t + np.uint32(link_time) + 1, to_node]
@@ -159,7 +160,7 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                     turning_fractions[dest_idx, t, turn] = 1
 
 
-#@njit
+@njit
 def calc_source_connector_choice(network: Network, state: AONState,
                                  dynamic_demand: InternalDynamicDemand):
     for t_id, t in enumerate(dynamic_demand.loading_time_steps):

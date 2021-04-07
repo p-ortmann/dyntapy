@@ -122,7 +122,10 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
 
     """
     if flows is None:
-        flows = np.zeros((time.tot_time_steps, g.number_of_edges()))
+        if 'flows' not in list(link_kwargs.keys()):
+            flows = np.zeros((time.tot_time_steps, g.number_of_edges()))
+        else:
+            flows = link_kwargs['flows']
 
     static_link_kwargs = dict()
     static_node_kwargs = dict()

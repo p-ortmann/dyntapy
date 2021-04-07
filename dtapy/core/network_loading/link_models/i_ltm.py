@@ -19,6 +19,7 @@ from dtapy.visualization import show_assignment
 
 gap = parameters.network_loading.gap
 node_model_str = parameters.network_loading.node_model
+from __init__ import current_network
 
 
 # @njit
@@ -103,7 +104,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         cur_nodes_2_update = len(node_processing_order)  # remaining nodes that need updating for the current iteration
         # TODO: maintaining nodes 2 update as priority queue?
         it = 0  # counter for current iteration
-        _debug_plot(results, network, delta_change, time)
         print('it comp')
         while it < max_it_iltm and cur_nodes_2_update > 0:
             _log('new iterations in main loop, time step ' + str(t))
@@ -112,8 +112,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             tot_nodes_updates = tot_nodes_updates + cur_nodes_2_update
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node in [ 193, 146]:
-                    _debug_plot(results, network, delta_change, time)
+                if node in [ 90,91]:
                     print(f'hi i am node {node}')
                     print('')
                 local_in_links = in_links.get_nnz(node)
@@ -427,7 +426,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         # based on the constraints imposed by the node model
         # check for all of the in_links if any of their cvns change significantly enough to trigger
         # recomputation of their tail nodes at backward time (spillback).
-        if np.any(tot_local_sending_flow[in_id]) > 0:
+        if tot_local_sending_flow[in_id] > 0:
             if result_tot_sending_flow[in_id] < tot_local_sending_flow[in_id] \
                     or np.abs(result_tot_sending_flow[in_id] - in_link_capacity[in_id] * time_step) < gap:
                 con_down[t, in_link] = True
@@ -445,7 +444,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                 if wind[in_link] == -1:
                     nodes_2_update[t, from_node[in_link]] = True
                     delta_change[from_node[in_link]] = delta_change[from_node[in_link]] + wrt[in_link] * np.sum(
-                        np.abs(cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :])))
+                        np.abs(cvn_down[t, in_link, :] - (cvn_down[min(t - 1,0), in_link, :] + temp_sending_flow[in_id, :])))
                 else:
                     nodes_2_update[min(tot_time_steps - 1, t - wind[in_link]) - 1, from_node[in_link]] = True
                     nodes_2_update[min(tot_time_steps - 1, t - wind[in_link]), from_node[in_link]] = True
@@ -498,7 +497,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                         delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] - time_step * 1 / vind[
                             out_link]
     if update_node:
-        _log('node change significant, updating cvns')
+        print(f'node {node} change significant, updating cvns')
         nodes_2_update[min(tot_time_steps - 1, t + 1), node] = True
     for in_id, in_link in enumerate(local_in_links):
         cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
@@ -529,10 +528,10 @@ def cvn_to_flows(cvn):
     return flows
 
 
-def _debug_plot(iltm_state, network: ILTMNetwork, delta_change, time):
+def _debug_plot(results, network: ILTMNetwork, delta_change, time):
     from __init__ import current_network
-    flows = cvn_to_flows(iltm_state.cvn_up)
-    show_assignment(current_network, flows, time, link_kwargs=
-    {'cvn_up': iltm_state.cvn_up, 'cvn_down': iltm_state.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index}, node_kwargs={'delta_change': delta_change}, highlight_links=[56, 58],
-                    highlight_nodes=[14, 19])
+    flows = cvn_to_flows(results.cvn_up)
+    show_assignment(current_network, time, link_kwargs=
+    {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
+     'wind': network.links.vw_index, 'flows':flows}, node_kwargs={'delta_change': delta_change},
+                    highlight_nodes=[87, 19,90])

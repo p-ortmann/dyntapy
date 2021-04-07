@@ -95,11 +95,6 @@ class Assignment:
         if not np.all(link_ids[1:] == link_ids[:-1]+1):
             raise ValueError('the node_ids in the graph are assumed to be monotonously increasing and have to be '
                              'added accordingly')
-        for from_node, to_node , _id in zip(from_nodes, to_nodes, link_ids):
-            link_id=self.g[from_node][to_node][0].get('link_id',None)
-            if link_id is None:
-                print(f'edge {from_node=}{to_node=}....')
-                print('')
 
         nodes = self.__build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids)
         log("nodes passed")
@@ -192,11 +187,12 @@ class Assignment:
         bw_index_array = np.column_stack((turns.to_link, turns.from_link))
         val = np.arange(number_of_turns, dtype=np.uint32)
         val, col, row = csr_prep(fw_index_array, val, (tot_links, tot_links))
-        forward = UI32CSRMatrix(val, col, row)
+        out_turns = UI32CSRMatrix(val, col, row)
+        val = np.arange(number_of_turns, dtype=np.uint32) # val gets shuffled by csr sort
         val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_links))
-        backward = UI32CSRMatrix(val, col, row)
+        in_turns = UI32CSRMatrix(val, col, row)
 
-        return Links(length, from_nodes, to_nodes, capacity, v_wave, costs, free_speed, forward, backward,
+        return Links(length, from_nodes, to_nodes, capacity, v_wave, costs, free_speed, out_turns, in_turns,
                      lanes, link_type)
 
     @staticmethod

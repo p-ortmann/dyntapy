@@ -11,7 +11,7 @@ from heapq import heappush, heappop
 import numpy as np
 from dtapy.datastructures.csr import UI32CSRMatrix
 
-
+@njit
 def dijkstra(costs, in_links: UI32CSRMatrix, target, tot_nodes, is_centroid):
     """
     typical dijkstra implementation with heaps, fills the distances array with the results
