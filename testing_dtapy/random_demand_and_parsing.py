@@ -18,9 +18,11 @@ from dtapy.visualization import show_demand
 step_size = parameters.network_loading.step_size
 # loading from data folder, assumes road_network_and_centroids was run previously
 g = load_pickle(city + '_grid_centroids')
-geo_jsons = [generate_od_xy(4, city, seed=seed) for seed in [0, 1, 2]]
+geo_jsons = [generate_od_xy(4, city, seed=seed,max_flow=500) for seed in [0, 1, 2]]
 times = np.arange(2)
 trip_graphs = {time: parse_demand(geo_json, g, time) for geo_json, time in zip(geo_jsons, times)}
+for trip_graph, time in zip(trip_graphs.values(), trip_graphs.keys()):
+    show_demand(trip_graph,title=f'demand at {time}')
 # time unit is assumed to be hours, see parse demand
 dynamic_demand = DynamicDemand(trip_graphs)
 # convert everything to internal representations and parse

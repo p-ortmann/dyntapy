@@ -43,7 +43,7 @@ link_highlight_color = parameters.visualization.link_highlight_color
 node_highlight_color = parameters.visualization.node_highlight_color
 node_color = parameters.visualization.node_color
 centroid_color = parameters.visualization.centroid_color
-node_scaling = parameters.visualization.node_scaling
+node_size = parameters.visualization.node_size
 
 
 def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), highlight_links=np.array([]),
@@ -64,7 +64,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
     if None in [val for _, _, val in g.edges.data('link_id')]:
-        g =relabel_graph(g, 0, 0)
+        g = relabel_graph(g, 0, 0)
         warn('graph was relabelled during plotting, link_ids were not fully provided')
     tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
@@ -73,7 +73,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
 
-    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()),
+    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()),time_step=1,
                                      highlight_links=highlight_links, patch_ratio=3)
     # costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
     #        for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
@@ -85,9 +85,9 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys + list(link_kwargs.keys()) if
                      item != 'flow']
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=max_width_bokeh * node_scaling,
-                                                line_color="black", fill_color='color',
-                                                line_width=max_width_bokeh / 10))
+                                   glyph=Circle(x='x', y='y', size=node_size,
+                                                line_color="black", fill_color='color', line_alpha=0.4, fill_alpha=0.7,
+                                                line_width=node_size / 10))
     node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys())]
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
@@ -175,12 +175,13 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
                   aspect_ratio=1, toolbar_location='below')
     # adding different coordinate attribute names to comply with osmnx
     for _, _, data in g.edges.data():
-        if 'x_coord' in data:
+        if 'x_coord' in data and 'x' not in data:
             data['x'] = data['x_coord']
             data['y'] = data['y_coord']
     for _, data in g.nodes.data():
-        data['x'] = data['x_coord']
-        data['y'] = data['y_coord']
+        if 'x_coord' in data and 'x' not in data:
+            data['x'] = data['x_coord']
+            data['y'] = data['y_coord']
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
 
@@ -190,14 +191,14 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
 
-    max_flow = np.max(flows)
+    max_flow = min(np.max(flows), 8000)  # weeding out numerical errors
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)
     # calculate all colors and coordinates for the different time dependent flows
     all_colors = []
     all_x = []
     all_y = []
     for t in range(time.tot_time_steps):
-        c, x, y = _get_colors_and_coords(tmp, max_width_coords, max_flow, flows[t], highlight_links)
+        c, x, y = _get_colors_and_coords(tmp, max_width_coords, max_flow, flows[t],time.step_size, highlight_links)
         all_x.append(x)
         all_y.append(y)
         all_colors.append(c)
@@ -212,7 +213,7 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
 
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color="black",
-                                                 line_alpha=0.8))
+                                                 line_alpha=0.4, line_width=0.4))
     edge_tooltips = [(item, f'@{item}') for item in
                      parameters.visualization.link_keys + list(link_kwargs.keys()) + list(static_link_kwargs.keys())
                      if
@@ -221,9 +222,10 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     # edge_tooltips = edge_tooltips + link_kwargs_tooltips
     edge_tooltips.append(('flow', '@flow{(0.00)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=max_width_bokeh * node_scaling, fill_color='color',
+                                   glyph=Circle(x='x', y='y', size= node_size, fill_color='color',line_alpha=0.4,
+                                                fill_alpha=0.7,
                                                 line_color="black",
-                                                line_width=max_width_bokeh / 5))
+                                                line_width=node_size / 10))
     node_tooltips = [(item, f'@{item}') for item in
                      parameters.visualization.node_keys + list(node_kwargs.keys()) + list(static_node_kwargs.keys())]
     # node_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(node_kwargs.keys())]
@@ -303,19 +305,28 @@ def get_max_edge_width(g, scaling, plot_size):
     return max_width_bokeh, max_width_coords
 
 
-def show_demand(g, plot_size=default_plot_size, notebook=False):
-    default_title = str(g.graph['name'])
+def show_demand(g, title=None, plot_size=default_plot_size, notebook=False):
+    if title is None:
+        title = str(g.graph['name'])
     if notebook:
         output_notebook(hide_banner=True)
         plot_size = 600
     else:
-        output_file(results_folder + f'/{default_title}.html')
+        output_file(results_folder + f'/{title}.html')
     plot = figure(plot_height=plot_size,
                   plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                   aspect_ratio=1, toolbar_location='below')
-    plot.title.text = default_title
+    plot.title.text = title
     tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
     plot.add_tile(tile_provider)
+    for _, _, data in g.edges.data():
+        if 'x_coord' in data:
+            data['x'] = data['x_coord']
+            data['y'] = data['y_coord']
+    for _, data in g.nodes.data():
+        if 'x_coord' in data:
+            data['x'] = data['x_coord']
+            data['y'] = data['y_coord']
     tmp = ox.project_graph(g, CRS.from_user_input(3857))
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     min_width_coords = max_width_coords / 10
@@ -346,8 +357,9 @@ def show_demand(g, plot_size=default_plot_size, notebook=False):
                                                  line_alpha=0.8))
     edge_tooltips = [('flow', '@flow{(0.0)}')]
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=max_width_bokeh * node_scaling, line_color="black",
-                                                line_width=max_width_bokeh / 10))
+                                   glyph=Circle(x='x', y='y', size=node_size*2, line_color="black",
+                                                 line_alpha=0.4, fill_alpha=0.7,
+                                                line_width=node_size / 10))
     node_tooltips = [(item, f'@{item}') for item in ['x', 'y', 'centroid_id']]
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
     node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
@@ -392,8 +404,6 @@ def filter_links(g: nx.DiGraph, max_links_visualized, show_unloaded_links, flows
 def _node_cds(g, highlight_nodes=np.array([]), **kwargs):
     visualization_keys = parameters.visualization.node_keys
     node_dict = dict()
-    visualization_keys.append('x')
-    visualization_keys.append('y')
     node_colors = [node_color for _ in range(g.number_of_nodes())]
     for _, data in sorted(g.nodes(data=True), key=lambda t: t[1]['node_id']):
         if data.get('centroid', False):
@@ -401,7 +411,7 @@ def _node_cds(g, highlight_nodes=np.array([]), **kwargs):
     for node in highlight_nodes:
         node_colors[node] = node_highlight_color
     node_dict['color'] = node_colors
-    for attr_key in visualization_keys:
+    for attr_key in visualization_keys+['x','y']:
         values = [node_attr[attr_key] if attr_key in node_attr.keys() else 'None'
                   for _, node_attr in sorted(g.nodes(data=True), key=lambda t: t[1]['node_id'])]
         node_dict[attr_key] = values
@@ -424,7 +434,7 @@ def _edge_cds(g, color, flow, x, y, **kwargs):
     return ColumnDataSource(data=edge_dict)
 
 
-def _get_colors_and_coords(g, max_width_coords, max_flow, flows, highlight_links=np.array([]), patch_ratio=10):
+def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, highlight_links=np.array([]), patch_ratio=8):
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords / patch_ratio
     if max_flow == 0:  # geometries cannot be computed, may sometimes happen in debugging.
@@ -436,13 +446,17 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows, highlight_links
     for u, v, data in sorted(g.edges(data=True), key=lambda t: t[2]['link_id']):
         try:
             try:
-                color = traffic_cm[np.int(np.round(np.abs(flows[data['link_id']]) / data['capacity'] * nr_of_colors))]
+                flow = flows[data['link_id']]
+                color = traffic_cm[np.int(np.ceil(np.abs(flows[data['link_id']]) / (data['capacity']*time_step) * nr_of_colors))]
             except IndexError:
                 color = traffic_cm[-1]  # flow larger then capacity!
             except KeyError:  # capacity or flow not defined
                 color = traffic_cm[0]
             colors.append(color)
-            width_coords = min_width_coords + (max_width_coords - min_width_coords) * (
+            loaded = 0
+            if flow > 0:
+                loaded = 1
+            width_coords = min_width_coords + min_width_coords * loaded + (max_width_coords - 2 * min_width_coords) * (
                     np.abs(flows[data['link_id']]) / max_flow)
             # width_bokeh = min_width_bokeh + (max_width_bokeh - min_width_bokeh) * (data['flow'] / max_flow)
         except KeyError:  # flow not defined.., no width scaling possible

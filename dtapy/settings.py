@@ -65,7 +65,7 @@ class _NetworkLoading:
     container for parameters that concern supply
     """
     link_model: str = 'i_ltm'
-    gap: np.float32 = np.float32(0.00000001)
+    gap: np.float32 = np.float32(0.001)
     max_iterations: np.uint32 = np.uint32(100)
     step_size: np.float32 = np.float32(0.25)
     node_model: str = 'orca'
@@ -82,8 +82,8 @@ class _Visualization:
     link_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'free_speed', 'ext_id',
                  'name', 'facility_type', 'flow', 'connector']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'ext_id', 'node_type', 'ctrl_type', 'centroid']
-    link_width_scaling = 0.006
-    node_scaling = 1.7
+    link_width_scaling = 0.012
+    node_size = 6
     link_highlight_color = '#ff6ec7'  # neon pink
     node_highlight_color = '#ff6ec7'  # neon pink
     node_color = '#424949'  # dark gray

@@ -22,9 +22,11 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     capacity = network.links.capacity
     step_size = time.step_size
     v_wave = network.links.v_wave
-    vf_index = int32((length / v0) / step_size)  # uint works as floor in matlab
-    vf_ratio = float32(vf_index - (length / v0) / step_size + 1)
-    vf_index = int32(-vf_index - 1)
+    vf_index = int32((length / v0) / step_size) # 0 if a road can be traversed more than once during a time interval
+    # int works as floor in matlab
+    vf_ratio = float32(int32((length / v0) / step_size) - (length / v0) / step_size + 1) # interpolation ratio
+    vf_index = int32(-vf_index - 1)  # -1 for roads that clear faster than the time step, -2 and upwards for slower
+    # so if you want to know the sending flow for the current time step you have to look vf_index time steps back
     vw_index = int32((length / v_wave) / step_size)
     vw_ratio = float32(vw_index - (length / v_wave) / step_size + 1)
     vw_index = int32(-vw_index - 1)
@@ -33,6 +35,8 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     for in_link, linktype in enumerate(network.links.link_type):
         if linktype == 1 or linktype == -1:  # we don't want queuing caused by access to connectors ..
             k_jam[in_link] = 1000000
+    k_jam[k_jam<72]=72 # to be refined ..
+    length[length<0.05]=0.05 # set all links to store as if they have 50 meters ..
     iltm_links = ILTMLinks(network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 

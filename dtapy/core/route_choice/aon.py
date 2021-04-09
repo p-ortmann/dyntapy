@@ -135,30 +135,30 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
     next_node = np.int32(-1)
     turning_fractions = state.turning_fractions
     for dest_idx in prange(dynamic_demand.all_active_destinations.size):
-        if dest_idx == 1:
-            print('hi')
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
-            # print(f'time {t}')
             for node in range(network.tot_nodes):
                 next_node = node
                 start_time = t + departure_time_offset
                 min_dist = np.inf
-                if node == 91:
-                    print(f' hi {node}')
                 for link, to_node in zip(network.nodes.out_links.get_nnz(next_node),
                                          network.nodes.out_links.get_row(next_node)):
-                    link_time = np.floor(start_time + state.cur_costs[t, link] / 3600 * step_size)
-                    if t + np.uint32(link_time) < time.tot_time_steps - 1:
-                        interpolation_fraction = start_time + state.cur_costs[t, link] / 3600 * step_size - link_time
-                        dist = (1 - interpolation_fraction) * arrival_maps[
-                            dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
-                                   dest_idx, t + np.uint32(link_time) + 1, to_node]
+                    if to_node < dynamic_demand.tot_centroids and to_node != dynamic_demand.all_active_destinations[
+                        dest_idx]:
+                        continue
                     else:
-                        dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_node]
-                    if dist < min_dist:
-                        min_dist = dist
-                        next_link = link
+                        link_time = np.floor(start_time + state.cur_costs[t, link] / 3600 * step_size)
+                        if t + np.uint32(link_time) < time.tot_time_steps - 1:
+                            interpolation_fraction = start_time + state.cur_costs[
+                                t, link] / 3600 * step_size - link_time
+                            dist = (1 - interpolation_fraction) * arrival_maps[
+                                dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
+                                       dest_idx, t + np.uint32(link_time) + 1, to_node]
+                        else:
+                            dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_node]
+                        if dist < min_dist:
+                            min_dist = dist
+                            next_link = link
                 for turn in network.links.in_turns.get_row(next_link):
                     turning_fractions[dest_idx, t, turn] = 1
 
