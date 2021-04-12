@@ -74,7 +74,7 @@ class InternalDynamicDemand(object):
         return self.demands[_id]
 
 
-@njit()
+@njit(cache=True)
 def _get_loading_time_steps(demands):
     loading = np.empty(len(demands), dtype=np.uint32)
     for _id, demand in enumerate(demands):

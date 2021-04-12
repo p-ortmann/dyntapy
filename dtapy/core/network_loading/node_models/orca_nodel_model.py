@@ -6,7 +6,7 @@ from numba import int8, njit, int64
 from dtapy.utilities import _log
 
 
-# @njit()
+@njit(cache=True)
 def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
                     turn_capacity, in_link_capacity, tot_in_links, tot_out_links):
     """
@@ -42,8 +42,10 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     q = np.zeros((tot_in_links, tot_out_links), dtype=np.float32)
     # J being the set of out_links with demand towards them
     J = List(np.where(np.sum(turning_fractions, 0) > 0)[0])
+    #J = np.full(receiving_flow.shape, False, dtype=np.bool_) # probably faster to do it with boolean arrays.
     # U is a list of lists with U[j] being the current contenders (in_links i) of out_link j
-    U = List.empty_list(ListType(int64))
+    U = List()
+    #U = np.full(turning_flows.shape, False, dtype=np.bool)
     j_bucket = List.empty_list(int8)
     i_bucket = List.empty_list(int8)
     iters = 0
@@ -65,7 +67,7 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     return q
 
 
-# @njit
+@njit(cache=True)
 def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
@@ -121,7 +123,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
         J.remove(j)
 
 
-# @njit
+@njit(cache=True)
 def __find_most_restrictive_constraint(J, R, U, C, a):
     # loosely corresponds to step 3, pg 301
     _j = J[0]
@@ -147,7 +149,7 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
     return a, a[_j], _j,  # determine most restrictive out_link j
 
 
-# @njit
+@njit(cache=True)
 def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, tot_in_links, tot_out_links,
                               use_turn_cap=False):
     """

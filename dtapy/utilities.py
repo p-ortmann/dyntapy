@@ -60,7 +60,7 @@ def timeit(my_func):
     return timed
 
 
-@njit()
+@njit(cache=True)
 def _log(message, level=settings.log_level,to_console=False):
     """
 

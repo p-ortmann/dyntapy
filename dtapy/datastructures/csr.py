@@ -17,7 +17,7 @@ from heapq import heappush, heappop
 numba_csr_val_types = [float32[:], uint32[:], uint8[:]]
 
 
-@nb.njit
+@nb.njit(cache=True)
 def __csr_sort(index_array, values, number_of_columns):
     """
     sorts index_array increasing according to rows, ties are broken by the columns
@@ -113,7 +113,7 @@ def __build_csr_cls(nb_type):
     return CSRMatrix
 
 
-@nb.njit
+@nb.njit(cache=True)
 def csr_prep(index_array, values, shape, unsorted=True):
     """
 
@@ -136,7 +136,7 @@ def csr_prep(index_array, values, shape, unsorted=True):
     return values, col, row
 
 
-@nb.njit
+@nb.njit(cache=True)
 def __csr_format(index_array, number_of_rows):
     """
 

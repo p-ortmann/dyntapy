@@ -15,8 +15,9 @@ from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
+from numba import njit
 
-
+@njit(cache=True)
 def _init_arrival_maps(costs,in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
@@ -31,7 +32,7 @@ def _init_arrival_maps(costs,in_links, destinations, step_size, tot_time_steps, 
     return arrival_map
 
 
-# @njit
+@njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     costs = network.links.length / network.links.v0
     costs = 3600 * costs
@@ -67,10 +68,7 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
         demand = dynamic_demand.get_demand(t)
         for origin in demand.origins:
             for destination in demand.to_destinations.get_nnz(origin):
-                try:
-                    destination_id = np.argwhere(dynamic_demand.all_active_destinations == destination)[0, 0]
-                except IndexError:
-                    print('')
+                destination_id = np.argwhere(dynamic_demand.all_active_destinations == destination)[0, 0]
                 for connector in network.nodes.out_links.get_nnz(origin):
                     index_array[_id] = [connector, destination_id]
                     _id += 1

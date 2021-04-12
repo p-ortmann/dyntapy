@@ -3,7 +3,7 @@ from dtapy.core.time import SimulationTime
 import numpy as np
 
 
-@njit()
+@njit(cache=True)
 # potentially using numbas optional ..
 def treiber_helbing_asm(measurements, X, sampling_rate, delta_t, delta_x, speed_measurements=None):
     """

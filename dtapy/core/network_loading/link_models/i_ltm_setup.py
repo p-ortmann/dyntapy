@@ -13,8 +13,8 @@ from dtapy.datastructures.csr import UI8CSRMatrix, csr_prep, F32CSRMatrix
 from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
-
-
+from numba import njit
+@njit(cache=True)
 def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     # link properties
     length = network.links.length
@@ -22,21 +22,21 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     capacity = network.links.capacity
     step_size = time.step_size
     v_wave = network.links.v_wave
-    vf_index = int32((length / v0) / step_size) # 0 if a road can be traversed more than once during a time interval
+    vf_index = np.floor_divide((length / v0) , step_size).astype(np.int32) # 0 if a road can be traversed more than once during a time interval
     # int works as floor in matlab
-    vf_ratio = float32(int32((length / v0) / step_size) - (length / v0) / step_size + 1) # interpolation ratio
-    vf_index = int32(-vf_index - 1)  # -1 for roads that clear faster than the time step, -2 and upwards for slower
+    vf_ratio = (vf_index - (length / v0) / step_size + np.float32(1)).astype(np.float32) # interpolation ratio
+    vf_index = -vf_index - np.int32(1)  # -1 for roads that clear faster than the time step, -2 and upwards for slower
     # so if you want to know the sending flow for the current time step you have to look vf_index time steps back
-    vw_index = int32((length / v_wave) / step_size)
-    vw_ratio = float32(vw_index - (length / v_wave) / step_size + 1)
-    vw_index = int32(-vw_index - 1)
-    k_crit = np.float32(capacity / v0)
-    k_jam = np.float32(capacity / v_wave + k_crit)
+    vw_index = np.floor_divide((length / v_wave) , step_size).astype(np.int32)
+    vw_ratio = (vw_index - (length / v_wave) / step_size + 1).astype(np.float32)
+    vw_index = -vw_index - np.int32(1)
+    k_crit = (capacity / v0).astype(np.float32)
+    k_jam = (capacity / v_wave + k_crit).astype(np.float32)
     for in_link, linktype in enumerate(network.links.link_type):
         if linktype == 1 or linktype == -1:  # we don't want queuing caused by access to connectors ..
-            k_jam[in_link] = 1000000
-    k_jam[k_jam<72]=72 # to be refined ..
-    length[length<0.05]=0.05 # set all links to store as if they have 50 meters ..
+            k_jam[in_link] = np.float32(1000000)
+    k_jam[k_jam<72]=np.float32(72) # to be refined ..
+    length[length<0.05]=np.float32(0.05) # set all links to store as if they have 50 meters ..
     iltm_links = ILTMLinks(network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 
@@ -62,9 +62,9 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
         for turn in node_turns:
             from_link = network.turns.from_link[turn]
             to_link = network.turns.to_link[turn]
-            index_array_node_turns[turn_counter] = node, turn_counter
-            val_in_links[turn_counter] = np.uint8(np.where(node_in_links == from_link)[0])
-            val_out_links[turn_counter] = np.uint8(np.where(node_out_links == to_link)[0])
+            index_array_node_turns[turn_counter] = np.uint32(node), np.uint32(turn_counter)
+            val_in_links[turn_counter] = np.uint8(np.where(node_in_links == from_link)[0][0])
+            val_out_links[turn_counter] = np.uint8(np.where(node_out_links == to_link)[0][0])
             turn_counter += 1
         for in_link in node_in_links:
             val_in_link_cap[_in_l_counter] = capacity[in_link]
