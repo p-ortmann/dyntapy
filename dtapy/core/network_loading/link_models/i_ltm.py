@@ -77,7 +77,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     # forward implicit scheme
     # go sequentially over each time step
     mean_it_iltm = 0
-    max_it_iltm = 1001
+    max_it_iltm = 10000
     tot_nodes_updates = np.uint32(0)  # tracking node updates over the entire DNL
     delta_change = np.zeros(tot_nodes, dtype=np.float32)
 
@@ -97,11 +97,11 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up,
                                 temp_local_sending_flow, tot_nodes_updates, out_links, cap, step_size, con_up, vind,
                                 tot_time_steps, to_node, dynamic_demand.all_active_destinations)
-        elif t>0:
+        elif t > 0:
             for origin in dynamic_demand.all_active_origins:
-                for  connector in network.nodes.out_links.get_nnz(origin):
-                    cvn_up[t,connector,:] = cvn_up[t-1,connector,:]
-                    cvn_down[t,connector,:] = cvn_down[t-1, connector,:]
+                for connector in network.nodes.out_links.get_nnz(origin):
+                    cvn_up[t, connector, :] = cvn_up[t - 1, connector, :]
+                    cvn_down[t, connector, :] = cvn_down[t - 1, connector, :]
 
         # njit tests pass until here without failure
         first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
@@ -120,7 +120,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node in [48] and t ==2:
+                if 54 in node_processing_order[:cur_nodes_2_update] and cur_nodes_2_update < 2:
                     print(f'hi i am node {node} in t {t}')
                     print('')
                 local_in_links = in_links.get_nnz(node)
@@ -177,9 +177,9 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             node_processing_order = np.argsort(delta_change)[::-1]
             cur_nodes_2_update = np.sum(delta_change > gap)
             _log('remaining nodes 2 update in this t are:  ' + str(cur_nodes_2_update))
-            if it in np.arange(0,10000,1000):
+            if it in np.arange(0, 10000, 1000):
                 _debug_plot(results, network, delta_change, time,
-                        title=f'iteration {it} in time {t}')
+                            title=f'iteration {it} in time {t}')
         unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links,
                                  tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down,
                                  tot_time_steps)
@@ -304,24 +304,21 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
     for _id, link in enumerate(local_in_links):
         if sending_flow_init[link]:
             sending_flow_init[link] = False
-            #cvn_up[t,link,:] =  np.maximum(cvn_up[t,link,:], cvn_up[t-1,link,:])
-            if t==0:
+            # cvn_up[t,link,:] =  np.maximum(cvn_up[t,link,:], cvn_up[t-1,link,:])
+            if t == 0:
                 sending_flow[link, :] = cvn_up[max(0, t + vind[link]), link, :] * (1 - vrt[link])
             else:
                 sending_flow[link, :] = cvn_up[max(0, t + vind[link]), link, :] * (1 - vrt[link]) - cvn_down[t - 1,
-                                                                                             link, :]
-            if vind[link] < -1 and t>0:  # for all links with free flow travel time larger than dt we interpolate
+                                                                                                    link, :]
+            if vind[link] < -1 and t > 0:  # for all links with free flow travel time larger than dt we interpolate
                 sending_flow[link, :] = sending_flow[link, :] + vrt[link] * cvn_up[max(0, t + vind[link] + 1),
                                                                             link, :]
         local_sending_flow[_id, :] = sending_flow[link, :]
         if vind[link] == -1:
             local_sending_flow[_id, :] = local_sending_flow[_id, :] + vrt[link] * cvn_up[t, link, :]
         local_sending_flow[_id, :][local_sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
-        tot_local_sending_flow[_id] = min(cap[link] * step_size , np.sum(local_sending_flow[_id, :]))
-        if tot_local_sending_flow[_id]>np.sum(cvn_up[t, link,:]-cvn_down[t,link,:]):
-            print('here')
+        tot_local_sending_flow[_id] = min(cap[link] * step_size, np.sum(local_sending_flow[_id, :]))
     _log('tot local sending flow is ' + str(tot_local_sending_flow))
-    
 
 
 def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow,
@@ -354,7 +351,7 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
             receiving_flow_init[link] = False
             tot_receiving_flow[link] = \
                 np.sum(cvn_down[max(0, t + wind[link]), link, :] * \
-                (1 - wrt[link]) - np.sum(cvn_up[max(t - 1,0), link, :])) + kjm[link] * length[link]
+                       (1 - wrt[link]) - np.sum(cvn_up[max(t - 1, 0), link, :])) + kjm[link] * length[link]
             if wind[link] < -1:
                 tot_receiving_flow[link] = tot_receiving_flow[link] + wrt[link] * np.sum(
                     cvn_down[max(0, t + wind[link] + 1), link, :])
@@ -365,7 +362,8 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
             tot_receiving_flow[link] = 0
         tot_local_receiving_flow[out_id] = tot_receiving_flow[link]
         if wind[link] == -1:
-            tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + wrt[link] * np.sum(cvn_down[t, link, :])
+            tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + wrt[link] * np.sum(
+                cvn_down[t, link, :])
         tot_local_receiving_flow[out_id] = min(cap[link] * step_size, tot_local_receiving_flow[out_id])
         if tot_local_receiving_flow[out_id] < 0:
             _log('negative receiving flow,  not valid', to_console=True)
@@ -453,9 +451,17 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
             if update_in_link:
                 if wind[in_link] == -1:
                     nodes_2_update[t, from_node[in_link]] = True
-                    delta_change[from_node[in_link]] = delta_change[from_node[in_link]] + wrt[in_link] * np.sum(
-                        np.abs(cvn_down[t, in_link, :] - (cvn_down[min(t - 1,0), in_link, :] + temp_sending_flow[in_id, :])))
-                    print(f'{node=} activated node {from_node[in_link]} for {t=} with {delta_change[from_node[in_link]]=}')
+                    if t > 0:
+                        delta_change[from_node[in_link]] = delta_change[from_node[in_link]] + wrt[in_link] * np.sum(
+                            np.abs(
+                                cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :])))
+                    if t == 0:
+                        delta_change[from_node[in_link]] = \
+                            delta_change[from_node[in_link]] = delta_change[from_node[in_link]] + wrt[in_link] * np.sum(
+                            np.abs(cvn_down[t, in_link, :] - temp_sending_flow[in_id, :]))
+
+                    print(
+                        f'{node=} activated node {from_node[in_link]} for {t=} with {delta_change[from_node[in_link]]=}')
                 else:
                     nodes_2_update[min(tot_time_steps - 1, t - wind[in_link]) - 1, from_node[in_link]] = True
                     nodes_2_update[min(tot_time_steps - 1, t - wind[in_link]), from_node[in_link]] = True
@@ -470,50 +476,60 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                 for destination in active_destinations:
                     for turn, out_link, out_id in zip(out_turns.get_row(in_link), out_turns.get_nnz(in_link),
                                                       range(out_turns.get_row(in_link).size)):
-                        receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + temp_sending_flow[
-                            in_id, destination] * turning_fractions[t - 1, turn, destination]
+                        receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + \
+                                                              temp_sending_flow[
+                                                                  in_id, destination] * turning_fractions[
+                                                                  t - 1, turn, destination]
+
         else:
             # no flow on this link
             temp_sending_flow[in_id, :] = 0
             con_down[t, in_link] = 0
 
-        for out_id, out_link in enumerate(local_out_links):
-            update_out_link = np.sum(
-                np.abs(cvn_up[t, out_link, :] - (cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]))) > gap
-            update_node = update_out_link or update_node
+    for out_id, out_link in enumerate(local_out_links):
+        update_out_link = np.sum(
+            np.abs(cvn_up[t, out_link, :] - (cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]))) > gap
+        update_node = update_out_link or update_node
 
-            if np.sum(receiving_flow[out_id, :]) > total_receiving_flow[out_id]:
-                con_up[t, out_link] = True
-            else:
-                con_up[t, out_link] = False
-            if update_out_link:
-                if vind[out_link] == -1:
-                    nodes_2_update[t, to_nodes[out_link]] = True
+        if np.sum(receiving_flow[out_id, :]) > total_receiving_flow[out_id]:
+            con_up[t, out_link] = True
+        else:
+            con_up[t, out_link] = False
+        if update_out_link:
+            if vind[out_link] == -1:
+                nodes_2_update[t, to_nodes[out_link]] = True
+                if t == 0:
                     delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] + vrt[out_link] * np.sum(
+                        np.abs(cvn_up[t, out_link, :] - receiving_flow[out_id, :]))
+                if t > 0:
+                    delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] = delta_change[
+                                                                                              to_nodes[out_link]] + vrt[
+                                                                                              out_link] * np.sum(
                         np.abs(cvn_up[t, out_link, :] - (cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :])))
-                    print(f'{node=} activated node {to_nodes[out_link]} for {t=} with {delta_change[to_nodes[out_link]]=}')
-                else:
-                    nodes_2_update[min(t - vind[out_link] - 1, tot_time_steps - 1), to_nodes[out_link]] = True
-                    nodes_2_update[min(t - vind[out_link], tot_time_steps - 1), to_nodes[out_link]] = True
+                print(f'{node=} activated node {to_nodes[out_link]} for {t=} with {delta_change[to_nodes[out_link]]=}')
+            else:
+                nodes_2_update[min(t - vind[out_link] - 1, tot_time_steps - 1), to_nodes[out_link]] = True
+                nodes_2_update[min(t - vind[out_link], tot_time_steps - 1), to_nodes[out_link]] = True
 
-            if marg_comp:
-                potential_destinations = receiving_flow <= gap
-                if np.any(potential_destinations):
-                    threshold = 0
-                    for destination in np.argwhere(potential_destinations == True)[0]:
-                        threshold += np.abs(cvn_up[t, out_link, destination]) - (
-                                cvn_up(t - 1, out_link, destination) + receiving_flow(out_id, destination))
-                    if threshold > gap:
-                        nodes_2_update[t, to_nodes[out_link]] = True
-                        nodes_2_update[min(tot_time_steps - 1, t), to_nodes[out_link]] = True
-                        delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] - time_step * 1 / vind[
-                            out_link]
+    if marg_comp:
+        potential_destinations = receiving_flow <= gap
+        if np.any(potential_destinations):
+            threshold = 0
+            for destination in np.argwhere(potential_destinations == True)[0]:
+                threshold += np.abs(cvn_up[t, out_link, destination]) - (
+                        cvn_up(t - 1, out_link, destination) + receiving_flow(out_id, destination))
+            if threshold > gap:
+                nodes_2_update[t, to_nodes[out_link]] = True
+                nodes_2_update[min(tot_time_steps - 1, t), to_nodes[out_link]] = True
+                delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] - time_step * 1 / vind[
+                    out_link]
     if update_node:
         print(f'node {node} change significant, updating cvns')
         nodes_2_update[min(tot_time_steps - 1, t + 1), node] = True
     for in_id, in_link in enumerate(local_in_links):
         cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
-        if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]-gap> cvn_up[t,in_link,:]) and np.sum(temp_sending_flow[in_id,:])>0:
+        if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
+                temp_sending_flow[in_id, :]) > 0:
             print(' i happened')
     for out_id, out_link in enumerate(local_out_links):
         cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
@@ -544,8 +560,9 @@ def cvn_to_flows(cvn):
 def _debug_plot(results, network: ILTMNetwork, delta_change, time, title):
     from __init__ import current_network
     flows = cvn_to_flows(results.cvn_down)
-    cur_queues = np.sum(results.cvn_up, axis=2)-np.sum(results.cvn_down, axis=2) # current queues
-    show_assignment(current_network, time,title=title, link_kwargs=
+    cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
+    show_assignment(current_network, time, title=title, link_kwargs=
     {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index, 'flows':flows, 'current_queues': cur_queues}, node_kwargs={'delta_change': delta_change},
-                    highlight_nodes=[ 19,90, 91, ])
+     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues},
+                    node_kwargs={'delta_change': delta_change},
+                    highlight_nodes=[19, 90, 91, ])
