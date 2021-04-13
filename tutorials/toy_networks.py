@@ -44,7 +44,7 @@ def get_toy_network(name='cascetta', relabel=False):
         ebunch_of_edges = [
             (1, 2), (1, 3), (2, 3), (2, 4),
             (3, 4), (4, 3), (4, 2), (3, 2),
-            (3, 1), (2, 1), (0, 1), (1, 0), (4, 5), (5, 4)]
+            (3, 1), (2, 1)]
         bottle_neck_edges = [(2, 3), (3, 2)]
         g.add_edges_from(ebunch_of_edges)
         _set_toy_network_attributes(g, bottle_neck_edges)
@@ -52,16 +52,12 @@ def get_toy_network(name='cascetta', relabel=False):
     elif name == 'simple_bottleneck':
         g = nx.DiGraph()
         ebunch_of_nodes = [
-            (0, {'x_coord': 1, 'y_coord': 1}),
             (1, {'x_coord': 2, 'y_coord': 1}),
             (2, {'x_coord': 3, 'y_coord': 1}),
             (3, {'x_coord': 4, 'y_coord': 1}),
-            (4, {'x_coord': 5, 'y_coord': 1}),
-            (5, {'x_coord': 6, 'y_coord': 1})]
-        ebunch_of_edges = [
-            (0, 1), (1, 0), (2, 3), (3, 2), (1, 2), (2, 1),
-            (3, 4), (4, 3),
-            (4, 5), (5, 4)]
+            (4, {'x_coord': 5, 'y_coord': 1})]
+        ebunch_of_edges = [ (2, 3), (3, 2), (1, 2), (2, 1),
+            (3, 4), (4, 3)]
         g.add_nodes_from(ebunch_of_nodes)
         g.add_edges_from(ebunch_of_edges)
         bottleneck_edges = [(2, 3), (3, 2)]

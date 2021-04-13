@@ -47,11 +47,8 @@ node_size = parameters.visualization.node_size
 
 
 def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), highlight_links=np.array([]),
-                 highlight_nodes=np.array([]), background_map=True,
+                 highlight_nodes=np.array([]),toy_network=False,
                  title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
-    plot = figure(plot_height=plot_size,
-                  plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
-                  aspect_ratio=1, toolbar_location='below')
     # adding different coordinate attribute names to use osmnx functions
     for _, _, data in g.edges.data():
         if 'x_coord' in data:
@@ -62,16 +59,26 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
             data['x'] = data['x_coord']
             data['y'] = data['y_coord']
     title = _check_title(title, g, 'assignment ')
+
+    if not toy_network:
+        plot = figure(plot_height=plot_size,
+                      plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
+                      aspect_ratio=1, toolbar_location='below')
+        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+        plot.add_tile(tile_provider)
+        tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
+    else:
+        plot = figure(plot_height=plot_size,
+                      plot_width=plot_size,
+                      aspect_ratio=1, toolbar_location='below')
+        tmp=g
     plot.title.text = title
     if None in [val for _, _, val in g.edges.data('link_id')]:
         g = relabel_graph(g, 0, 0)
         warn('graph was relabelled during plotting, link_ids were not fully provided')
-    tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
-    if background_map:
-        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-        plot.add_tile(tile_provider)
+
 
     c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()),time_step=1,
                                      highlight_links=highlight_links, patch_ratio=3)
@@ -103,17 +110,15 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
 
 def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs=dict(), node_kwargs=dict(),
                     convergence=None,
-                    background_map=True, highlight_nodes=np.array([]), highlight_links=np.array([]),
+                    toy_network=False, highlight_nodes=np.array([]), highlight_links=np.array([]),
                     title=None, plot_size=default_plot_size, notebook=False):
     """
 
     Parameters
     ----------
-    osm_tap_tool
     notebook
     flows
     g : nx.Digraph
-    background_map : bool, show the background map
     title : str, plot title
     plot_size : height and width measurement in pixel
 
@@ -170,9 +175,6 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     for key in static_node_kwargs.keys():
         del node_kwargs[key]
 
-    plot = figure(plot_height=plot_size,
-                  plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
-                  aspect_ratio=1, toolbar_location='below')
     # adding different coordinate attribute names to comply with osmnx
     for _, _, data in g.edges.data():
         if 'x_coord' in data and 'x' not in data:
@@ -182,14 +184,25 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
         if 'x_coord' in data and 'x' not in data:
             data['x'] = data['x_coord']
             data['y'] = data['y_coord']
+
+    if not toy_network:
+        plot = figure(plot_height=plot_size,
+                      plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
+                      aspect_ratio=1, toolbar_location='below')
+        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+        plot.add_tile(tile_provider)
+        tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
+    else:
+        plot = figure(plot_height=plot_size,
+                      plot_width=plot_size,
+                      aspect_ratio=1, toolbar_location='below')
+        tmp=g
+    plot.title.text = title
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
 
-    tmp = ox.project_graph(g, CRS.from_user_input(3857))  # from lan lot to web mercator
     _output(notebook, title, plot_size)
-    if background_map:
-        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-        plot.add_tile(tile_provider)
+
 
     max_flow = min(np.max(flows), 8000)  # weeding out numerical errors
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)

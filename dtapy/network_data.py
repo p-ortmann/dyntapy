@@ -59,14 +59,14 @@ def get_from_ox_and_save(name: str, reload=False):
         deleted = nx.subgraph(dir_g, nodes_to_be_removed)
         dir_g = nx.subgraph(dir_g, largest).copy()
     else:
-        deleted=None
+        deleted = None
     __clean_up_data(dir_g)
     dir_g = convert_ox_to_gmns(dir_g)
     nx.write_gpickle(dir_g, _filepath(name + "_gmns"))
     assert 'crs' in dir_g.graph
     dir_g.graph['name'] = name
     log(f'retrieved network graph for {name},'
-          f' with {dir_g.number_of_nodes()} nodes and {dir_g.number_of_edges()} edges after processing', to_console=True)
+        f' with {dir_g.number_of_nodes()} nodes and {dir_g.number_of_edges()} edges after processing', to_console=True)
     return dir_g
 
 
@@ -100,36 +100,36 @@ def convert_ox_to_gmns(g):
     return new_g
 
 
-def relabel_graph(g, tot_centroids, tot_connectors):
+def relabel_graph(g):
     """
     osmnx labels the graph nodes and edges by their osm ids. These are neither stable nor continuous. We relabel nodes and edges
-    with our internal ids.
+    with our internal ids. The first C nodes in the network are centroids, with C the total number of centroids.
+    The first K links in the network are source connectors, as link labelling is consecutive by the start node ids.
+    Sink connector ids are therefore random.
     Parameters
     ----------
-    tot_connectors : number of connectors in the graph
     g : nx.DiGraph
-    tot_centroids: int
-    the first nodes are centroids, this is to reserve spots for them
     Returns
     -------
     nx.Digraph with continuously labelled nodes, consistent with internal notation
 
 
     """
-
+    centroids = [node for node, is_centroid in g.nodes.data('centroid') if is_centroid]
+    intersection_nodes = [node for node, is_centroid in g.nodes.data('centroid') if not is_centroid]
     new_g = nx.MultiDiGraph()
     new_g.graph = g.graph
-    link_counter = count(tot_connectors)
-    ordered_nodes = g.nodes
+    link_counter = count(0)
+    ordered_nodes = centroids + intersection_nodes
     for node_id, u in enumerate(ordered_nodes):
-        _id = node_id + tot_centroids
+        _id = node_id
         data = g.nodes[u]
         new_g.add_node(_id, **data)
         new_g.nodes[_id]['ext_id'] = u  # allows identifying the external labels later ..
         new_g.nodes[_id]['node_id'] = _id
         g.nodes[u]['node_id'] = _id
     for start_node, u in enumerate(ordered_nodes):
-        _start_node = start_node + tot_centroids
+        _start_node = start_node
         for v in g.succ[u]:
             for k in g[u][v].keys():
                 link_id = next(link_counter)
@@ -274,5 +274,3 @@ def save_pickle(g: nx.DiGraph, name: str):
 def load_pickle(name: str):
     file_path = _filepath(name, check_path_valid=True)
     return nx.read_gpickle(file_path)
-
-

@@ -26,6 +26,7 @@ import itertools
 from dtapy.settings import parameters
 from dtapy.network_data import sort_graph
 from dtapy.utilities import log
+from warnings import warn
 
 default_connector_speed = parameters.demand.default_connector_speed
 default_connector_capacity = parameters.demand.default_connector_capacity
@@ -155,36 +156,30 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
 
 def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
     """
-    adds centroids to g as the first C-1 nodes, with C the number of centroids.
-    g.nodes.c contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y  and 'centroid' a boolean
-    set to True.
+    Adds centroids to g.
+    Each centroids data dict contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y
+    and 'centroid' a boolean set to True.
+    k*2 connectors are added per centroid, one for each direction as defined below. Defaults can be
+    changed in the settings.
+
 
     Parameters
     ----------
-    sort : boolean, whether to sort the nodes of the graph, see sort_graph(g)
-    add_connectors : whether to add auto-configured connectors, k for each centroid
+    add_connectors : whether to add auto-configured connectors, k*2 for each centroid
     Y : lat vector of centroids
     X : lon vector of centroids
-    k : number of connectors to be added per centroid
+    k : number of road network nodes to connect to per centroid.
     g : nx.MultiDigraph containing only road network edges and nodes with 'x_coord' and 'y_coord' attribute on each node
     Returns
     -------
     new nx.MultiDiGraph with centroids (and connectors)
     """
-    lowest_existing_link_id = min([d['link_id'] for u, v, d in g.edges.data()])
-    lowest_existing_node_id = min([d['node_id'] for u, d in g.nodes.data()])
-    if lowest_existing_link_id != X.size * k * 2 or lowest_existing_node_id != X.size:
-        raise ValueError('graph is not correctly labelled to add centroids')
 
     new_g = nx.MultiDiGraph()
     new_g.graph = g.graph
-    if len([u for u, data_dict in g.nodes(data=True) if 'centroid' in data_dict]) > 0:
-        raise ValueError('grid generation assumes that no centroids are present in the graph')
-    new_centroids = [(u, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True, 'node_id': u}) for u, p in
+    last_intersection_node = max(g.nodes)
+    new_centroids = [(u+last_intersection_node+1, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True}) for u, p in
                      enumerate(zip(X, Y))]
-    connector_id = itertools.count()
-    # the steps below here could be compressed but not without compromising the consistency between the order in
-    # edges and nodes in the networkx graph and the 'link_id' and 'node_id' attributes
     for u, data in new_centroids:  # first centroids, then intersection nodes for order
         new_g.add_node(u, **data)
     for u, data in g.nodes.data():
@@ -193,7 +188,7 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
         new_g.add_edge(u, v, **data)
     if add_connectors:
         for u, data in new_centroids:
-            tmp: nx.DiGraph = g  # calculate distance to road network graph
+            tmp: nx.MultiDiGraph = g  # calculate distance to road network graph
             og_nodes = list(g.nodes)
             for _ in range(k):
                 # find the nearest node j k times, ignoring previously nearest nodes in consequent iterations if
@@ -201,14 +196,14 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
                 v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
                 og_nodes.remove(v)
                 tmp = tmp.subgraph(og_nodes)
-                source_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
+                source_data = {'connector': True, 'length': length, 'free_speed': default_connector_speed,
                                'lanes': default_connector_lanes,
-                               'capacity': default_connector_capacity, 'link_id': next(connector_id),
-                               'link_type': np.int8(1), 'from_node_id': u, 'to_node_id': v}  # length in km
-                sink_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
+                               'capacity': default_connector_capacity,
+                               'link_type': np.int8(1)}  # length in km
+                sink_data = {'connector': True, 'length': length, 'free_speed': default_connector_speed,
                              'lanes': default_connector_lanes,
-                             'capacity': default_connector_capacity, 'link_id': next(connector_id),
-                             'link_type': np.int8(-1), 'from_node_id': v, 'to_node_id': u}
+                             'capacity': default_connector_capacity,
+                             'link_type': np.int8(-1)}
                 new_g.add_edge(u, v, **source_data)
                 new_g.add_edge(v, u, **sink_data)
     return new_g
