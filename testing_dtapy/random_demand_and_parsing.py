@@ -30,7 +30,4 @@ assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.fl
 # TODO: add tests for multi-edge parsing
 methods = assignment.get_methods()
 assignment.run(methods.i_ltm_aon)
-# show_demand(trip_graphs[0])
-# show_demand([trip_graphs[1]])
-# show_demand(trip_graphs[2])
 print('ran successfully')

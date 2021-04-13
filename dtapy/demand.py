@@ -108,19 +108,26 @@ def _check_centroid_connectivity(g: nx.DiGraph):
 
 def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
     """
-    creates od_graph from od_matrix and centroid locations
+    creates od_graph(s) from od_matrix and centroid locations, if
     Parameters
     ----------
     od_matrix : float array, centroids x centroids
-    X : lon array of centroids
-    Y : lat array of centroids
+    X : x_coord array of centroids
+    Y : y_coord array of centroids
+    time: time at which demand is to enter the network
 
     Returns
     -------
     od_flow_graph: nx.DiGraph
     """
-    pass
-    # TODO: add this functionality
+    if od_matrix.shape != (len(X), len(X)):
+        raise ValueError('dimensions of centroid locations and OD matrix incompatible')
+    g = nx.MultiDiGraph()
+    nodes = [(u, {'x_coord': p[0], 'y_coord': p[1]}) for u, p in enumerate(zip(X, Y))]
+    g.add_nodes_from(nodes)
+    edges = [(u, v, 0, {'flow': od_matrix[u, v]}) for u, v in np.argwhere(od_matrix > 0)]
+    g.add_edges_from(edges)
+    return g
 
 
 def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
@@ -178,7 +185,7 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
     new_g = nx.MultiDiGraph()
     new_g.graph = g.graph
     last_intersection_node = max(g.nodes)
-    new_centroids = [(u+last_intersection_node+1, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True}) for u, p in
+    new_centroids = [(u + last_intersection_node + 1, {'x_coord': p[0], 'y_coord': p[1], 'centroid': True}) for u, p in
                      enumerate(zip(X, Y))]
     for u, data in new_centroids:  # first centroids, then intersection nodes for order
         new_g.add_node(u, **data)
@@ -274,31 +281,34 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
 
 
 class DynamicDemand:
-    def __init__(self, trip_graphs):
+    def __init__(self, od_graphs, insertion_times):
         """
 
         Parameters
         ----------
-        trip_graphs : Dict of nx.DiGraphs with mobility patterns for different time slots t, with t as dict key
+        od_graphs :List of nx.MultiDiGraphs
+        insertion_times: corresponding times for the demand to be loaded into the network
         """
-        self.trip_graphs = trip_graphs
-        self.insertion_times = list(trip_graphs.keys())
+        self.od_graphs = od_graphs
+        self.insertion_times = np.array(insertion_times)
 
     def get_sparse_repr(self, time):
         """
         Parameters
         ----------
-        time : integer, time slice to be retrieved
+        time : float or integer, time slice to be retrieved
 
         Returns
         -------
         lil_matrix of trip table for given time slice
         """
-        graph: nx.DiGraph = self.trip_graphs[time]
+        graph = self.get_od_graph(time)
         return nx.to_scipy_sparse_matrix(graph, weight='flow', format='lil')
 
-    def get_trip_graph(self, time):
-        return self.trip_graphs[time]
+    def get_od_graph(self, time):
+        _id = np.argwhere(self.insertion_times == time)[0][0]
+        graph: nx.DiGraph = self.od_graphs[_id]
+        return graph
 
 
 def __count_iter_items(iterable):

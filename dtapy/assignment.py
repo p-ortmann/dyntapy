@@ -242,7 +242,7 @@ class Assignment:
         rows = [np.asarray(lil_demand.nonzero()[0], dtype=np.uint32) for lil_demand in demand_data]
         cols = [np.asarray(lil_demand.nonzero()[1], dtype=np.uint32) for lil_demand in demand_data]
         tot_centroids = np.uint32(
-            max([trip_graph.number_of_nodes() for _, trip_graph in dynamic_demand.trip_graphs.items()]))
+            max([trip_graph.number_of_nodes() for trip_graph in dynamic_demand.od_graphs]))
         for internal_time, lil_demand, row, col in zip(insertion_times, demand_data, rows, cols):
             vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
             index_array_to_d = np.column_stack((row, col))

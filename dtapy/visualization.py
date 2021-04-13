@@ -47,7 +47,7 @@ node_size = parameters.visualization.node_size
 
 
 def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), highlight_links=np.array([]),
-                 highlight_nodes=np.array([]),toy_network=False,
+                 highlight_nodes=np.array([]), toy_network=False,
                  title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
     # adding different coordinate attribute names to use osmnx functions
     for _, _, data in g.edges.data():
@@ -71,7 +71,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
         plot = figure(plot_height=plot_size,
                       plot_width=plot_size,
                       aspect_ratio=1, toolbar_location='below')
-        tmp=g
+        tmp = g
     plot.title.text = title
     if None in [val for _, _, val in g.edges.data('link_id')]:
         g = relabel_graph(g, 0, 0)
@@ -79,8 +79,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
 
-
-    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()),time_step=1,
+    c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()), time_step=1,
                                      highlight_links=highlight_links, patch_ratio=3)
     # costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
     #        for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
@@ -196,13 +195,12 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
         plot = figure(plot_height=plot_size,
                       plot_width=plot_size,
                       aspect_ratio=1, toolbar_location='below')
-        tmp=g
+        tmp = g
     plot.title.text = title
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
 
     _output(notebook, title, plot_size)
-
 
     max_flow = min(np.max(flows), 8000)  # weeding out numerical errors
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)
@@ -211,7 +209,7 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     all_x = []
     all_y = []
     for t in range(time.tot_time_steps):
-        c, x, y = _get_colors_and_coords(tmp, max_width_coords, max_flow, flows[t],time.step_size, highlight_links)
+        c, x, y = _get_colors_and_coords(tmp, max_width_coords, max_flow, flows[t], time.step_size, highlight_links)
         all_x.append(x)
         all_y.append(y)
         all_colors.append(c)
@@ -235,7 +233,7 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     # edge_tooltips = edge_tooltips + link_kwargs_tooltips
     edge_tooltips.append(('flow', '@flow{(0.00)}'))
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size= node_size, fill_color='color',line_alpha=0.4,
+                                   glyph=Circle(x='x', y='y', size=node_size, fill_color='color', line_alpha=0.4,
                                                 fill_alpha=0.7,
                                                 line_color="black",
                                                 line_width=node_size / 10))
@@ -318,20 +316,7 @@ def get_max_edge_width(g, scaling, plot_size):
     return max_width_bokeh, max_width_coords
 
 
-def show_demand(g, title=None, plot_size=default_plot_size, notebook=False):
-    if title is None:
-        title = str(g.graph['name'])
-    if notebook:
-        output_notebook(hide_banner=True)
-        plot_size = 600
-    else:
-        output_file(results_folder + f'/{title}.html')
-    plot = figure(plot_height=plot_size,
-                  plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
-                  aspect_ratio=1, toolbar_location='below')
-    plot.title.text = title
-    tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-    plot.add_tile(tile_provider)
+def show_demand(g, title=None, plot_size=default_plot_size, notebook=False, toy_network=False):
     for _, _, data in g.edges.data():
         if 'x_coord' in data:
             data['x'] = data['x_coord']
@@ -340,7 +325,27 @@ def show_demand(g, title=None, plot_size=default_plot_size, notebook=False):
         if 'x_coord' in data:
             data['x'] = data['x_coord']
             data['y'] = data['y_coord']
-    tmp = ox.project_graph(g, CRS.from_user_input(3857))
+
+    if title is None:
+        title = 'OD matrix visualized'
+    if notebook:
+        output_notebook(hide_banner=True)
+        plot_size = 600
+    else:
+        output_file(results_folder + f'/{title}.html')
+    if not toy_network:
+        tmp = ox.project_graph(g, CRS.from_user_input(3857))
+        plot = figure(plot_height=plot_size,
+                      plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
+                      aspect_ratio=1, toolbar_location='below')
+    else:
+        tmp = g  # projection not needed for toy networks, coordinates are plain cartesian
+        plot = figure(plot_height=plot_size,
+                      plot_width=plot_size,
+                      aspect_ratio=1, toolbar_location='below')
+        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+        plot.add_tile(tile_provider)
+    plot.title.text = title
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     min_width_coords = max_width_coords / 10
     all_flow = [flow for u, v, flow in tmp.edges.data('flow') if u != v]
@@ -370,8 +375,8 @@ def show_demand(g, title=None, plot_size=default_plot_size, notebook=False):
                                                  line_alpha=0.8))
     edge_tooltips = [('flow', '@flow{(0.0)}')]
     node_renderer = plot.add_glyph(node_source,
-                                   glyph=Circle(x='x', y='y', size=node_size*2, line_color="black",
-                                                 line_alpha=0.4, fill_alpha=0.7,
+                                   glyph=Circle(x='x', y='y', size=node_size * 2, line_color="black",
+                                                line_alpha=0.4, fill_alpha=0.7,
                                                 line_width=node_size / 10))
     node_tooltips = [(item, f'@{item}') for item in ['x', 'y', 'centroid_id']]
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
@@ -424,7 +429,7 @@ def _node_cds(g, highlight_nodes=np.array([]), **kwargs):
     for node in highlight_nodes:
         node_colors[node] = node_highlight_color
     node_dict['color'] = node_colors
-    for attr_key in visualization_keys+['x','y']:
+    for attr_key in visualization_keys + ['x', 'y']:
         values = [node_attr[attr_key] if attr_key in node_attr.keys() else 'None'
                   for _, node_attr in sorted(g.nodes(data=True), key=lambda t: t[1]['node_id'])]
         node_dict[attr_key] = values
@@ -447,7 +452,8 @@ def _edge_cds(g, color, flow, x, y, **kwargs):
     return ColumnDataSource(data=edge_dict)
 
 
-def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, highlight_links=np.array([]), patch_ratio=8):
+def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, highlight_links=np.array([]),
+                           patch_ratio=8):
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords / patch_ratio
     if max_flow == 0:  # geometries cannot be computed, may sometimes happen in debugging.
@@ -460,7 +466,8 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, high
         try:
             try:
                 flow = flows[data['link_id']]
-                color = traffic_cm[np.int(np.ceil(np.abs(flows[data['link_id']]) / (data['capacity']*time_step) * nr_of_colors))]
+                color = traffic_cm[
+                    np.int(np.ceil(np.abs(flows[data['link_id']]) / (data['capacity'] * time_step) * nr_of_colors))]
             except IndexError:
                 color = traffic_cm[-1]  # flow larger then capacity!
             except KeyError:  # capacity or flow not defined
