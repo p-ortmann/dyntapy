@@ -13,8 +13,8 @@ import numpy as np
 from itertools import count
 import numba as nb
 import timeit
-from core import make_forward_stars
-from datastructures.csr import ui32_construct_sparse_matrix
+from dtapy.core.experimental.dict_forward_star import make_forward_stars
+from dtapy.datastructures.csr import csr_prep, UI32CSRMatrix
 
 # this file compares access times forward stars among three different implementation methods:
 # (i) via numba's typed dict, (2) as a custom implementation of CSR (3) as linked list as shown by graphhopper, see
@@ -37,7 +37,7 @@ for u, v, link_id in g.edges.data('_id'):
     edge_array[link_id] = _u, _v
 
 dict_forward_star = make_forward_stars(edge_array, g.number_of_nodes())
-my_csr_matrix=ui32_construct_sparse_matrix(edge_array, g.number_of_nodes())
+my_csr_matrix=UI32CSRMatrix(**csr_prep(edge_array, g.number_of_nodes(), (counter,counter)))
 my_csr_matrix.get_nnz(10) #gives forward star nodes for node 10
 my_csr_matrix.get_row(10) # gives forward star links for node 10
 order=np.arange(g.number_of_nodes()).astype(dtype=str(nb.int64))
@@ -59,5 +59,3 @@ print(timeit.timeit(stmt='test_csr_access(order, my_csr_matrix)', setup='from __
 print(timeit.timeit(stmt='test_dict_access(order, dict_forward_star)',
                      setup='from __main__ import order, dict_forward_star, test_dict_access', number=1000))
 print('done.')
-#TODO: question on link id sorting
-#TODO: requirement to have in and outedges in all nodes of the graph

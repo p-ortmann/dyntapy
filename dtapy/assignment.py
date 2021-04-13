@@ -22,7 +22,6 @@ from dataclasses import dataclass
 from dtapy.demand import DynamicDemand
 from typing import Callable
 from dtapy.utilities import log
-from dtapy.visualization import show_assignment, show_demand
 import __init__
 
 v_wave_default = parameters.supply.v_wave_default
@@ -69,7 +68,7 @@ class Assignment:
         # TODO: generic way for adding keyword args
         flows, costs = method(self.nb_network, self.nb_dynamic_demand, self.time.route_choice,
                               self.time.network_loading)
-        show_assignment(self.g, flows, costs, time=self.time.network_loading)
+        return flows, costs
 
 
 

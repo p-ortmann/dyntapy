@@ -12,14 +12,12 @@ from dtapy.core.time import SimulationTime
 import numpy as np
 from dtapy.settings import parameters
 from numba import njit
-from numba.typed import List
 from dtapy.core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
 from dtapy.utilities import _log
-from dtapy.visualization import show_assignment
 
 gap = parameters.network_loading.gap
 node_model_str = parameters.network_loading.node_model
-from __init__ import current_network
+max_iterations = parameters.network_loading.max_iterations
 
 
 @njit(cache=True)
@@ -76,7 +74,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
     # forward implicit scheme
     # go sequentially over each time step
-    max_it_iltm = 10000
     tot_nodes_updates = np.uint32(0)  # tracking node updates over the entire DNL
     delta_change = np.zeros(tot_nodes, dtype=np.float32)
 
@@ -109,7 +106,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         cur_nodes_2_update = len(node_processing_order)  # remaining nodes that need updating for the current iteration
         # TODO: maintaining nodes 2 update as priority queue?
         it = 0  # counter for current iteration
-        while it < max_it_iltm and cur_nodes_2_update > 0:
+        while it < max_iterations and cur_nodes_2_update > 0:
             #print('new iterations in main loop, time step ' + str(t))
             #print(f'remaining nodes: {node_processing_order[:cur_nodes_2_update]}')
             _log('_____________________________________________________________________________________________')
@@ -518,34 +515,3 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
 
 
-@njit
-def cvn_to_flows(cvn):
-    """
-
-    Parameters
-    ----------
-    cvn :
-
-    Returns
-    -------
-
-    """
-    tot_time_steps = cvn.shape[0]
-    tot_links = cvn.shape[1]
-    cvn = np.sum(cvn, axis=2)
-    flows = np.zeros((tot_time_steps, tot_links), dtype=np.float32)
-    flows[0, :] = cvn[0, :]
-    for time in range(1, tot_time_steps):
-        flows[time, :] = np.abs(-cvn[time - 1, :] + cvn[time, :])
-    return flows
-
-
-def _debug_plot(results, network: ILTMNetwork, delta_change, time, title):
-    from __init__ import current_network
-    flows = cvn_to_flows(results.cvn_down)
-    cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
-    show_assignment(current_network, time, title=title, link_kwargs=
-    {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues},
-                    node_kwargs={'delta_change': delta_change},
-                    highlight_nodes=[19, 90, 91, ])

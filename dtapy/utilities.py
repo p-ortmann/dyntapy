@@ -74,9 +74,11 @@ def _log(message, level=settings.log_level,to_console=False):
     -------
 
     """
+    if to_console:
+        print(message)
     if log_numba:
         with objmode():
-            log(message,level=level, to_console= to_console)
+            log(message,level=level)
     else:
         pass
 

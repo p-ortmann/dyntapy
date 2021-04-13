@@ -64,11 +64,11 @@ class _NetworkLoading:
     """
     container for parameters that concern supply
     """
-    link_model: str = 'i_ltm'
+    link_model: str = 'i_ltm'  # only 'i_ltm' for now
     gap: np.float32 = np.float32(0.001)
-    max_iterations: np.uint32 = np.uint32(100)
+    max_iterations: np.uint32 = np.uint32(3000)
     step_size: np.float32 = np.float32(0.25)
-    node_model: str = 'orca'
+    node_model: str = 'orca'  # 'only 'orca' for now
 
 
 @dataclass
@@ -88,7 +88,7 @@ class _Visualization:
     node_highlight_color = '#ff6ec7'  # neon pink
     node_color = '#424949'  # dark gray
     centroid_color = '#9063CD'  # purple
-    link_color = ' #f2f4f4' #light gray,  only for no flow scenarios
+    link_color = ' #f2f4f4'  # light gray,  only for no flow scenarios
 
 
 @dataclass
@@ -101,6 +101,17 @@ class _RouteChoice:
     delta_cost: np.float32 = 0.01
 
 
+class _Assignment:
+    """
+        container for parameters that concern the actual assignment, e.g. how route choice and network loading
+        are wired up with each other.
+        """
+    gap: np.float32 = 0.0001
+    max_iterations: np.uint = 3000
+    smooth_turning_fractions: str = 'MSA'  # valid entry only 'MSA' for now
+    smooth_costs: bool = False
+
+
 @dataclass
 class _Parameters:
     """container for categories of parameters"""
@@ -109,6 +120,7 @@ class _Parameters:
     demand: _Demand = _Demand()
     network_loading: _NetworkLoading = _NetworkLoading()
     route_choice: _RouteChoice = _RouteChoice()
+    assignment: _Assignment = _Assignment()
 
 
 parameters = _Parameters()  # default initilisation
