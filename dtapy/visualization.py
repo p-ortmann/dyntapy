@@ -26,7 +26,7 @@ from shapely.geometry import LineString
 from dtapy.utilities import __create_green_to_red_cm
 import osmnx as ox
 from pyproj import CRS
-from __init__ import results_folder, current_network
+from dtapy.__init__ import results_folder, current_network
 from dtapy.settings import parameters
 from dtapy.core.time import SimulationTime
 from dtapy.network_data import relabel_graph

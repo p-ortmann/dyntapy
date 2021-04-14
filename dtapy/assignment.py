@@ -23,7 +23,7 @@ from dtapy.demand import DynamicDemand
 from typing import Callable
 from dtapy.utilities import log
 from warnings import warn
-import __init__
+import dtapy.__init__
 
 v_wave_default = parameters.supply.v_wave_default
 turn_capacity_default = parameters.supply.turn_capacity_default
@@ -52,7 +52,7 @@ class Assignment:
         # you have to be familiar with numba
         _check_centroid_connectivity(g)
         self.g = g
-        __init__.current_network = g
+        dtapy.__init__.current_network = g
         self.dynamic_demand = dynamic_demand
         self.time = self.__init_time_obj(simulation_time)
         # get adjacency from nx, and

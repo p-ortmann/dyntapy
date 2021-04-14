@@ -16,7 +16,7 @@ import os
 from glob import glob1
 import networkx as nx
 from pyproj import Proj, transform
-from __init__ import data_folder
+from dtapy.__init__ import data_folder
 try:
     import win32com.client
 except ImportError:

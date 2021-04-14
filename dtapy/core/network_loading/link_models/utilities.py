@@ -106,7 +106,7 @@ def cvn_to_travel_times(cvn_up, cvn_down, time: SimulationTime, network: Network
 
 
 def _debug_plot(results, network: ILTMNetwork, time, title='None', toy_network=True):
-    from __init__ import current_network
+    from dtapy.__init__ import current_network
     flows = cvn_to_flows(results.cvn_down)
     cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
     show_assignment(current_network, time,toy_network=toy_network, title=title, link_kwargs=

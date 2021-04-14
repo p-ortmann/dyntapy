@@ -19,7 +19,7 @@ from functools import wraps
 import time
 from numba import objmode, njit
 from dtapy.settings import log_numba, parameters
-from __init__ import data_folder
+from dtapy.__init__ import data_folder
 
 default_link_color=parameters.visualization.link_color
 

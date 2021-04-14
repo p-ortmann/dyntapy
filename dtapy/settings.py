@@ -22,9 +22,13 @@ log_level = 20
 log_numba = False  # this will affect performance dramatically, and should only be set to true for debugging
 
 numba_config = {  # see https://numba.pydata.org/numba-doc/dev/reference/envvars.html for config
+    # DISABLE_JIT doesn't work for now as jitclasses are not supported in pure python ..
     'NUMBA_CACHE_DIR': os.getcwd() + os.path.sep + 'numba_cache',
-    'NUMBA_DEBUG': '1',
-    'NUMBA_DEBUG_CACHE': '1'
+    'NUMBA_DEBUG': '0',
+    'NUMBA_DEBUG_CACHE': '0',
+    'NUMBA_DISABLE_JIT': '1',
+    'NUMBA_DEVELOPER_MODE': '0',
+    'NUMBA_FULL_TRACEBACKS': '0',
 }
 default_city = 'Zinnowitz'
 

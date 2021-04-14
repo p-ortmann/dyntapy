@@ -16,9 +16,7 @@ from dtapy.network_data import relabel_graph
 from dtapy.demand import od_graph_from_matrix, DynamicDemand
 from dtapy.core.time import SimulationTime
 from dtapy.assignment import Assignment
-import os
-dis=os.getenv('DISABLE_JIT')
-print(f'{dis=}')
+
 toy_network = 'simple_diverge'
 g = get_toy_network(toy_network)
 centroid_x = np.array([1, 5, 5])

@@ -26,7 +26,7 @@ smooth_costs = parameters.assignment.smooth_costs
 max_iterations = parameters.assignment.max_iterations
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime,
               network_loading_time: SimulationTime):
     _log('initializing AON', to_console=True)
