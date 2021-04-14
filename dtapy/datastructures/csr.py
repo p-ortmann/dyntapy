@@ -154,7 +154,7 @@ def __csr_format(index_array, number_of_rows):
     row.append(np.uint32(0))
     row_value_counter = np.uint32(0)
     processed_edges = np.uint32(0)
-    empty_csr = len(index_array) == 1
+    empty_csr = len(index_array) == 0
     for i in np.arange(number_of_rows + 1, dtype=np.uint32):
         edges_in_row = np.uint32(0)
         if empty_csr:

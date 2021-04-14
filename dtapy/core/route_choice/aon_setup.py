@@ -17,7 +17,7 @@ from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
 from numba import njit
 
-@njit(cache=True)
+#@njit(cache=True)
 def _init_arrival_maps(costs,in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
@@ -32,7 +32,7 @@ def _init_arrival_maps(costs,in_links, destinations, step_size, tot_time_steps, 
     return arrival_map
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     costs = network.links.length / network.links.v0
     costs = 3600 * costs
