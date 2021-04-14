@@ -74,7 +74,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
         tmp = g
     plot.title.text = title
     if None in [val for _, _, val in g.edges.data('link_id')]:
-        g = relabel_graph(g, 0, 0)
+        tmp = relabel_graph(tmp)
         warn('graph was relabelled during plotting, link_ids were not fully provided')
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
@@ -338,13 +338,13 @@ def show_demand(g, title=None, plot_size=default_plot_size, notebook=False, toy_
         plot = figure(plot_height=plot_size,
                       plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",
                       aspect_ratio=1, toolbar_location='below')
+        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
+        plot.add_tile(tile_provider)
     else:
         tmp = g  # projection not needed for toy networks, coordinates are plain cartesian
         plot = figure(plot_height=plot_size,
                       plot_width=plot_size,
                       aspect_ratio=1, toolbar_location='below')
-        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-        plot.add_tile(tile_provider)
     plot.title.text = title
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     min_width_coords = max_width_coords / 10

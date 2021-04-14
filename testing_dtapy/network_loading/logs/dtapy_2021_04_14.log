@@ -1,0 +1,6 @@
+2021-04-14 13:35:25,983 INFO @dtapy.network_data.py: graph relabeled
+2021-04-14 13:35:28,340 INFO @dtapy.assignment.py: nodes passed
+2021-04-14 13:35:30,060 INFO @dtapy.assignment.py: turns passed
+2021-04-14 13:35:31,062 INFO @dtapy.assignment.py: links passed
+2021-04-14 13:35:31,610 INFO @dtapy.assignment.py: network build
+2021-04-14 13:35:37,123 INFO @dtapy.assignment.py: demand simulation build

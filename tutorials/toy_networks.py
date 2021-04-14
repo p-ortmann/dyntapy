@@ -33,8 +33,8 @@ def get_toy_network(name='cascetta', relabel=False):
     -------
 
     """
+    g = nx.MultiDiGraph()
     if name == 'cascetta':
-        g = nx.DiGraph()
         ebunch_of_nodes = [
             (1, {'x_coord': 2, 'y_coord': np.sqrt(2)}),
             (2, {'x_coord': np.sqrt(2) + 2, 'y_coord': 2 * np.sqrt(2)}),
@@ -47,41 +47,65 @@ def get_toy_network(name='cascetta', relabel=False):
             (3, 1), (2, 1)]
         bottle_neck_edges = [(2, 3), (3, 2)]
         g.add_edges_from(ebunch_of_edges)
-        _set_toy_network_attributes(g, bottle_neck_edges)
+        set_toy_network_attributes(g, bottle_neck_edges)
 
     elif name == 'simple_bottleneck':
-        g = nx.DiGraph()
         ebunch_of_nodes = [
             (1, {'x_coord': 2, 'y_coord': 1}),
             (2, {'x_coord': 3, 'y_coord': 1}),
             (3, {'x_coord': 4, 'y_coord': 1}),
             (4, {'x_coord': 5, 'y_coord': 1})]
-        ebunch_of_edges = [ (2, 3), (3, 2), (1, 2), (2, 1),
-            (3, 4), (4, 3)]
+        ebunch_of_edges = [(2, 3), (3, 2), (1, 2), (2, 1),
+                           (3, 4), (4, 3)]
         g.add_nodes_from(ebunch_of_nodes)
         g.add_edges_from(ebunch_of_edges)
         bottleneck_edges = [(2, 3), (3, 2)]
-        _set_toy_network_attributes(g, bottleneck_edges)
+        set_toy_network_attributes(g, bottleneck_edges)
+    elif name == 'simple_merge':
+        ebunch_of_nodes = [
+            (1, {'x_coord': 2, 'y_coord': 1}),
+            (2, {'x_coord': 2, 'y_coord': 2}),
+            (3, {'x_coord': 4, 'y_coord': 1.5}),
+            (4, {'x_coord': 5, 'y_coord': 1.5}),
+            (5, {'x_coord': 6, 'y_coord': 1.5})]
+        ebunch_of_edges = [(2, 3), (3, 2), (1, 3), (3, 1),
+                           (3, 4), (4, 3), (4, 5), (5, 4)]
+        g.add_nodes_from(ebunch_of_nodes)
+        g.add_edges_from(ebunch_of_edges)
+        bottleneck_edges = [(3, 4), (4,3)]
+        set_toy_network_attributes(g, bottleneck_edges)
+    elif name == 'simple_diverge':
+        ebunch_of_nodes = [
+            (1, {'x_coord': 2, 'y_coord': 2}),
+            (2, {'x_coord': 3, 'y_coord': 2}),
+            (3, {'x_coord': 4, 'y_coord': 1}),
+            (4, {'x_coord': 4, 'y_coord': 3})]
+        ebunch_of_edges = [(2, 3), (3, 2), (1, 2), (2, 1),
+                           (2, 4), (4, 2)]
+        g.add_nodes_from(ebunch_of_nodes)
+        g.add_edges_from(ebunch_of_edges)
+        bottleneck_edges = []
+        set_toy_network_attributes(g, bottleneck_edges)
     else:
         raise ValueError('no toy network provided under that name')
     if not relabel:
         return g
     else:
-        return relabel_graph(g, 0, 0)
+        return relabel_graph(g)
 
 
-def _set_toy_network_attributes(g, bottleneck_edges):
+def set_toy_network_attributes(g, bottleneck_edges):
     for v in g.nodes:
         g.nodes[v]['ctrl_type'] = default_node_ctrl_type
-    for (u, v) in g.edges():
+    for u, v,data in g.edges.data():
         y1 = g.nodes[v]['y_coord']
         x1 = g.nodes[v]['x_coord']
         y0 = g.nodes[u]['y_coord']
         x0 = g.nodes[u]['x_coord']
-        g[u][v]['length'] = euclidean_dist_vec(y0, x0, y1, x1)
-        g[u][v]['capacity'] = default_capacity
-        g[u][v]['free_speed'] = default_free_speed
-        g[u][v]['lanes'] = default_lanes
+        data['length'] = euclidean_dist_vec(y0, x0, y1, x1)
+        data['capacity'] = default_capacity
+        data['free_speed'] = default_free_speed
+        data['lanes'] = default_lanes
         if (u, v) in bottleneck_edges:
-            g[u][v]['capacity'] = bottleneck_capacity
-            g[u][v]['free_speed'] = bottleneck_free_speed
+            data['capacity'] = bottleneck_capacity
+            data['free_speed'] = bottleneck_free_speed
