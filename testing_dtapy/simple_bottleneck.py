@@ -18,7 +18,7 @@ from dtapy.assignment import Assignment
 g = get_toy_network('simple_bottleneck')
 centroid_x = np.array([0, 7])
 centroid_y = np.array([0.9, 0.9])
-g = add_centroids_to_graph(g, centroid_x, centroid_y)  # also adds connectors automatically
+g = add_centroids_to_graph(g, centroid_x, centroid_y, toy_network=True)  # also adds connectors automatically
 g = relabel_graph(g)  # adding link and node ids, connectors and centroids
 # are the first elements
 show_network(g, toy_network=True, title='Simple bottleneck with two centroids')
@@ -33,4 +33,4 @@ assignment = Assignment(g, dynamic_demand, simulation_time)
 # TODO: add tests for multi-edge parsing
 methods = assignment.get_methods()
 flows, costs = assignment.run(methods.i_ltm_aon)
-show_assignment(g,simulation_time,link_kwargs={'flows':flows, 'costs':costs} )
+show_assignment(g,simulation_time,toy_network=True,link_kwargs={'flows':flows, 'costs':costs} )

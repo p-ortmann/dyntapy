@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from dtapy.demand import DynamicDemand
 from typing import Callable
 from dtapy.utilities import log
+from warnings import warn
 import __init__
 
 v_wave_default = parameters.supply.v_wave_default
@@ -70,20 +71,18 @@ class Assignment:
                               self.time.network_loading)
         return flows, costs
 
-
-
     @staticmethod
     def get_methods():
         from dtapy.core.assignment_methods.methods import valid_methods
         return valid_methods
 
     def __build_network(self):
-        edge_data = [(_,_,data) for _,_,data in self.g.edges.data()]
-        sorted_edges = sorted( edge_data, key=lambda t: t[2]['link_id'])
+        edge_data = [(_, _, data) for _, _, data in self.g.edges.data()]
+        sorted_edges = sorted(edge_data, key=lambda t: t[2]['link_id'])
         sorted_nodes = sorted(self.g.nodes(data=True), key=lambda t: t[1]['node_id'])
         node_ids = np.array([data['node_id'] for (_, data) in sorted_nodes], dtype=np.uint32)
         # for the future: remove this requirement of pre sorting of nodes.
-        if not np.all(node_ids[1:] == node_ids[:-1]+1):
+        if not np.all(node_ids[1:] == node_ids[:-1] + 1):
             raise ValueError('the node_ids in the graph are assumed to be monotonously increasing and have to be '
                              'added accordingly')
         tot_nodes = np.uint32(self.g.number_of_nodes())
@@ -91,7 +90,7 @@ class Assignment:
         from_nodes = np.array([d['from_node_id'] for (_, _, d) in sorted_edges], dtype=np.uint32)
         to_nodes = np.array([d['to_node_id'] for _, _, d in sorted_edges], dtype=np.uint32)
         link_ids = np.array([d['link_id'] for _, _, d in sorted_edges], dtype=np.uint32)
-        if not np.all(link_ids[1:] == link_ids[:-1]+1):
+        if not np.all(link_ids[1:] == link_ids[:-1] + 1):
             raise ValueError('the node_ids in the graph are assumed to be monotonously increasing and have to be '
                              'added accordingly')
 
@@ -104,6 +103,11 @@ class Assignment:
         free_speed = np.array([d['free_speed'] for (_, _, d) in sorted_edges], dtype=np.float32)
         lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
         length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)
+        max_length = np.max(length)
+        if np.max(length) > 100:
+            warn(f'Network contains very long links, up to {max_length} km. Implementation has not been verified for'
+                 f'this type of network. Single precision floats may yield unexpected results.')
+
         link_type = np.array([np.int8(d.get('link_type', 0)) for (_, _, d) in sorted_edges], dtype=np.int8)
         tot_connectors = np.argwhere(link_type == 1).size + np.argwhere(link_type == -1).size
         # 1 is for sources (connectors leading out of a centroid)
@@ -187,7 +191,7 @@ class Assignment:
         val = np.arange(number_of_turns, dtype=np.uint32)
         val, col, row = csr_prep(fw_index_array, val, (tot_links, tot_links))
         out_turns = UI32CSRMatrix(val, col, row)
-        val = np.arange(number_of_turns, dtype=np.uint32) # val gets shuffled by csr sort
+        val = np.arange(number_of_turns, dtype=np.uint32)  # val gets shuffled by csr sort
         val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_links))
         in_turns = UI32CSRMatrix(val, col, row)
 

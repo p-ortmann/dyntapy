@@ -161,7 +161,7 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     return x, y
 
 
-def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
+def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, toy_network=False):
     """
     Adds centroids to g.
     Each centroids data dict contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y
@@ -172,6 +172,7 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
 
     Parameters
     ----------
+    toy_network : bool, toy networks are not described in lat lon
     add_connectors : whether to add auto-configured connectors, k*2 for each centroid
     Y : lat vector of centroids
     X : lon vector of centroids
@@ -200,7 +201,11 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True):
             for _ in range(k):
                 # find the nearest node j k times, ignoring previously nearest nodes in consequent iterations if
                 # multiple connectors are wanted
-                v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
+                if not toy_network:
+                    v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
+                else:
+                    v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), method='euclidean',
+                                                 return_dist=True)
                 og_nodes.remove(v)
                 tmp = tmp.subgraph(og_nodes)
                 source_data = {'connector': True, 'length': length, 'free_speed': default_connector_speed,
