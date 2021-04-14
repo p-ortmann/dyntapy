@@ -38,17 +38,6 @@ def cvn_to_flows(cvn):
     return flows
 
 
-def _debug_plot(results, network: ILTMNetwork, delta_change, time, title):
-    from __init__ import current_network
-    flows = cvn_to_flows(results.cvn_down)
-    cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
-    show_assignment(current_network, time, title=title, link_kwargs=
-    {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues},
-                    node_kwargs={'delta_change': delta_change},
-                    highlight_nodes=[19, 90, 91, ])
-
-
 def cvn_to_travel_times(cvn_up, cvn_down, time: SimulationTime, network: Network):
     """
 
@@ -114,3 +103,12 @@ def cvn_to_travel_times(cvn_up, cvn_down, time: SimulationTime, network: Network
     # % end
     # end
     # end
+
+
+def _debug_plot(results, network: ILTMNetwork, time, title='None', toy_network=True):
+    from __init__ import current_network
+    flows = cvn_to_flows(results.cvn_down)
+    cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
+    show_assignment(current_network, time,toy_network=toy_network, title=title, link_kwargs=
+    {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
+     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues})

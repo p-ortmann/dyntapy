@@ -12,6 +12,7 @@
 # file containing all the parameters used in the assignment procedures for DTA
 import numpy as np
 from dataclasses import dataclass
+import os
 
 # File IO and Logging
 
@@ -20,6 +21,11 @@ log_folder = 'logs'
 log_level = 20
 log_numba = False  # this will affect performance dramatically, and should only be set to true for debugging
 
+numba_config = {  # see https://numba.pydata.org/numba-doc/dev/reference/envvars.html for config
+    'NUMBA_CACHE_DIR': os.getcwd() + os.path.sep + 'numba_cache',
+    'NUMBA_DEBUG': '1',
+    'NUMBA_DEBUG_CACHE': '1'
+}
 default_city = 'Zinnowitz'
 
 

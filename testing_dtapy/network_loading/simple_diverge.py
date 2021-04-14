@@ -16,7 +16,9 @@ from dtapy.network_data import relabel_graph
 from dtapy.demand import od_graph_from_matrix, DynamicDemand
 from dtapy.core.time import SimulationTime
 from dtapy.assignment import Assignment
-
+import os
+dis=os.getenv('DISABLE_JIT')
+print(f'{dis=}')
 toy_network = 'simple_diverge'
 g = get_toy_network(toy_network)
 centroid_x = np.array([1, 5, 5])
@@ -29,11 +31,12 @@ od_matrix = np.zeros(centroid_x.size * centroid_x.size).reshape((centroid_x.size
 od_matrix[0, 1] = 1000
 od_matrix[0, 2] = 1000
 od_graph = od_graph_from_matrix(od_matrix, centroid_x, centroid_y)
-show_demand(od_graph, toy_network=True)
+show_demand(od_graph, toy_network=True, title=toy_network)
 dynamic_demand = DynamicDemand([od_graph], insertion_times=[0])
 # convert everything to internal representations and parse
 simulation_time = SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.25)
 assignment = Assignment(g, dynamic_demand, simulation_time)
 methods = assignment.get_methods()
 flows, costs = assignment.run(methods.i_ltm_aon)
-show_assignment(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs})
+show_assignment(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs},
+                title='assignment on '+ toy_network)

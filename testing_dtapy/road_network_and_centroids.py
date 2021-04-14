@@ -15,7 +15,7 @@ from dtapy.settings import default_city as city
 from dtapy.visualization import show_network
 from dtapy.utilities import log, _filepath
 
-default_centroid_spacing =  parameters.demand.default_centroid_spacing
+default_centroid_spacing = parameters.demand.default_centroid_spacing
 
 g = get_from_ox_and_save(city, reload=False)
 x, y = get_centroid_grid_coords(city)

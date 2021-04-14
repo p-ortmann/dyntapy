@@ -20,6 +20,7 @@ import numpy as np
 from numba import njit
 from dtapy.settings import parameters
 
+
 smooth_turning_fractions = parameters.assignment.smooth_turning_fractions
 smooth_costs = parameters.assignment.smooth_costs
 max_iterations = parameters.assignment.max_iterations
@@ -44,6 +45,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice)
         iteration_counter = max_iterations
+    _debug_plot(iltm_state,network, network_loading_time)
 
     flows = cvn_to_flows(iltm_state.cvn_up)
     costs = np.zeros(flows.shape, dtype=np.float32)
