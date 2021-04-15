@@ -81,8 +81,6 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
 
     c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()), time_step=1,
                                      highlight_links=highlight_links, patch_ratio=3)
-    # costs = [edge_attr['length'] / edge_attr['free_speed'] if 'length' and 'free_speed' in edge_attr.keys() else 'None'
-    #        for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
     edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y, **link_kwargs)
     node_source = _node_cds(tmp, highlight_nodes, **node_kwargs)
     edge_renderer = plot.add_glyph(edge_source,
@@ -110,7 +108,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
 def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs=dict(), node_kwargs=dict(),
                     convergence=None,
                     toy_network=False, highlight_nodes=np.array([]), highlight_links=np.array([]),
-                    title=None, plot_size=default_plot_size, notebook=False):
+                    title=None, plot_size=default_plot_size, notebook=False, show_nodes=True):
     """
 
     Parameters
@@ -232,22 +230,26 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     # link_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(link_kwargs.keys())]
     # edge_tooltips = edge_tooltips + link_kwargs_tooltips
     edge_tooltips.append(('flow', '@flow{(0.00)}'))
-    node_renderer = plot.add_glyph(node_source,
+    if show_nodes:
+        node_renderer = plot.add_glyph(node_source,
                                    glyph=Circle(x='x', y='y', size=node_size, fill_color='color', line_alpha=0.4,
                                                 fill_alpha=0.7,
                                                 line_color="black",
                                                 line_width=node_size / 10))
-    node_tooltips = [(item, f'@{item}') for item in
+        node_tooltips = [(item, f'@{item}') for item in
                      parameters.visualization.node_keys + list(node_kwargs.keys()) + list(static_node_kwargs.keys())]
+        node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
+        url = "https://www.openstreetmap.org/node/@ext_id/"
+        nodetaptool = TapTool(renderers=[node_renderer])
+        nodetaptool.callback = OpenURL(url=url)
+        plot.add_tools(node_hover, nodetaptool)
     # node_kwargs_tooltips = [(item, '@' + str(item) + '{(0.00)}') for item in list(node_kwargs.keys())]
     # node_tooltips= node_tooltips+node_kwargs_tooltips
 
     edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
-    node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
 
-    url = "https://www.openstreetmap.org/node/@ext_id/"
-    nodetaptool = TapTool(renderers=[node_renderer])
-    nodetaptool.callback = OpenURL(url=url)
+
+
     text_input = TextInput(title="Add new graph title", value='')
     text_input.js_link('value', plot.title, 'text')
     time_slider = Slider(start=0, end=time.tot_time_steps - 1, value=0, step=1, title="time")
@@ -257,7 +259,7 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     #     plot,
     #     column(time_slider),
     # )
-    plot.add_tools(node_hover, edge_hover, nodetaptool)
+    plot.add_tools( edge_hover)
 
     # Set up callbacks
     link_call_back = CustomJS(
@@ -290,7 +292,8 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
             source.change.emit();
         """)
     time_slider.js_on_change('value', link_call_back)
-    time_slider.js_on_change('value', node_call_back)  # TODO: add and test
+    if show_nodes:
+        time_slider.js_on_change('value', node_call_back)  # TODO: add and test
     if convergence is not None:
         iterations = np.arange(len(convergence))
         conv_plot = figure(plot_width=400, plot_height=400, title=title, x_axis_label='Iterations', y_axis_label='Gap')

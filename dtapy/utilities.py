@@ -178,6 +178,5 @@ def _filepath(name: str, check_path_valid=False):
     file_path = os.path.join(data_folder, str(name.lower() + '.pickle'))
     if check_path_valid:
         if not os.path.isfile(file_path):
-            print(f'{name}.pickle not found in data folder!')
-            raise NameError.with_traceback()
+            raise NameError(f'{name}.pickle not found in data folder!')
     return file_path

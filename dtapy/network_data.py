@@ -86,6 +86,8 @@ def convert_ox_to_gmns(g):
     for u, v, data in g.edges.data():
         new_data = {'from_node_id': u, 'to_node_id': v, 'length': data['length'], 'free_speed': data['maxspeed'],
                     'facility_type': data['highway'], 'lanes': data['lanes'], 'capacity': data['capacity']}
+        if 'geometry' in data:
+            new_data['geometry'] = data['geometry']
         if 'name' in data:
             new_data['name'] = data['name']
         else:

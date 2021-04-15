@@ -22,15 +22,16 @@ log_level = 20
 log_numba = False  # this will affect performance dramatically, and should only be set to true for debugging
 
 numba_config = {  # see https://numba.pydata.org/numba-doc/dev/reference/envvars.html for config
-    # DISABLE_JIT doesn't work for now as jitclasses are not supported in pure python ..
+    # DISABLE_JIT doesn't work for now as jit-classes are not supported in pure python ..
+    # List creation from arrays is also not correct with jit disabled,
+    # see https://github.com/numba/numba/issues/6001
     'NUMBA_CACHE_DIR': os.getcwd() + os.path.sep + 'numba_cache',
     'NUMBA_DEBUG': '0',
     'NUMBA_DEBUG_CACHE': '0',
-    'NUMBA_DISABLE_JIT': '1',
     'NUMBA_DEVELOPER_MODE': '0',
     'NUMBA_FULL_TRACEBACKS': '0',
 }
-default_city = 'Zinnowitz'
+default_city = 'Antwerp'
 
 
 # Parameters for various methods
@@ -66,7 +67,7 @@ class _Demand:
     default_connector_speed: np.float32 = np.float32(1000)
     default_connector_capacity: np.float32 = np.float32(10000)
     default_connector_lanes: np.uint8 = np.uint8(10)
-    default_centroid_spacing: int = 500  # in meters
+    default_centroid_spacing: int = 2000  # in meters
 
 
 @dataclass

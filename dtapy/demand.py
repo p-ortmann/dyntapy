@@ -208,11 +208,11 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, toy_network=False)
                                                  return_dist=True)
                 og_nodes.remove(v)
                 tmp = tmp.subgraph(og_nodes)
-                source_data = {'connector': True, 'length': length, 'free_speed': default_connector_speed,
+                source_data = {'connector': True, 'length': length/1000, 'free_speed': default_connector_speed,
                                'lanes': default_connector_lanes,
                                'capacity': default_connector_capacity,
                                'link_type': np.int8(1)}  # length in km
-                sink_data = {'connector': True, 'length': length, 'free_speed': default_connector_speed,
+                sink_data = {'connector': True, 'length': length/1000, 'free_speed': default_connector_speed,
                              'lanes': default_connector_lanes,
                              'capacity': default_connector_capacity,
                              'link_type': np.int8(-1)}
@@ -286,14 +286,20 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
 
 
 class DynamicDemand:
-    def __init__(self, od_graphs, insertion_times):
+    def __init__(self, od_graphs: list, insertion_times):
         """
-
+        multiple edges for same od are not supported right now, MultiDiGraph is chosen to
+        maintain compatibility with OSMNX tools
         Parameters
         ----------
         od_graphs :List of nx.MultiDiGraphs
         insertion_times: corresponding times for the demand to be loaded into the network
         """
+        if type(od_graphs) is not list:
+            raise ValueError
+        for item in od_graphs:
+            if type(item) is not nx.MultiDiGraph:
+                raise ValueError
         self.od_graphs = od_graphs
         self.insertion_times = np.array(insertion_times)
 
