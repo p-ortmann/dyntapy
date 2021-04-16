@@ -448,7 +448,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t - wind[in_link])) - 1, from_node[in_link]] = True
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t - wind[in_link])), from_node[in_link]] = True
 
-            active_destinations = np.argwhere(sending_flow[in_id, :] > 0)[0]
+            active_destinations = np.argwhere(sending_flow[in_id, :] > 0).flatten()
 
             if tot_out_links == 1:
                 for destination in active_destinations:
