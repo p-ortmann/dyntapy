@@ -15,18 +15,17 @@ from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from dtapy.utilities import _log, log
-from dtapy.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot
+from dtapy.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot, cvn_to_travel_times
 import numpy as np
 from numba import njit
 from dtapy.settings import parameters
-
 
 smooth_turning_fractions = parameters.assignment.smooth_turning_fractions
 smooth_costs = parameters.assignment.smooth_costs
 max_iterations = parameters.assignment.max_iterations
 
 
-#@njit(cache=True)
+# @njit(cache=True)
 def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime,
               network_loading_time: SimulationTime):
     _log('initializing AON', to_console=True)
@@ -45,8 +44,9 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice)
         iteration_counter = max_iterations
-    _debug_plot(iltm_state,network, network_loading_time)
+    _debug_plot(iltm_state, network, network_loading_time)
 
-    flows = cvn_to_flows(iltm_state.cvn_up)
-    costs = np.zeros(flows.shape, dtype=np.float32)
+    flows = cvn_to_flows(iltm_state.cvn_down)
+    costs = cvn_to_travel_times(cvn_up=iltm_state.cvn_up, cvn_down=iltm_state.cvn_down, time=network_loading_time,
+                                network=network)
     return flows, costs

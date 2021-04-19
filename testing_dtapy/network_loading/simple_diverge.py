@@ -37,4 +37,4 @@ assignment = Assignment(g, dynamic_demand, simulation_time)
 methods = assignment.get_methods()
 flows, costs = assignment.run(methods.i_ltm_aon)
 show_assignment(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs},
-                title='assignment on '+ toy_network)
+                title='assignment on ' + toy_network)
