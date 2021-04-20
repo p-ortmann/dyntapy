@@ -33,8 +33,8 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     arrival_maps = state.arrival_maps
     step_size = time.step_size
     np.floor_divide(state.cur_costs, step_size)
-    link_time = np.floor_divide(state.cur_costs, step_size * 3600)
-    interpolation_frac = np.divide(state.cur_costs, step_size * 3600) - link_time
+    link_time = np.floor_divide(state.cur_costs, step_size)
+    interpolation_frac = np.divide(state.cur_costs, step_size) - link_time
     # TODO: revisit structuring of the travel time arrays
     # could be worth while to copy and reverse the order depending on where you're at in these loops ..
     # the following implementation closely follows the solution presented in
@@ -82,7 +82,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                     else:
                         if t + np.uint32(link_time[t, link]) >= tot_time_steps - 1:
                             dist = arrival_maps[destination, tot_time_steps - 1, out_node] + state.cur_costs[t, link]
-                            - (tot_time_steps - 1 - t) * step_size * 3600
+                            - (tot_time_steps - 1 - t) * step_size
                         else:
                             dist = (1 - interpolation_frac[t, link]) * arrival_maps[
                                 destination, t + np.uint32(link_time[t, link]), out_node] + interpolation_frac[
@@ -147,10 +147,10 @@ def calc_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Netwo
                         dest_idx]:
                         continue
                     else:
-                        link_time = np.floor(start_time + state.cur_costs[t, link] / 3600 * step_size)
+                        link_time = np.floor(start_time + state.cur_costs[t, link] / step_size)
                         if t + np.uint32(link_time) < time.tot_time_steps - 1:
                             interpolation_fraction = start_time + state.cur_costs[
-                                t, link] / 3600 * step_size - link_time
+                                t, link] / step_size - link_time
                             dist = (1 - interpolation_fraction) * arrival_maps[
                                 dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
                                        dest_idx, t + np.uint32(link_time) + 1, to_node]

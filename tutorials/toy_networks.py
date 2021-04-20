@@ -27,7 +27,7 @@ def get_toy_network(name='cascetta', relabel=False):
     Parameters
     ----------
     relabel : bool, whether to add link and node ids, only applicable if no centroids are needed.
-    name : str, name of the toy network to get, currently supported: 'cascetta'
+    name : str, name of the toy network to get, see below
 
     Returns
     -------
@@ -72,19 +72,20 @@ def get_toy_network(name='cascetta', relabel=False):
                            (3, 4), (4, 3), (4, 5), (5, 4)]
         g.add_nodes_from(ebunch_of_nodes)
         g.add_edges_from(ebunch_of_edges)
-        bottleneck_edges = [(3, 4), (4,3)]
+        bottleneck_edges = [(3, 4), (4, 3)]
         set_toy_network_attributes(g, bottleneck_edges)
     elif name == 'simple_diverge':
         ebunch_of_nodes = [
             (1, {'x_coord': 2, 'y_coord': 2}),
             (2, {'x_coord': 3, 'y_coord': 2}),
-            (3, {'x_coord': 4, 'y_coord': 1}),
-            (4, {'x_coord': 4, 'y_coord': 3})]
+            (3, {'x_coord': 4, 'y_coord': 2}),
+            (4, {'x_coord': 5, 'y_coord': 1}),
+            (5, {'x_coord': 5, 'y_coord': 3})]
         ebunch_of_edges = [(2, 3), (3, 2), (1, 2), (2, 1),
-                           (2, 4), (4, 2)]
+                           (3, 4), (4, 3), (3, 5), (5, 3)]
         g.add_nodes_from(ebunch_of_nodes)
         g.add_edges_from(ebunch_of_edges)
-        bottleneck_edges = []
+        bottleneck_edges = [(2, 3), (3, 2)]
         set_toy_network_attributes(g, bottleneck_edges)
     else:
         raise ValueError('no toy network provided under that name')
@@ -97,7 +98,7 @@ def get_toy_network(name='cascetta', relabel=False):
 def set_toy_network_attributes(g, bottleneck_edges):
     for v in g.nodes:
         g.nodes[v]['ctrl_type'] = default_node_ctrl_type
-    for u, v,data in g.edges.data():
+    for u, v, data in g.edges.data():
         y1 = g.nodes[v]['y_coord']
         x1 = g.nodes[v]['x_coord']
         y0 = g.nodes[u]['y_coord']

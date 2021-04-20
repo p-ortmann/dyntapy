@@ -12,6 +12,9 @@ from dtapy.visualization import show_assignment
 from dtapy.core.supply import Network
 from dtapy.core.time import SimulationTime
 from numba import njit, prange, objmode
+from dtapy.settings import parameters
+
+epsilon = parameters.network_loading.epsilon
 
 
 @njit(parallel=True)
@@ -51,47 +54,44 @@ def cvn_to_travel_times(cvn_up, cvn_down, time: SimulationTime, network: Network
     -------
 
     """
-    tot_destinations = cvn_up.shape[2]
     travel_times = np.zeros((time.tot_time_steps, network.tot_links), dtype=np.float32)
     cvn_up_single_commodity = np.sum(cvn_up, axis=2)
     cvn_down_single_commodity = np.sum(cvn_down, axis=2)
     for t in prange(time.tot_time_steps):
-        if t == 3:
-            breakpoint()
         for link in prange(network.tot_links):
-            loaded = cvn_up_single_commodity[t, link] > 0
-            if network.links.link_type[link] == -1:
-                loaded = False  # sink connectors always have free flow travel time
-            else:
-                if np.sum(cvn_up_single_commodity[t, link] - cvn_up_single_commodity[t - 1, link]) > 0 \
-                        or (t == 0 and cvn_up_single_commodity[t, link] > 0):
-                    loaded = True
+            if not network.links.link_type[link] == -1:
+                if np.sum(cvn_up_single_commodity[t, link] - cvn_up_single_commodity[t - 1, link]) > 1 \
+                        or (t == 0 and cvn_up_single_commodity[0, link] > 1):
                     found_cvn = False
+                    cvn = cvn_up_single_commodity[t - 1, link] + 1
+                    if t == 0:
+                        cvn = 1
                     for t2 in range(t, time.tot_time_steps, 1):
-                        if cvn_down_single_commodity[t2, link] > cvn_up_single_commodity[t, link]:
+                        if cvn_down_single_commodity[t2, link] > cvn:
                             found_cvn = True
                             if t2 == 0:
-                                departure_time = \
-                                    (cvn_down_single_commodity[t2, link] - cvn_up_single_commodity[
-                                        t, link]) * 1 / (
-                                        cvn_down_single_commodity[t2, link])
+                                departure_time = 1 - \
+                                                 (cvn_down_single_commodity[t2, link] - cvn) * 1 / (
+                                                     cvn_down_single_commodity[t2, link])
                             else:
-                                departure_time = \
-                                    (cvn_down_single_commodity[t2, link] - cvn_up_single_commodity[
-                                        t, link]) * 1 / (
-                                            cvn_down_single_commodity[t2, link] - cvn_down_single_commodity[
-                                        t2 - 1, link])
-                            departure_time = (departure_time + t2) * time.step_size * 3600
-                            travel_times[t, link] = departure_time - t * 3600 * time.step_size
-                        elif cvn_down_single_commodity[t2, link] == cvn_up_single_commodity[t, link]:
+                                departure_time = 1 - \
+                                                 (cvn_down_single_commodity[t2, link] - cvn) * 1 / (
+                                                         cvn_down_single_commodity[t2, link] -
+                                                         cvn_down_single_commodity[
+                                                             t2 - 1, link])
+                                departure_time = (departure_time + t2 - 1)
+                            travel_times[t, link] = (departure_time - t) * time.step_size
+                            break
+                        elif cvn_down_single_commodity[t2, link] == cvn:
                             found_cvn = True
-                            travel_times[t, link] = (t2 - t) * 3600 * time.step_size
+                            travel_times[t, link] = (t2 - t) * time.step_size
+                            break
                     if not found_cvn:
                         # vehicle unable to leave network during simulation
                         travel_times[t, link] = travel_times[t - 1, link]
 
-            if not loaded:
-                travel_times[t, link] = np.float32((network.links.length[link] / network.links.v0[link]) * 3600)
+            travel_times[t, link] = max(travel_times[t, link],
+                                        np.float32((network.links.length[link] / network.links.v0[link])))
     return travel_times
 
 

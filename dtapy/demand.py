@@ -24,14 +24,32 @@ from collections import deque
 from json import loads
 import itertools
 from dtapy.settings import parameters
-from dtapy.network_data import sort_graph
 from dtapy.utilities import log
-from warnings import warn
 
 default_connector_speed = parameters.demand.default_connector_speed
 default_connector_capacity = parameters.demand.default_connector_capacity
 default_connector_lanes = parameters.demand.default_connector_lanes
 default_centroid_spacing = parameters.demand.default_centroid_spacing
+
+
+def generate_od_graph(tot_ods, name, g, time, max_flow, seed=0):
+    """
+
+    Parameters
+    ----------
+    tot_ods : total number of OD pairs to be generated
+    name : str, name of the city or region to geocode and sample from
+    g : nx.MultiDiGraph
+    time : time step to which this demand corresponds
+    max_flow : maximum demand per pair of points
+    seed : numpy random seed
+
+    Returns
+    -------
+
+    """
+    json = generate_od_xy(tot_ods, name, max_flow, seed)
+    return parse_demand(json, g, time)
 
 
 def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
@@ -42,7 +60,7 @@ def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
     seed : numpy random seed
     tot_ods :total number of OD pairs to be generated
     name : str, name of the city or region to geocode and sample from
-    max_flow : maximum demand that is generated
+    max_flow : maximum demand per pair of points
 
     Returns
     -------
@@ -208,11 +226,11 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, toy_network=False)
                                                  return_dist=True)
                 og_nodes.remove(v)
                 tmp = tmp.subgraph(og_nodes)
-                source_data = {'connector': True, 'length': length/1000, 'free_speed': default_connector_speed,
+                source_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
                                'lanes': default_connector_lanes,
                                'capacity': default_connector_capacity,
                                'link_type': np.int8(1)}  # length in km
-                sink_data = {'connector': True, 'length': length/1000, 'free_speed': default_connector_speed,
+                sink_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
                              'lanes': default_connector_lanes,
                              'capacity': default_connector_capacity,
                              'link_type': np.int8(-1)}

@@ -38,7 +38,8 @@ default_city = 'Antwerp'
 @dataclass
 class _Supply:
     """
-    container for parameters that concern supply
+    container for parameters that concern supply,
+    Note: Changes to these values may only take affect after the numba_cache directory has been deleted
     """
     max_capacity: np.uint32 = np.uint32(10000)
     v_wave_default: np.float32 = np.float32(30)
@@ -73,10 +74,12 @@ class _Demand:
 @dataclass
 class _NetworkLoading:
     """
-    container for parameters that concern supply
+    container for parameters that concern supply,
+    Note: Changes to these values may only take affect after the numba_cache directory has been deleted
     """
     link_model: str = 'i_ltm'  # only 'i_ltm' for now
     gap: np.float32 = np.float32(0.001)
+    epsilon: np.float = np.float32(0.001)
     max_iterations: np.uint32 = np.uint32(3000)
     step_size: np.float32 = np.float32(0.25)
     node_model: str = 'orca'  # 'only 'orca' for now
@@ -106,6 +109,7 @@ class _Visualization:
 class _RouteChoice:
     """
     container for parameters that concern route choice
+    Note: Changes to these values may only take affect after the numba_cache directory has been deleted
     """
     aggregation: np.float32 = 1
     step_size: np.float32 = 0.25  # time discretization
@@ -116,6 +120,7 @@ class _Assignment:
     """
         container for parameters that concern the actual assignment, e.g. how route choice and network loading
         are wired up with each other.
+        Note: Changes to these values may only take affect after the numba_cache directory has been deleted
         """
     gap: np.float32 = 0.0001
     max_iterations: np.uint = 3000

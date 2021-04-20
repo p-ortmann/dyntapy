@@ -44,9 +44,11 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice)
         iteration_counter = max_iterations
-    _debug_plot(iltm_state, network, network_loading_time)
+
 
     flows = cvn_to_flows(iltm_state.cvn_down)
     costs = cvn_to_travel_times(cvn_up=iltm_state.cvn_up, cvn_down=iltm_state.cvn_down, time=network_loading_time,
                                 network=network)
+    _debug_plot(iltm_state, network, network_loading_time)
+
     return flows, costs
