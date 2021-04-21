@@ -40,7 +40,8 @@ def cvn_to_flows(cvn_down):
 
 
 # @njit(parallel=True)
-def cvn_to_travel_times(cvn_up, cvn_down, time: SimulationTime, network: Network, method='forward'):
+def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: SimulationTime, network: Network,
+                        method='forward'):
     """
     Calculates travel times per link based on single commodity cumulative vehicle numbers
     Parameters
@@ -58,8 +59,9 @@ def cvn_to_travel_times(cvn_up, cvn_down, time: SimulationTime, network: Network
         travel_times[t,link] is the travel time experienced by the first vehicle
          that entered the link during the interval [t, t +dt]
 
-    forward with the last vehicle does not work, due to i-ltm vehicle chopping with dissipating flows.
-    #TODO: explore these differences..
+    forward with the last vehicle does not produce accurate results,
+    due to i-ltm vehicle chopping with dissipating flows.
+    TODO: explore these different approaches.. how do they differ from one another and how do they affect route choice?
     If method == 'backward_last':
         travel_times[t,link] is the travel time experienced by the last vehicle
          that left the link during the interval [t, t +dt]
@@ -73,7 +75,7 @@ def cvn_to_travel_times(cvn_up, cvn_down, time: SimulationTime, network: Network
         for t in prange(time.tot_time_steps):
             for link in prange(network.tot_links):
                 if not network.links.link_type[link] == -1:
-                    if np.sum(cvn_up[t, link] - cvn_up[t - 1, link]) > 1 \
+                    if cvn_up[t, link] - cvn_up[t - 1, link] > 1 \
                             or (t == 0 and cvn_up[0, link] > 1):
                         found_cvn = False
                         cvn = cvn_up[t - 1, link] + 1

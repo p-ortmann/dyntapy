@@ -47,7 +47,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
 
 
     flows = cvn_to_flows(iltm_state.cvn_down)
-    costs = cvn_to_travel_times(cvn_up=iltm_state.cvn_up, cvn_down=iltm_state.cvn_down, time=network_loading_time,
+    costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2), cvn_down=np.sum(iltm_state.cvn_down, axis=2), time=network_loading_time,
                                 network=network)
     _debug_plot(iltm_state, network, network_loading_time)
 

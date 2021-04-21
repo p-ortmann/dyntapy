@@ -115,7 +115,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node == 3:
+                print('hi am node ' + str(node))
+                if node == 3 and t == 1:
                     print('hi')
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
@@ -166,7 +167,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                         cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps,
                                         network.links.out_turns, cvn_up, tot_receiving_flow, con_up, vind, to_node, vrt,
                                         marg_comp,
-                                        node)
+                                        node, kjm, length)
                 for centroid in dynamic_demand.all_centroids:
                     delta_change[centroid] = 0
             node_processing_order = np.ascontiguousarray(np.argsort(delta_change)[::-1])
@@ -338,23 +339,33 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
 
     """
     for out_id, link in enumerate(local_out_links):
+        tot_local_receiving_flow[out_id] = 0
+        token = receiving_flow_init[link]
         if receiving_flow_init[link]:
             receiving_flow_init[link] = False
             tot_receiving_flow[link] = \
-                np.sum(cvn_down[max(0, t + wind[link]), link, :] * \
-                       (1 - wrt[link]) - np.sum(cvn_up[max(t - 1, 0), link, :])) + kjm[link] * length[link]
+                np.sum(cvn_down[max(0, t + wind[link]), link, :]) * \
+                (1 - wrt[link]) - np.sum(cvn_up[max(t - 1, 0), link, :]) + kjm[link] * length[link]
             if wind[link] < -1:
                 tot_receiving_flow[link] = tot_receiving_flow[link] + wrt[link] * np.sum(
                     cvn_down[max(0, t + wind[link] + 1), link, :])
                 # TODO: check if this offset is correct
         # if rf_down_cvn_db[link]<np.float32(pow(10,-10)):
         #   raise ValueError('negative RF')
-        if tot_receiving_flow[link] < 0:
-            tot_receiving_flow[link] = 0
         tot_local_receiving_flow[out_id] = tot_receiving_flow[link]
+        if tot_receiving_flow[link] < 0:
+            tot_local_receiving_flow[out_id] = 0
         if wind[link] == -1:
-            tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + wrt[link] * np.sum(
-                cvn_down[t, link, :])
+            if not token:
+                current_room_in_link = kjm[link] * length[link] - \
+                                       (np.sum(cvn_up[t, link, :]) - max( np.sum(cvn_down[t - 1, link, :]), np.sum(cvn_down[t, link, :])))
+            else:
+                current_room_in_link = kjm[link]*length[link]
+            tot_receiving_flow[link] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(cvn_down[t, link, :]),
+                                                                              current_room_in_link)
+            tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(
+                cvn_down[t, link, :]), current_room_in_link)
+
         tot_local_receiving_flow[out_id] = min(cap[link] * step_size, tot_local_receiving_flow[out_id])
 
 
@@ -411,7 +422,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                             local_in_links, local_out_links, tot_local_sending_flow, con_down, in_link_capacity,
                             time_step, t,
                             cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps,
-                            out_turns, cvn_up, total_receiving_flow, con_up, vind, to_nodes, vrt, marg_comp, node):
+                            out_turns, cvn_up, total_receiving_flow, con_up, vind, to_nodes, vrt, marg_comp, node,
+                            k_jam, length):
     _log('updating cvns')
     update_node = False
     result_tot_sending_flow = np.sum(result_turning_flows, axis=1)
@@ -524,3 +536,6 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         #    raise ValueError('vehicle conservation violated')
     for out_id, out_link in enumerate(local_out_links):
         cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
+        if min(np.sum(cvn_up[t, out_link, :] - cvn_down[t - 1, out_link, :]),
+               np.sum(cvn_up[t, out_link, :] - cvn_down[t, out_link, :])) > k_jam[out_link] * length[out_link]:
+            print('true violation')
