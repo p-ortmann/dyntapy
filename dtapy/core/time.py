@@ -19,6 +19,15 @@ spec_time = [('start', float32),
 @jitclass(spec_time)
 class SimulationTime(object):
     def __init__(self, start, end, step_size):
+        """
+        time discretization, units are always in hours
+        Parameters
+        ----------
+        start : int
+        end : int
+        step_size : float
+        """
+        # TODO: start always 0
         self.start = start
         self.end = end
         self.step_size = step_size

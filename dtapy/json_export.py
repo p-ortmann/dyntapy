@@ -54,6 +54,7 @@ def nx_to_geojson(g: nx.DiGraph, meta_data=None, to_file=False, city_name=None):
     else:
         return dumps(FeatureCollection(my_link_features, meta_data), cls=NpEncoder, indent=4), \
                dumps(FeatureCollection(my_node_features, meta_data), cls=NpEncoder, indent=4)
+    
 
 
 class NpEncoder(json.JSONEncoder):
