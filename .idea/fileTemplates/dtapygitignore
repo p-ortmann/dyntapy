@@ -7,7 +7,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*class java.lang.String
+*$py.class
 
 # C extensions
 *.so
@@ -119,12 +119,6 @@ ENV/
 env.bak/
 venv.bak/
 
-#intellij
-/idea
-
-#vscode
-/vscode
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -148,4 +142,3 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-
