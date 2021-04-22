@@ -1,7 +1,0 @@
-{
-    "python.pythonPath": "/home/paul/anaconda3/envs/stapy38/bin/python",
-    "python.terminal.activateEnvInCurrentTerminal": true,
-    "terminal.integrated.automationShell.linux": "",
-    "terminal.integrated.env.linux": {
-    }
-}
