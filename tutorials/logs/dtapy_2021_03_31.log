@@ -1,5 +1,0 @@
-2021-03-31 23:51:10,645 INFO @dtapy.network_data.py: retrieved network graph for Leuven, with 2363 nodes and 5240 edges after processing
-2021-03-31 23:51:10,904 INFO @dtapy.network_data.py: graph relabeled
-2021-04-01 00:01:09,089 INFO @dtapy.network_data.py: graph relabeled
-2021-04-01 00:01:16,651 INFO @dtapy.network_data.py: graph relabeled
-2021-04-01 00:02:21,391 INFO @dtapy.network_data.py: graph relabeled

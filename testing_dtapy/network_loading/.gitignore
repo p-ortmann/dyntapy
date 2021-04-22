@@ -1,0 +1,9 @@
+.numba_config.yaml
+/trying_bokeh_server.ipynb
+/data
+/results
+/cache
+/logs
+/export_json.py
+/numba_cache
+/.ipynb_checkpoints
