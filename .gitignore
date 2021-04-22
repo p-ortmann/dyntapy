@@ -4,6 +4,8 @@
 /cache
 /logs
 /numba_cache
+private.py
+/calibration tools/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -120,10 +122,10 @@ env.bak/
 venv.bak/
 
 #intellij
-/idea
+/.idea/
 
 #vscode
-/vscode
+/.vscode/
 
 # Spyder project settings
 .spyderproject
