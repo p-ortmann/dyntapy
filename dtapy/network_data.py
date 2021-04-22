@@ -84,8 +84,8 @@ def convert_ox_to_gmns(g):
         new_data = {'node_id': node, 'x_coord': data['x'], 'y_coord': data['y'], 'node_type': None, 'ctrl_type': None}
         new_g.add_node(node, **new_data)
     for u, v, data in g.edges.data():
-        new_data = {'from_node_id': u, 'to_node_id': v, 'length': data['length'], 'free_speed': data['maxspeed'],
-                    'facility_type': data['highway'], 'lanes': data['lanes'], 'capacity': data['capacity']}
+        new_data = {'from_node_id': u, 'to_node_id': v, 'length': data['length'], 'free_speed': int(data['maxspeed']),
+                    'facility_type': data['highway'], 'lanes': int(data['lanes']), 'capacity': int(data['capacity'])}
         if 'geometry' in data:
             new_data['geometry'] = data['geometry']
         if 'name' in data:
@@ -211,7 +211,7 @@ def __capacity(highway_val, lanes):
         if highway_val not in cap_mapping:
             cap_mapping[highway_val] = 1000
 
-        return cap_mapping[highway_val] * lanes
+        return int(cap_mapping[highway_val] * lanes)
     except TypeError:
         # highway val is list..
         assert isinstance(highway_val, list)
