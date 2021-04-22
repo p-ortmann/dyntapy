@@ -357,10 +357,10 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
             tot_local_receiving_flow[out_id] = 0
         if wind[link] == -1:
             if not token:
-                current_room_in_link = kjm[link] * length[link] - \
-                                       (np.sum(cvn_up[t, link, :]) - max( np.sum(cvn_down[t - 1, link, :]), np.sum(cvn_down[t, link, :])))
+                current_room_in_link = wrt[link]*(kjm[link] * length[link] - \
+                                       (np.sum(cvn_up[t, link, :]) - max( np.sum(cvn_down[t - 1, link, :]), np.sum(cvn_down[t, link, :]))))
             else:
-                current_room_in_link = kjm[link]*length[link]
+                current_room_in_link = kjm[link]*length[link] *wrt[link]
             tot_receiving_flow[link] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(cvn_down[t, link, :]),
                                                                               current_room_in_link)
             tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(
