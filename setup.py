@@ -16,7 +16,7 @@ from setuptools import setup
 # PyPI classifiers here
 CLASSIFIERS = [
     "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Physics",
@@ -31,7 +31,7 @@ CLASSIFIERS = [
 ]
 
 DESC = (
-    "Macroscopic Dynamic Traffic Assignment in python "
+    "Macroscopic Dynamic Traffic Assignment in Python "
 )
 
 
@@ -47,7 +47,7 @@ setup(
     url="https://gitlab.kuleuven.be/ITSCreaLab/mobilitytools",
     author="Paul Ortmann",
     author_email="itscrealab@kuleuven.be",
-    license="MIT",
+    license="GPLv3",
     platforms="any",
     python_requires=">=3.6",
     install_requires=INSTALL_REQUIRES,
