@@ -214,7 +214,7 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     link_kwargs_t0 = {key: val[0] for key, val in
                       zip(link_kwargs.keys(), link_kwargs.values())}  # getting time step zero for all
     link_kwargs_t0 = {**link_kwargs_t0, **static_link_kwargs}
-    edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0], all_y[0], **link_kwargs_t0)
+    edge_source = _edge_cds(tmp, all_colors[0], flows[0], all_x[0], all_y[0],step_size=time.step_size, **link_kwargs_t0)
     node_kwargs_t0 = {key: val[0] for key, val in
                       zip(node_kwargs.keys(), node_kwargs.values())}
     node_kwargs_t0 = {**node_kwargs_t0, **static_node_kwargs}
@@ -252,7 +252,7 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
 
     text_input = TextInput(title="Add new graph title", value='')
     text_input.js_link('value', plot.title, 'text')
-    time_slider = Slider(start=0, end=time.tot_time_steps - 1, value=0, step=1, title="time")
+    time_slider = Slider(start=0, end=time.end, value=0, step=time.step_size, title="time")
 
     # layout with multiple convergence plots
     # layout = row(
@@ -264,9 +264,9 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
     # Set up callbacks
     link_call_back = CustomJS(
         args=dict(source=edge_source, all_x=all_x, all_y=all_y, flows=flows, all_colors=all_colors,
-                  link_kwargs=link_kwargs), code="""
+                  link_kwargs=link_kwargs, step_size=time.step_size), code="""
         var data = source.data;
-        var t = cb_obj.value
+        var t = cb_obj.value/step_size
         for(var key in link_kwargs) {
             var value = link_kwargs[key][t];
             data[key] = value
@@ -281,9 +281,9 @@ def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs
 
     node_call_back = CustomJS(
         args=dict(source=node_source,
-                  node_kwargs=node_kwargs), code="""
+                  node_kwargs=node_kwargs, step_size=time.step_size), code="""
             var data = source.data;
-            var t = cb_obj.value
+            var t = cb_obj.value/step_size
             for(var key in node_kwargs) {
                 var value = node_kwargs[key][t];
                 data[key] = value
@@ -440,13 +440,14 @@ def _node_cds(g, highlight_nodes=np.array([]), **kwargs):
     return ColumnDataSource(data=node_dict)
 
 
-def _edge_cds(g, color, flow, x, y, **kwargs):
+def _edge_cds(g, color, flow, x, y,step_size=1.0, **kwargs):
     visualization_keys = parameters.visualization.link_keys
     edge_dict = dict()
     for attr_key in visualization_keys:
         values = [edge_attr[attr_key] if attr_key in edge_attr.keys() else 'None'
                   for _, _, edge_attr in sorted(g.edges(data=True), key=lambda t: t[2]['link_id'])]
         edge_dict[attr_key] = values
+    edge_dict['capacity'] = (np.array(edge_dict['capacity']) * step_size).tolist()
     edge_dict['color'] = color
     edge_dict['flow'] = flow
     edge_dict['x'] = x

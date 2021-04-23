@@ -115,9 +115,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                print('hi am node ' + str(node))
-                if node == 3 and t == 1:
-                    print('hi')
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
                 tot_local_in_links = len(local_in_links)

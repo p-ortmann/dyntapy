@@ -41,7 +41,7 @@ def cvn_to_flows(cvn_down):
 
 # @njit(parallel=True)
 def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: SimulationTime, network: Network,
-                        method='backward_last'):
+                        method='backward'):
     """
     Calculates travel times per link based on single commodity cumulative vehicle numbers
     Parameters
@@ -58,13 +58,14 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
     If method == 'forward':
         travel_times[t,link] is the travel time experienced by the first vehicle
          that entered the link during the interval [t, t +dt]
+    If method == 'backward':
+        travel_times[t,link] is the travel time experienced by the last vehicle
+         that left the link during the interval [t, t +dt]
+
+    TODO: explore these different approaches.. how do they differ from one another and how do they affect route choice?
 
     forward with the last vehicle does not produce accurate results,
     due to i-ltm vehicle chopping with dissipating flows.
-    TODO: explore these different approaches.. how do they differ from one another and how do they affect route choice?
-    If method == 'backward_last':
-        travel_times[t,link] is the travel time experienced by the last vehicle
-         that left the link during the interval [t, t +dt]
     If method == 'backward_first':
         travel_times[t,link] is the travel time experienced by the first vehicle
          that left the link during the interval [t, t +dt]
@@ -109,11 +110,12 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
 
                 travel_times[t, link] = max(travel_times[t, link],
                                             np.float32((network.links.length[link] / network.links.v0[link])))
-    elif method == 'backward_last':
+    elif method == 'backward':
+        # TODO: check this again for correctness
         for t in prange(time.tot_time_steps):
             for link in prange(network.tot_links):
                 if not network.links.link_type[link] == -1:
-                    if t == 1 and link == 3:
+                    if t == 0 and link == 3:
                         print("")
                     if cvn_down[t, link] - cvn_down[t - 1, link] > 1 \
                             or (t == 0 and cvn_down[0, link] > 1):
@@ -123,7 +125,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
                                 arrival_time = 1 - \
                                                (cvn_up[0, link] - cvn) * 1 / (
                                                    cvn_up[0, link])
-                                travel_times[t, link] = (t - arrival_time) * time.step_size
+                                travel_times[t, link] = (t + 1 - arrival_time) * time.step_size
                             elif cvn_up[t2 - 1, link] < cvn:
                                 arrival_time = 1 + \
                                                (cvn_up[t2, link] - cvn) * 1 / (
