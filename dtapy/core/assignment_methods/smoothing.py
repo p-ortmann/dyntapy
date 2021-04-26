@@ -8,7 +8,7 @@
 from numba import njit
 import numpy as np
 
-
+@njit
 def smooth_arrays(current: np.ndarray, previous: np.ndarray, k, method='msa'):
     """
 
@@ -26,13 +26,15 @@ def smooth_arrays(current: np.ndarray, previous: np.ndarray, k, method='msa'):
     if current.shape != previous.shape:
         raise ValueError('cannot smooth on arrays with inconsistent dimensions')
     if method == 'msa':
-        factor = 1 / np.power(k, (1 / 4))
-        dx = current - previous
-        return previous + factor * dx
+        factor = np.float32(1 / np.power(k, (1 / 4)))
+        dx = np.subtract(current,previous)
+        return np.add(previous, np.multiply(factor,dx))
+    elif method == 'nothing':
+        return current
     else:
         raise NotImplementedError
 
-
+@njit
 def smooth_sparse(current, previous, k, method='msa'):
     """
     smooths between two CSR matrices, updates previous with the result of the smoothing and returns it.
@@ -46,9 +48,11 @@ def smooth_sparse(current, previous, k, method='msa'):
     -------
     """
     if method == 'msa':
-        factor = 1 / np.power(k, (1 / 4))
-        dx = current.values - previous.values
-        previous.values = previous.values + factor * dx
+        factor = np.float32(1 / np.power(k, (1 / 4)))
+        dx = np.subtract(current.values, previous.values)
+        previous.values = np.add(previous.values,np.multiply(factor,dx))
         return previous
+    elif method == 'nothing':
+        return current
     else:
         raise NotImplementedError

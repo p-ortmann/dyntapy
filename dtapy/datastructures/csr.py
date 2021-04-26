@@ -68,9 +68,9 @@ def __build_csr_cls(nb_type):
     -------
 
     """
-    spec_csr_matrix = [('_values', nb_type), ('_col_index', nb.types.uint32[:]),
-                       ('_row_index', nb.types.uint32[:]), ('_nnz_rows', nb.types.uint32[:]),
-                       ('_number_of_rows', uint32)]
+    spec_csr_matrix = [('values', nb_type), ('col_index', nb.types.uint32[:]),
+                       ('row_index', nb.types.uint32[:]), ('nnz_rows', nb.types.uint32[:]),
+                       ('number_of_rows', uint32)]
     spec_csr_matrix = OrderedDict(spec_csr_matrix)
 
     @nb.experimental.jitclass(spec_csr_matrix)
@@ -109,11 +109,6 @@ def __build_csr_cls(nb_type):
         def get_nnz_rows(self):
             # get rows that have non-zero values
             return self.nnz_rows
-
-        def shallow_copy(self):
-            # returns a copy of the original that's tied to the same sparsity structure,
-            # only values truly get copied
-            return CSRMatrix(self.values.copy(), self.col_index, self.row_index)
 
     return CSRMatrix
 

@@ -20,7 +20,7 @@ from dtapy.core.route_choice.aon import update_arrival_maps, get_turning_fractio
 from numba import njit
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
@@ -37,24 +37,14 @@ def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, 
 
 # @njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
-    costs = network.links.length / network.links.v0
-    step_size = time.step_size
-    cur_costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
+    free_flow_costs = network.links.length / network.links.v0
+    costs= np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
-        cur_costs[t, :] = costs
-    tot_time_steps = time.tot_time_steps
-    tot_turns = network.tot_turns
-    tot_destinations = dynamic_demand.tot_active_destinations
-    for destination in dynamic_demand.all_active_destinations:
-        connectors = network.nodes.in_links.get_nnz(destination)
-        # triggering recomputations along all paths towards the destination
+        costs[t, :] = free_flow_costs
 
-    arrival_maps = init_arrival_maps(cur_costs, network.nodes.in_links,
+    arrival_maps = init_arrival_maps(costs, network.nodes.in_links,
                                      dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
                                      network.tot_nodes, dynamic_demand.all_centroids)
-    turning_fractions = np.zeros((tot_destinations, tot_time_steps, tot_turns), dtype=np.float32)
-    link_time = np.floor(cur_costs / step_size)
-    interpolation_frac = cur_costs / step_size - link_time
 
     source_connector_choice = List()
     last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
@@ -76,12 +66,8 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                                  shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations + 1))
         source_connector_choice.append(
             F32CSRMatrix(val, col, row))
-        aon_state =AONState(cur_costs, arrival_maps, turning_fractions,
-                 interpolation_frac, link_time, source_connector_choice)
-        # aon_state is updated in this routine
-        _log('Calculating initial turning fractions', to_console=True)
-        get_turning_fractions(dynamic_demand, network, time, aon_state, new_costs=aon_state.costs)
-        _log('Calculating initial source connector choice', to_console=True)
-        get_source_connector_choice(network, time, dynamic_demand)
-        _log('setting up data structures for i_ltm', to_console=True)
-    return
+    _log('Calculating initial turning fractions', to_console=True)
+    turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, costs)
+    _log('Calculating initial source connector choice', to_console=True)
+    connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
+    return AONState(costs, arrival_maps, turning_fractions, connector_choice)

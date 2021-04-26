@@ -31,7 +31,7 @@ numba_config = {  # see https://numba.pydata.org/numba-doc/dev/reference/envvars
     'NUMBA_DEVELOPER_MODE': '0',
     'NUMBA_FULL_TRACEBACKS': '0',
 }
-default_city = 'Antwerp'
+default_city = 'Zinnowitz'
 
 
 # Parameters for various methods
