@@ -76,10 +76,10 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
         *csr_prep(index_array_node_turns, val_in_links, (network.tot_nodes, network.tot_turns)))
     turn_based_out_links = UI8CSRMatrix(
         *csr_prep(index_array_node_turns, val_out_links, (network.tot_nodes, network.tot_turns)))
-    in_link_cap = F32CSRMatrix(val_in_link_cap, network.nodes.in_links._col_index,
-                               network.nodes.in_links._row_index)
-    out_link_cap = F32CSRMatrix(val_out_link_cap, network.nodes.out_links._col_index,
-                                network.nodes.out_links._row_index)
+    in_link_cap = F32CSRMatrix(val_in_link_cap, network.nodes.in_links.col_index,
+                               network.nodes.in_links.row_index)
+    out_link_cap = F32CSRMatrix(val_out_link_cap, network.nodes.out_links.col_index,
+                                network.nodes.out_links.row_index)
     iltm_nodes = ILTMNodes(network.nodes, turn_based_in_links, turn_based_out_links, in_link_cap,
                            out_link_cap)
     network = ILTMNetwork(network, iltm_links, iltm_nodes, network.turns)

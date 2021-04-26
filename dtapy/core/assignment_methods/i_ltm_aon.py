@@ -8,7 +8,7 @@
 #
 
 from dtapy.core.route_choice.aon_setup import setup_aon
-from dtapy.core.route_choice.aon import calc_turning_fractions, calc_source_connector_choice
+from dtapy.core.route_choice.aon import get_turning_fractions, get_source_connector_choice, update_arrival_maps
 from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_setup
 from dtapy.core.network_loading.link_models.i_ltm import i_ltm
 from dtapy.core.supply import Network
@@ -30,12 +30,6 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
               network_loading_time: SimulationTime):
     _log('initializing AON', to_console=True)
     aon_state = setup_aon(network, route_choice_time, dynamic_demand)
-    # aon_state is updated in this routine
-    _log('Calculating initial turning fractions', to_console=True)
-    calc_turning_fractions(dynamic_demand, network, route_choice_time, aon_state)
-    _log('Calculating initial source connector choice', to_console=True)
-    calc_source_connector_choice(network, aon_state, dynamic_demand)
-    _log('setting up data structures for i_ltm', to_console=True)
     iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
 
     iteration_counter = 0
@@ -44,11 +38,17 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice)
         iteration_counter = max_iterations
+        aon_state.costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
+                                              cvn_down=np.sum(iltm_state.cvn_down, axis=2),
+                                              time=network_loading_time,
+                                              network=network)
 
+        get_turning_fractions(dynamic_demand, network, route_choice_time, aon_state)
+        _log('Calculating initial source connector choice', to_console=True)
+        get_source_connector_choice(network, aon_state, dynamic_demand)
 
     flows = cvn_to_flows(iltm_state.cvn_down)
-    costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2), cvn_down=np.sum(iltm_state.cvn_down, axis=2), time=network_loading_time,
-                                network=network)
+
     _debug_plot(iltm_state, network, network_loading_time)
 
-    return flows, costs
+    return flows, new_costs

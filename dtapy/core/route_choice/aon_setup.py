@@ -15,44 +15,43 @@ from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
+from dtapy.utilities import _log
+from dtapy.core.route_choice.aon import update_arrival_maps, get_turning_fractions, get_source_connector_choice
 from numba import njit
 
-#@njit(cache=True)
-def _init_arrival_maps(costs,in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
+
+# @njit(cache=True)
+def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
         is_centroid[centroid] = True
     arrival_map = np.empty((len(destinations), tot_time_steps, tot_nodes), dtype=np.float32)
 
     for _id, destination in enumerate(destinations):
-        arrival_map[_id, 0, :] = dijkstra(costs[0, :],in_links, destination, tot_nodes, is_centroid)
+        arrival_map[_id, 0, :] = dijkstra(costs[0, :], in_links, destination, tot_nodes, is_centroid)
         for t in range(1, tot_time_steps):
             arrival_map[_id, t, :] = arrival_map[_id, 0,
-                                     :] + t * step_size   # init of all time steps with free flow vals
+                                     :] + t * step_size  # init of all time steps with free flow vals
     return arrival_map
 
 
-#@njit(cache=True)
+# @njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     costs = network.links.length / network.links.v0
     step_size = time.step_size
     cur_costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
         cur_costs[t, :] = costs
-    prev_costs = np.copy(cur_costs)
     tot_time_steps = time.tot_time_steps
     tot_turns = network.tot_turns
     tot_destinations = dynamic_demand.tot_active_destinations
     for destination in dynamic_demand.all_active_destinations:
         connectors = network.nodes.in_links.get_nnz(destination)
-        for c in connectors:
-            prev_costs[:, c] = np.inf
-            # triggering recomputations along all paths towards the destination
+        # triggering recomputations along all paths towards the destination
 
-    arrival_maps = _init_arrival_maps(cur_costs,network.nodes.in_links,
-                                      dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
-                                      network.tot_nodes, dynamic_demand.all_centroids)
-    turning_fractions = np.zeros((tot_destinations, tot_time_steps, tot_turns), dtype=np.float32)
+    arrival_maps = init_arrival_maps(cur_costs, network.nodes.in_links,
+                                     dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
+                                     network.tot_nodes, dynamic_demand.all_centroids)
     turning_fractions = np.zeros((tot_destinations, tot_time_steps, tot_turns), dtype=np.float32)
     link_time = np.floor(cur_costs / step_size)
     interpolation_frac = cur_costs / step_size - link_time
@@ -77,5 +76,12 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                                  shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations + 1))
         source_connector_choice.append(
             F32CSRMatrix(val, col, row))
-    return AONState(cur_costs, prev_costs, arrival_maps, turning_fractions,
-                    interpolation_frac, link_time, source_connector_choice)
+        aon_state =AONState(cur_costs, arrival_maps, turning_fractions,
+                 interpolation_frac, link_time, source_connector_choice)
+        # aon_state is updated in this routine
+        _log('Calculating initial turning fractions', to_console=True)
+        get_turning_fractions(dynamic_demand, network, time, aon_state, new_costs=aon_state.costs)
+        _log('Calculating initial source connector choice', to_console=True)
+        get_source_connector_choice(network, time, dynamic_demand)
+        _log('setting up data structures for i_ltm', to_console=True)
+    return

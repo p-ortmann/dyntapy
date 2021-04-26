@@ -80,35 +80,40 @@ def __build_csr_cls(nb_type):
         # get_nnz and get_row should only be used on rows for which a value is present
         # otherwise indexerrors will be raised
         def __init__(self, values, col_index, row_index):
-            self._values = values
-            self._col_index = col_index
-            self._row_index = row_index
-            self._nnz_rows = self.__set_nnz_rows()
-            self._number_of_rows = len(row_index) - 2
+            self.values = values
+            self.col_index = col_index
+            self.row_index = row_index
+            self.nnz_rows = self.__set_nnz_rows()
+            self.number_of_rows = len(row_index) - 2
 
         def get_nnz(self, row):
             # getting all the non zero columns of a particular row
-            row_start = self._row_index[row]
-            row_end = self._row_index[row + 1]
-            return self._col_index[row_start:row_end]
+            row_start = self.row_index[row]
+            row_end = self.row_index[row + 1]
+            return self.col_index[row_start:row_end]
 
         def get_row(self, row):
-            row_start = self._row_index[row]
-            row_end = self._row_index[row + 1]
-            return self._values[row_start:row_end]
+            row_start = self.row_index[row]
+            row_end = self.row_index[row + 1]
+            return self.values[row_start:row_end]
             # except Exception:
             #   return np.empty(0, dtype=np_type)
 
         def __set_nnz_rows(self):
             rows = []
-            for row in np.arange(len(self._row_index[:-1]), dtype=np.uint32):
+            for row in np.arange(len(self.row_index[:-1]), dtype=np.uint32):
                 if len(self.get_nnz(row)) > 0:
                     rows.append(row)
             return np.array(rows, dtype=np.uint32)
 
         def get_nnz_rows(self):
             # get rows that have non-zero values
-            return self._nnz_rows
+            return self.nnz_rows
+
+        def shallow_copy(self):
+            # returns a copy of the original that's tied to the same sparsity structure,
+            # only values truly get copied
+            return CSRMatrix(self.values.copy(), self.col_index, self.row_index)
 
     return CSRMatrix
 
