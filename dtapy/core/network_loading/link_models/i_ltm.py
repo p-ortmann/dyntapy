@@ -117,7 +117,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node ==4 and k>=1 and t==0:
+                if node ==3 and k>1 and t>=0:
                     print('hi')
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
@@ -347,7 +347,6 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
     """
     for out_id, link in enumerate(local_out_links):
         tot_local_receiving_flow[out_id] = 0
-        token = receiving_flow_init[link]
         if receiving_flow_init[link]:
             receiving_flow_init[link] = False
             tot_receiving_flow[link] = \
@@ -363,12 +362,13 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
         if tot_receiving_flow[link] < 0:
             tot_local_receiving_flow[out_id] = 0
         if wind[link] == -1:
-            if not token:
+            if t>1:
                 current_room_in_link = wrt[link] * (kjm[link] * length[link] -
                                                     (np.sum(cvn_up[t, link, :]) - max(np.sum(cvn_down[t - 1, link, :]),
                                                                                       np.sum(cvn_down[t, link, :]))))
             else:
-                current_room_in_link = kjm[link] * length[link] * wrt[link]
+                current_room_in_link = wrt[link] * (kjm[link] * length[link] -
+                                                    (np.sum(cvn_up[t, link, :]) - np.sum(cvn_down[t, link, :])))
             tot_receiving_flow[link] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(cvn_down[t, link, :]),
                                                                               current_room_in_link)
             tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(
