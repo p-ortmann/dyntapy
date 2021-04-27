@@ -80,7 +80,7 @@ class _NetworkLoading:
     link_model: str = 'i_ltm'  # only 'i_ltm' for now
     gap: np.float32 = np.float32(0.001)
     epsilon: np.float = np.float32(0.001)
-    max_iterations: np.uint32 = np.uint32(3000)
+    max_iterations: np.uint32 = np.uint32(1000)
     step_size: np.float32 = np.float32(0.25)
     node_model: str = 'orca'  # 'only 'orca' for now
 
@@ -123,7 +123,7 @@ class _Assignment:
         Note: Changes to these values may only take affect after the numba_cache directory has been deleted
         """
     gap: np.float32 = 0.0001
-    max_iterations: np.uint = 3000
+    max_iterations: np.uint = 3
     smooth_turning_fractions: str = 'MSA'  # valid entry only 'MSA' for now
     smooth_costs: bool = False
 

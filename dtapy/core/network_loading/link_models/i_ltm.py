@@ -22,7 +22,7 @@ max_iterations = parameters.network_loading.max_iterations
 
 # @njit(cache=True)
 def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime,
-          turning_fractions, connector_choice):
+          turning_fractions, connector_choice, k):
     turning_fractions = turning_fractions.transpose(1, 2, 0).copy()  # turning fractions in route choice typically get
     # (destinations, time, turn)
     tot_time_steps = time.tot_time_steps
@@ -52,6 +52,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     nodes_2_update = results.nodes_2_update
     cvn_up, cvn_down = results.cvn_up, results.cvn_down
     con_up, con_down = results.con_up, results.con_down
+    if k > 1:
+        print('check')
     marg_comp = results.marg_comp
 
     # allocate memory to local variables some of these variables are filled with different states, we first
@@ -115,6 +117,8 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
+                if node ==4 and k>=1 and t==0:
+                    print('hi')
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
                 tot_local_in_links = len(local_in_links)
@@ -140,7 +144,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                                local_sending_flow,
                                                local_turning_flows, turning_fractions, t, len(local_in_links),
                                                len(local_out_links))
-                # todo: order arguments in some logical fashion and document these functions ..
+                # todo: document these functions ..
 
                 # Node model call
                 local_turning_capacity = np.full(len(local_out_links) * len(local_in_links), 100000.0, dtype=np.float32)
@@ -226,7 +230,10 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
         if nodes_2_update[t, origin]:
             tot_nodes_updates += 1
             for index, connector in np.ndenumerate(out_links.get_nnz(origin)):
-                tmp_sending_flow[0, :] = cvn_up[t - 1, connector, :]
+                if t==0:
+                    tmp_sending_flow[0,:]=0
+                else:
+                    tmp_sending_flow[0, :] = cvn_up[t - 1, connector, :]
                 for flow, destination, fraction in zip(current_demand.to_destinations.get_row(origin),
                                                        current_demand.to_destinations.get_nnz(origin),
                                                        connector_choice[t_id].get_row(connector)):
@@ -237,7 +244,7 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                         #    destination) + ' loaded on connector ' + str(connector))
                     tmp_sending_flow[0, destination_id] += flow * fraction
 
-                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t - 1, connector, :])) > gap:
+                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t , connector, :])) > gap:
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), origin] = True
                     cvn_up[t, connector, :] = tmp_sending_flow[0, :]
                     if np.sum(cvn_up[t, connector, :] - cvn_up[t - 1, connector, :]) < cap[connector] * step_size:
@@ -294,17 +301,20 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
         if sending_flow_init[link]:
             sending_flow_init[link] = False
             # cvn_up[t,link,:] =  np.maximum(cvn_up[t,link,:], cvn_up[t-1,link,:])
-            if t == 0:
-                sending_flow[link, :] = cvn_up[max(0, t + vind[link]), link, :] * (1 - vrt[link])
+            if t+vind[link]<0:
+                sending_flow[link, :] = 0
             else:
-                sending_flow[link, :] = cvn_up[max(0, t + vind[link]), link, :] * (1 - vrt[link]) - cvn_down[t - 1,
-                                                                                                    link, :]
-            if vind[link] < -1 and t > 0:  # for all links with free flow travel time larger than dt we interpolate
-                sending_flow[link, :] = sending_flow[link, :] + vrt[link] * cvn_up[max(0, t + vind[link] + 1),
-                                                                            link, :]
+                sending_flow[link, :] = cvn_up[t + vind[link], link, :] * (1 - vrt[link])    - cvn_down[t - 1,
+                                                                                                link, :]
+                if vind[link] <-1:
+                    sending_flow[link, :] =sending_flow[link, :] +vrt[link] * cvn_up[t + vind[link] + 1,
+                                link, :]
+
+                # for all links with free flow travel times larger than dt we interpolate
         local_sending_flow[_id, :] = sending_flow[link, :]
         if vind[link] == -1:
             local_sending_flow[_id, :] = local_sending_flow[_id, :] + vrt[link] * cvn_up[t, link, :]
+            # if link can be traversed during a single dt we consider part of the current inflow
         local_sending_flow[_id, :][local_sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
         tot_local_sending_flow[_id] = min(cap[link] * step_size, np.sum(local_sending_flow[_id, :]))
 
@@ -354,10 +364,11 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
             tot_local_receiving_flow[out_id] = 0
         if wind[link] == -1:
             if not token:
-                current_room_in_link = wrt[link]*(kjm[link] * length[link] - \
-                                       (np.sum(cvn_up[t, link, :]) - max( np.sum(cvn_down[t - 1, link, :]), np.sum(cvn_down[t, link, :]))))
+                current_room_in_link = wrt[link] * (kjm[link] * length[link] -
+                                                    (np.sum(cvn_up[t, link, :]) - max(np.sum(cvn_down[t - 1, link, :]),
+                                                                                      np.sum(cvn_down[t, link, :]))))
             else:
-                current_room_in_link = kjm[link]*length[link] *wrt[link]
+                current_room_in_link = kjm[link] * length[link] * wrt[link]
             tot_receiving_flow[link] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(cvn_down[t, link, :]),
                                                                               current_room_in_link)
             tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(
@@ -442,10 +453,12 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
             else:
                 con_down[t, in_link] = False
                 temp_sending_flow[in_id, :] = sending_flow[in_id, :]
-            update_in_link = np.sum(np.abs(
-                cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]))) > gap
-            if np.sum(temp_sending_flow[in_id, :]) > 125 and node == 4:
-                print('')
+            if t==0:
+                update_in_link = np.sum(np.abs(
+                    cvn_down[t, in_link, :] - temp_sending_flow[in_id, :])) > gap
+            else:
+                update_in_link = np.sum(np.abs(
+                    cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]))) > gap
 
             update_node = update_in_link or update_node
             if update_in_link:
@@ -527,12 +540,20 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         # print(f'node {node} change significant, updating cvns')
         nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), node] = True
     for in_id, in_link in enumerate(local_in_links):
-        cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
+        if t!=0:
+            cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
+        else:
+            cvn_down[t, in_link, :] = temp_sending_flow[in_id, :]
+        if np.any(cvn_down[t, in_link, :] - cvn_up[t, in_link, :]>0):
+            print('true violation')
         # if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
         #        temp_sending_flow[in_id, :]) > 0:
         #    raise ValueError('vehicle conservation violated')
     for out_id, out_link in enumerate(local_out_links):
-        cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
+        if t!=0:
+            cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
+        else:
+            cvn_up[t, out_link, :] =  receiving_flow[out_id, :]
         if min(np.sum(cvn_up[t, out_link, :] - cvn_down[t - 1, out_link, :]),
                np.sum(cvn_up[t, out_link, :] - cvn_down[t, out_link, :])) > k_jam[out_link] * length[out_link]:
             print('true violation')

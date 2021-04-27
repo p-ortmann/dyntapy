@@ -32,11 +32,12 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     _log('setting up data structures for i_ltm', to_console=True)
     iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
-    k = 0
+    k = 1
     while k < max_iterations:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
-              aon_state.connector_choice)
+              aon_state.connector_choice, k)
+        _debug_plot(iltm_state, network, network_loading_time)
         costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                     cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                     time=network_loading_time,
@@ -45,12 +46,11 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         aon_state.update(costs, network, dynamic_demand, route_choice_time, k,'msa')
         k = k + 1
 
-    flows = cvn_to_flows(iltm_state.cvn_down)
-    costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
-                                cvn_down=np.sum(iltm_state.cvn_down, axis=2),
-                                time=network_loading_time,
-                                network=network)
 
-    _debug_plot(iltm_state, network, network_loading_time)
+    flows = cvn_to_flows(iltm_state.cvn_down)
+    # costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
+    #                             cvn_down=np.sum(iltm_state.cvn_down, axis=2),
+    #                             time=network_loading_time,
+    #                             network=network)
 
     return flows, costs

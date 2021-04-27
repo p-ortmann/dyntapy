@@ -126,7 +126,9 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
                                                (cvn_up[0, link] - cvn) * 1 / (
                                                    cvn_up[0, link])
                                 travel_times[t, link] = (t + 1 - arrival_time) * time.step_size
-                            elif cvn_up[t2 - 1, link] < cvn:
+                            elif cvn_up[t2 - 1, link] < cvn :
+                                if t2 ==time.tot_time_steps:
+                                    raise ValueError('cvn_up cannot be smaller than cvn_down for a given time step')
                                 arrival_time = 1 + \
                                                (cvn_up[t2, link] - cvn) * 1 / (
                                                        cvn_up[t2 - 1, link] -
@@ -139,6 +141,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
                                 arrival_time = t2 - 1
                                 travel_times[t, link] = (t - arrival_time) * time.step_size
                                 break
+
 
                 travel_times[t, link] = max(travel_times[t, link],
                                             np.float32((network.links.length[link] / network.links.v0[link])))

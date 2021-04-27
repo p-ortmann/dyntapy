@@ -36,5 +36,5 @@ simulation_time = SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.2
 assignment = Assignment(g, dynamic_demand, simulation_time)
 methods = assignment.get_methods()
 flows, costs = assignment.run(methods.i_ltm_aon)
-show_assignment(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs*3600},
-                title='assignment on ' + toy_network)
+#show_assignment(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs*3600},
+#                title='assignment on ' + toy_network)
