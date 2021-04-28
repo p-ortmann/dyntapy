@@ -52,9 +52,14 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     nodes_2_update = results.nodes_2_update
     cvn_up, cvn_down = results.cvn_up, results.cvn_down
     con_up, con_down = results.con_up, results.con_down
+    cvn_up[0,:,:] = 0
+    cvn_down[0,:,:] = 0
+    con_up[0,:]=False
+    con_down[0,:] = False
     if k > 1:
         print('check')
     marg_comp = results.marg_comp
+
 
     # allocate memory to local variables some of these variables are filled with different states, we first
     # calculate desired sending, receiving and turning flows and then consolidate them in an update step after
@@ -117,7 +122,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node ==3 and k>1 and t>=0:
+                if node ==5 and k>1 and t>=0:
                     print('hi')
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
@@ -178,6 +183,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                  tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down,
                                  tot_time_steps)
     _log('iltm finished')
+    results.marg_comp=True
 
 
 # @njit(cache=True)
@@ -319,7 +325,7 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
         tot_local_sending_flow[_id] = min(cap[link] * step_size, np.sum(local_sending_flow[_id, :]))
 
 
-# @njit(cache=True)
+
 def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow,
                          cvn_down, cvn_up,
                          receiving_flow_init, step_size):
@@ -359,20 +365,12 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
         # if rf_down_cvn_db[link]<np.float32(pow(10,-10)):
         #   raise ValueError('negative RF')
         tot_local_receiving_flow[out_id] = tot_receiving_flow[link]
-        if tot_receiving_flow[link] < 0:
-            tot_local_receiving_flow[out_id] = 0
         if wind[link] == -1:
-            if t>1:
-                current_room_in_link = wrt[link] * (kjm[link] * length[link] -
-                                                    (np.sum(cvn_up[t, link, :]) - max(np.sum(cvn_down[t - 1, link, :]),
-                                                                                      np.sum(cvn_down[t, link, :]))))
-            else:
-                current_room_in_link = wrt[link] * (kjm[link] * length[link] -
-                                                    (np.sum(cvn_up[t, link, :]) - np.sum(cvn_down[t, link, :])))
-            tot_receiving_flow[link] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(cvn_down[t, link, :]),
-                                                                              current_room_in_link)
-            tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + min(wrt[link] * np.sum(
-                cvn_down[t, link, :]), current_room_in_link)
+            tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + wrt[link] * np.sum(
+                cvn_down[t, link, :])
+        if tot_local_receiving_flow[out_id] < 0:
+            print(f'negative rf ' + str(tot_local_receiving_flow[out_id]))
+            tot_local_receiving_flow[out_id] = 0
 
         tot_local_receiving_flow[out_id] = min(cap[link] * step_size, tot_local_receiving_flow[out_id])
 
@@ -543,7 +541,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         if t!=0:
             cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
         else:
-            cvn_down[t, in_link, :] = temp_sending_flow[in_id, :]
+            if np.sum(temp_sending_flow[in_id, :])>0:
+                cvn_down[t, in_link, :] = temp_sending_flow[in_id, :]
         if np.any(cvn_down[t, in_link, :] - cvn_up[t, in_link, :]>0):
             print('true violation')
         # if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
@@ -553,7 +552,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         if t!=0:
             cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
         else:
-            cvn_up[t, out_link, :] =  receiving_flow[out_id, :]
+            if np.sum(receiving_flow[out_id, :])>0:
+                cvn_up[t, out_link, :] =  receiving_flow[out_id, :]
         if min(np.sum(cvn_up[t, out_link, :] - cvn_down[t - 1, out_link, :]),
                np.sum(cvn_up[t, out_link, :] - cvn_down[t, out_link, :])) > k_jam[out_link] * length[out_link]:
             print('true violation')

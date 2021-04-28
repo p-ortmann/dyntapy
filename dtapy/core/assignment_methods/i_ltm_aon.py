@@ -33,7 +33,10 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     _log('setting up data structures for i_ltm', to_console=True)
     iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
     k = 1
-    while k < max_iterations:
+    gap = parameters.assignment.gap
+    converged = False
+    old_flows = np.zeros((network_loading_time.tot_time_steps, network.tot_links), dtype=np.float32)
+    while k < 10 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice, k)
@@ -42,15 +45,39 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                     cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                     time=network_loading_time,
                                     network=network)
+        new_flows = cvn_to_flows(iltm_state.cvn_down)
+        if k>1:
+            converged = is_converged(old_flows, new_flows)
+            _log('new flows, converged : ' + str(converged), to_console=True)
+        old_flows = new_flows
         _log('updating route choice in iteration ' + str(k), to_console=True)
-        aon_state.update(costs, network, dynamic_demand, route_choice_time, k,'msa')
+        aon_state.update(costs, network, dynamic_demand, route_choice_time, k, 'msa')
         k = k + 1
-
 
     flows = cvn_to_flows(iltm_state.cvn_down)
     # costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
     #                             cvn_down=np.sum(iltm_state.cvn_down, axis=2),
     #                             time=network_loading_time,
     #                             network=network)
-
     return flows, costs
+
+
+def is_converged(old_flows: np.ndarray, new_flows: np.ndarray, gap=parameters.assignment.gap, method="relative_max"):
+    """
+
+    Parameters
+    ----------
+    gap : float
+    old_flows : tot_time_steps x tot_links
+    new_flows : tot_time_steps x tot_links
+    method : str
+    Returns
+    -------
+    returns True if flows are converged under the given criteria, False otherwis
+    """
+    if method == 'relative_max':
+        violated = np.abs(new_flows - old_flows) / old_flows > gap
+        either_non_zero = np.logical_or(old_flows > 0, new_flows >0)
+        return not np.any(np.logical_and(violated, either_non_zero))
+    else:
+        raise NotImplementedError
