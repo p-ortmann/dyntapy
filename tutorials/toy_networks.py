@@ -45,7 +45,7 @@ def get_toy_network(name='cascetta', relabel=False):
             (1, 2), (1, 3), (2, 3), (2, 4),
             (3, 4), (4, 3), (4, 2), (3, 2),
             (3, 1), (2, 1)]
-        bottle_neck_edges = [(2, 3), (3, 2)]
+        bottle_neck_edges = [(2, 3), (3, 2), (2,4),(4,2)]
         g.add_edges_from(ebunch_of_edges)
         set_toy_network_attributes(g, bottle_neck_edges)
 

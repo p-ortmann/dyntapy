@@ -7,25 +7,29 @@
 #
 #
 import numpy as np
-from numba import float32, uint32
-from numba.typed import List
+from numba import float32
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
-from dtapy.datastructures.csr import f32csr_type
-from dtapy.core.route_choice.aon import get_source_connector_choice, get_turning_fractions, update_arrival_maps
+from numba.typed import List
+
 from dtapy.core.assignment_methods.smoothing import smooth_sparse, smooth_arrays
+from dtapy.core.demand import InternalDynamicDemand
+from dtapy.core.route_choice.aon import get_source_connector_choice, get_turning_fractions, update_arrival_maps
+from dtapy.core.supply import Network
+from dtapy.core.time import SimulationTime
 from dtapy.datastructures.csr import F32CSRMatrix
+from dtapy.datastructures.csr import f32csr_type
 from dtapy.settings import parameters
 
-smoothing_method =  parameters.assignment.smooth_costs
-spec_aon_state = [('costs', float32[:, :]),
-                  ('arrival_maps', float32[:, :, :]),
-                  ('turning_fractions', float32[:, :, :]),
-                  ('connector_choice', ListType(f32csr_type))]
+smoothing_method = parameters.assignment.smooth_costs
+spec_rc_state = [('costs', float32[:, :]),
+                 ('arrival_maps', float32[:, :, :]),
+                 ('turning_fractions', float32[:, :, :]),
+                 ('connector_choice', ListType(f32csr_type))]
 
 
-@jitclass(spec_aon_state)
-class AONState(object):
+@jitclass(spec_rc_state)
+class RouteChoiceState(object):
     def __init__(self, cur_costs, arrival_maps, turning_fractions, connector_choice):
         """
         Parameters
@@ -39,17 +43,33 @@ class AONState(object):
         self.turning_fractions = turning_fractions
         self.connector_choice = connector_choice
 
-    def update(self, costs, network, dynamic_demand, time, k, method='msa'):
-        print('hi from cost update')
-        update_arrival_maps(network, time, dynamic_demand, self.arrival_maps, self.costs, costs)
-        turning_fractions = get_turning_fractions(dynamic_demand, network, time, self.arrival_maps, costs)
-        connector_choice = List()
-        for item in self.connector_choice:
-            connector_choice.append(F32CSRMatrix(np.zeros_like(item.values), item.col_index, item.row_index))
-        connector_choice = get_source_connector_choice(network, connector_choice,
-                                                       self.arrival_maps, dynamic_demand)
-        for t_id, (current, previous) in enumerate(zip(connector_choice, self.connector_choice)):
-            connector_choice[t_id] = smooth_sparse(current, previous, k, method)
-        self.connector_choice = connector_choice
-        self.turning_fractions = smooth_arrays(turning_fractions, self.turning_fractions, k, method)
 
+# @njit
+def update_route_choice(state, costs: np.ndarray, network: Network, dynamic_demand: InternalDynamicDemand,
+                        time: SimulationTime, k: int, method='msa'):
+    """
+
+    Parameters
+    ----------
+    state : RouteChoiceState
+    costs : time_steps x links
+    network : Network
+    dynamic_demand : InternalDynamicDemand
+    time : SimulationTime
+    k : int, number of iteration
+    method : str
+
+
+    """
+    print('hi from cost update')
+    #update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.costs, costs)
+    turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, costs)
+    connector_choice = List()
+    for item in state.connector_choice:
+        connector_choice.append(F32CSRMatrix(np.zeros_like(item.values), item.col_index, item.row_index))
+    connector_choice = get_source_connector_choice(network, connector_choice,
+                                                   state.arrival_maps, dynamic_demand)
+    for t_id, (current, previous) in enumerate(zip(connector_choice, state.connector_choice)):
+        connector_choice[t_id] = smooth_sparse(current, previous, k, method)
+    state.connector_choice = connector_choice
+    state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)

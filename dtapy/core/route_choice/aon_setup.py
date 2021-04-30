@@ -9,7 +9,7 @@
 
 from dtapy.core.route_choice.dynamic_dijkstra import dijkstra
 import numpy as np
-from dtapy.core.route_choice.aon_cls import AONState
+from dtapy.core.route_choice.aon_cls import RouteChoiceState
 from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
@@ -70,4 +70,4 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, costs)
     _log('Calculating initial source connector choice', to_console=True)
     connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
-    return AONState(costs, arrival_maps, turning_fractions, connector_choice)
+    return RouteChoiceState(costs, arrival_maps, turning_fractions, connector_choice)

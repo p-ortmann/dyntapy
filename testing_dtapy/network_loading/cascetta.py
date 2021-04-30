@@ -26,7 +26,7 @@ g = relabel_graph(g)  # adding link and node ids, connectors and centroids
 # are the first elements
 show_network(g, toy_network=True, title=toy_network)
 od_matrix = np.zeros(4).reshape((2, 2))
-od_matrix[0, 1] = 400
+od_matrix[0, 1] = 2499
 od_graph = od_graph_from_matrix(od_matrix, centroid_x, centroid_y)
 show_demand(od_graph, toy_network=True)
 dynamic_demand = DynamicDemand([od_graph], insertion_times=[0])

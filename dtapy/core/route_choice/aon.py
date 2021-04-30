@@ -19,7 +19,7 @@ route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
 
-@njit(cache=True, parallel=True)
+#@njit(cache=True, parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, arrival_maps,
                         old_costs, new_costs):
     tot_time_steps = time.tot_time_steps
@@ -105,7 +105,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
 
 # TODO: test the @njit(parallel=True) option here
-@njit(cache=True, parallel=True)
+#@njit(cache=True, parallel=True)
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
@@ -163,7 +163,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     return turning_fractions
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
                                 dynamic_demand: InternalDynamicDemand):
     """
@@ -197,7 +197,7 @@ def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix
     return connector_choice
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def update_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
                                    dynamic_demand: InternalDynamicDemand):
     """

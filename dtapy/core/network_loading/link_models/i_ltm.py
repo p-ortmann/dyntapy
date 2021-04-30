@@ -122,7 +122,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node ==5 and k>1 and t>=0:
+                if node ==2 and k>1 and t>=0:
                     print('hi')
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
@@ -402,7 +402,7 @@ def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_
         # in_link and out_link values here start at zero as they reference
         # the internal labelling for the node model
         local_turning_flows[in_id, out_id] = local_turning_flows[in_id, out_id] + np.sum(
-            local_sending_flow[in_id, :] * turning_fractions[t - 1, turn, :])
+            local_sending_flow[in_id, :] * turning_fractions[t , turn, :])
     for in_id in range(tot_in_links):
         max_desired_out_flow = np.sum(local_sending_flow[in_id, :])  # no capacity constraints considered yet
         if max_desired_out_flow == np.float32(0):
@@ -490,7 +490,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                         receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + \
                                                               temp_sending_flow[
                                                                   in_id, destination] * turning_fractions[
-                                                                  t - 1, turn, destination]
+                                                                  t, turn, destination]
 
         else:
             # no flow on this link
@@ -523,7 +523,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                 nodes_2_update[np.uint32(min(t - vind[out_link], tot_time_steps - 1)), to_nodes[out_link]] = True
 
         if marg_comp:
-            potential_destinations = receiving_flow <= gap
+            potential_destinations = receiving_flow[out_id] <= gap
             if np.any(potential_destinations):
                 threshold = 0
                 for destination in np.argwhere(potential_destinations == True)[0]:

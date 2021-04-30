@@ -8,7 +8,7 @@
 from numba import njit
 import numpy as np
 
-@njit
+#@njit
 def smooth_arrays(current: np.ndarray, previous: np.ndarray, k, method='msa'):
     """
 
