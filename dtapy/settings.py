@@ -123,7 +123,7 @@ class _Assignment:
         are wired up with each other.
         Note: Changes to these values may only take affect after the numba_cache directory has been deleted
         """
-    gap: np.float32 = 0.0001
+    gap: np.float32 = 0.01
     max_iterations: np.uint = 3
     smooth_turning_fractions: str = 'MSA'  # valid entry only 'MSA' for now
     smooth_costs: bool = False

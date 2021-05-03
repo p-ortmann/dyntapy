@@ -138,7 +138,6 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
         for t in range(time.tot_time_steps):
             for node in range(network.tot_nodes):
                 next_node = node
-                start_time = t + departure_time_offset
                 min_dist = np.inf
                 for link, to_node in zip(network.nodes.out_links.get_nnz(next_node),
                                          network.nodes.out_links.get_row(next_node)):
@@ -146,15 +145,16 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                         dest_idx]:
                         continue
                     else:
-                        link_time = np.floor(start_time + new_costs[t, link] / step_size)
+                        link_time = np.floor(departure_time_offset + new_costs[t, link] / step_size)
                         if t + np.uint32(link_time) < time.tot_time_steps - 1:
-                            interpolation_fraction = start_time + new_costs[
+                            interpolation_fraction = departure_time_offset + new_costs[
                                 t, link] / step_size - link_time
                             dist = (1 - interpolation_fraction) * arrival_maps[
                                 dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
                                        dest_idx, t + np.uint32(link_time) + 1, to_node]
                         else:
-                            dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_node]
+                            dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_node] + new_costs[
+                                t, link]
                         if dist < min_dist:
                             min_dist = dist
                             next_link = link
