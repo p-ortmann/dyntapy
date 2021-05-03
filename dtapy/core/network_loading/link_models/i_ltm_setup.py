@@ -36,7 +36,6 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
         if linktype == 1 or linktype == -1:  # we don't want queuing caused by access to connectors ..
             k_jam[in_link] = np.float32(1000000)
     k_jam[k_jam<72]=np.float32(72) # to be refined ..
-    length[length<0.05]=np.float32(0.05) # set all links to store as if they have 50 meters ..
     iltm_links = ILTMLinks(network.links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam,
                            k_crit)
 
