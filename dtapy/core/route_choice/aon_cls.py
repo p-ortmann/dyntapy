@@ -73,3 +73,4 @@ def update_route_choice(state, costs: np.ndarray, network: Network, dynamic_dema
         connector_choice[t_id] = smooth_sparse(current, previous, k, method)
     state.connector_choice = connector_choice
     state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)
+    state.costs = costs

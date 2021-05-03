@@ -48,21 +48,21 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                     time=network_loading_time,
                                     network=network)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
-
         if k > 1:
             converged, current_gap = is_converged(old_flows, new_flows)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
 
         old_flows = new_flows
-        _log('updating route choice in iteration ' + str(k), to_console=True)
         k = k + 1
+        _log('updating arrival in iteration ' + str(k), to_console=True)
         update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs,
                             costs)
-        _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
-                       title=f'RC state in iteration {k}')
+        #_rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
+        #               title=f'RC state in iteration {k}')
+        _log('updating route choice in iteration ' + str(k), to_console=True)
         update_route_choice(aon_state, costs, network, dynamic_demand, route_choice_time, k, 'msa')
-        if k == 300:
+        if k == 10:
             _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs*3600,
                            title=f'RC state in iteration {k}')
     print('finished it ' + str(k))
@@ -82,7 +82,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
 
 # @njit(cache=True)
 def is_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parameters.assignment.gap,
-                 method="relative_max"):
+                 method="all"):
     """
 
     Parameters
@@ -95,15 +95,9 @@ def is_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parame
     -------
     returns Tuple(boolean, np.float32)
     """
-    if method == 'relative_max':
-        result_gap = np.abs(new_flows - old_flows) / old_flows
-        violated = result_gap > target_gap
-        current_gap = np.nanmax(result_gap)
-        (t,link) = np.unravel_index(np.nanargmax(result_gap), result_gap.shape)
-        print(f'{link=} and {t=}')
-        either_non_zero = np.logical_or(old_flows > 0, new_flows > 0)
-        # not np.any(np.logical_and(violated, either_non_zero))
-        return current_gap < target_gap, current_gap
+    if method == 'all':
+        result_gap = np.divide(np.float64(np.sum(np.abs(new_flows - old_flows))),np.float64(np.sum(old_flows)))
+        return result_gap < target_gap, result_gap
     else:
         raise NotImplementedError
 

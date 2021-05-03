@@ -18,8 +18,9 @@ from dtapy.datastructures.csr import F32CSRMatrix
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
+#TODO: test function for arrival map topological order
 
-#@njit(cache=True, parallel=True)
+# @njit(cache=True, parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, arrival_maps,
                         old_costs, new_costs):
     tot_time_steps = time.tot_time_steps
@@ -46,14 +47,15 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
         _log(' processing new destination')
         next_nodes_2_update = np.full(network.tot_nodes, False, dtype=np.bool_)
         for t in range(tot_time_steps - 1, -1, -1):
-            _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t))
+            _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t), to_console=True)
             nodes_2_update = next_nodes_2_update.copy()
             for link, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
                 if delta > route_choice_delta:
                     node = from_node[link]
-                    nodes_2_update[node] = True
+                    if node != dynamic_demand.all_active_destinations[destination]:
+                        nodes_2_update[node] = True
             while np.any(nodes_2_update == True):
                 # _log('currently active nodes: ' + str(np.argwhere(nodes_2_update == True)))
                 # going through all the nodes that need updating for the current time step
@@ -99,13 +101,14 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                         # only adds the in_links if it's not a centroid
                         # the first nodes are centroids, see labelling in assignment.py
                         for link in in_links.get_nnz(min_node):
+                            if from_node[link]!=dynamic_demand.all_active_destinations[destination]:
                             # _log('activated node ' + str(from_node[link]))
-                            nodes_2_update[from_node[link]] = True
-                            next_nodes_2_update[from_node[link]] = True
+                                nodes_2_update[from_node[link]] = True
+                                next_nodes_2_update[from_node[link]] = True
 
 
 # TODO: test the @njit(parallel=True) option here
-#@njit(cache=True, parallel=True)
+# @njit(cache=True, parallel=True)
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
@@ -163,7 +166,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     return turning_fractions
 
 
-#@njit(cache=True)
+# @njit(cache=True)
 def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
                                 dynamic_demand: InternalDynamicDemand):
     """
@@ -197,7 +200,7 @@ def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix
     return connector_choice
 
 
-#@njit(cache=True)
+# @njit(cache=True)
 def update_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
                                    dynamic_demand: InternalDynamicDemand):
     """

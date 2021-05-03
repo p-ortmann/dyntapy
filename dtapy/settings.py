@@ -65,7 +65,7 @@ class _Demand:
     """
     container for parameters that concern demand
     """
-    default_connector_speed: np.float32 = np.float32(1000)
+    default_connector_speed: np.float32 = np.float32(200)
     default_connector_capacity: np.float32 = np.float32(10000)
     default_connector_lanes: np.uint8 = np.uint8(10)
     default_centroid_spacing: int = 2000  # in meters
@@ -114,7 +114,7 @@ class _RouteChoice:
     """
     aggregation: np.float32 = 0.5
     step_size: np.float32 = 0.25  # time discretization
-    delta_cost: np.float32 = 0.001 # in hours
+    delta_cost: np.float32 = 0.000001 # in hours
 
 
 class _Assignment:
