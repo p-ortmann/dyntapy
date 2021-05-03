@@ -83,6 +83,7 @@ class _NetworkLoading:
     max_iterations: np.uint32 = np.uint32(1000)
     step_size: np.float32 = np.float32(0.25)
     node_model: str = 'orca'  # 'only 'orca' for now
+    precision: np.float32 = np.float32(0.001)
 
 
 @dataclass

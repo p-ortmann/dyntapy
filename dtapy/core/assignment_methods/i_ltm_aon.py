@@ -20,6 +20,7 @@ from dtapy.core.time import SimulationTime
 from dtapy.settings import parameters
 from dtapy.utilities import _log
 from dtapy.core.route_choice.aon import update_arrival_maps
+from numba.typed import List
 
 smooth_turning_fractions = parameters.assignment.smooth_turning_fractions
 smooth_costs = parameters.assignment.smooth_costs
@@ -29,6 +30,8 @@ max_iterations = parameters.assignment.max_iterations
 # @njit(cache=True)
 def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime,
               network_loading_time: SimulationTime):
+    convergence = List()
+    convergence.append(np.inf)
     _log('initializing AON', to_console=True)
     aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     _log('setting up data structures for i_ltm', to_console=True)
@@ -45,50 +48,62 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                     time=network_loading_time,
                                     network=network)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
+
         if k > 1:
-            converged = is_converged(old_flows, new_flows)
-            _log('new flows, converged : ' + str(converged), to_console=True)
+            converged, current_gap = is_converged(old_flows, new_flows)
+            convergence.append(current_gap)
+            _log('new flows, gap is  : ' + str(current_gap), to_console=True)
+
         old_flows = new_flows
         _log('updating route choice in iteration ' + str(k), to_console=True)
         k = k + 1
-        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs, costs)
+        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs,
+                            costs)
+        _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
+                       title=f'RC state in iteration {k}')
         update_route_choice(aon_state, costs, network, dynamic_demand, route_choice_time, k, 'msa')
-        if k==300:
-            _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
+        if k == 300:
+            _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs*3600,
                            title=f'RC state in iteration {k}')
     print('finished it ' + str(k))
     _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
                    title=f'RC state in iteration {k}')
-
 
     flows = cvn_to_flows(iltm_state.cvn_down)
     # costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
     #                             cvn_down=np.sum(iltm_state.cvn_down, axis=2),
     #                             time=network_loading_time,
     #                             network=network)
+    convergence_arr = np.empty(len(convergence))
+    for _id, i in enumerate(convergence):
+        convergence_arr[_id] = i
     return flows, costs
 
 
 # @njit(cache=True)
-def is_converged(old_flows: np.ndarray, new_flows: np.ndarray, gap=parameters.assignment.gap, method="relative_max"):
+def is_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parameters.assignment.gap,
+                 method="relative_max"):
     """
 
     Parameters
     ----------
-    gap : float
+    target_gap : float
     old_flows : tot_time_steps x tot_links
     new_flows : tot_time_steps x tot_links
     method : str
     Returns
     -------
-    returns True if flows are converged under the given criteria, False otherwise
+    returns Tuple(boolean, np.float32)
     """
     if method == 'relative_max':
         result_gap = np.abs(new_flows - old_flows) / old_flows
-        violated = result_gap > gap
-        # current_gap = np.nanmax(gap)
+        violated = result_gap > target_gap
+        current_gap = np.nanmax(result_gap)
+        (t,link) = np.unravel_index(np.nanargmax(result_gap), result_gap.shape)
+        print(f'{link=} and {t=}')
         either_non_zero = np.logical_or(old_flows > 0, new_flows > 0)
-        return not np.any(np.logical_and(violated, either_non_zero))
+        # not np.any(np.logical_and(violated, either_non_zero))
+        return current_gap < target_gap, current_gap
     else:
         raise NotImplementedError
 

@@ -115,8 +115,6 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
         for t in prange(time.tot_time_steps):
             for link in prange(network.tot_links):
                 if not network.links.link_type[link] == -1:
-                    if t == 0 and link == 3:
-                        print("")
                     if cvn_down[t, link] - cvn_down[t - 1, link] > 1 \
                             or (t == 0 and cvn_down[0, link] > 1):
                         cvn = cvn_down[t, link]
@@ -126,8 +124,9 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
                                                (cvn_up[0, link] - cvn) * 1 / (
                                                    cvn_up[0, link])
                                 travel_times[t, link] = (t + 1 - arrival_time) * time.step_size
-                            elif cvn_up[t2 - 1, link] < cvn :
-                                if t2 ==time.tot_time_steps:
+                            elif cvn_up[t2 - 1, link] < cvn < cvn_up[t2, link]:
+                                if t2 == time.tot_time_steps and cvn - cvn_up[
+                                    t2 - 1, link] > parameters.network_loading.precision:
                                     raise ValueError('cvn_up cannot be smaller than cvn_down for a given time step')
                                 arrival_time = 1 + \
                                                (cvn_up[t2, link] - cvn) * 1 / (
@@ -141,7 +140,6 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
                                 arrival_time = t2 - 1
                                 travel_times[t, link] = (t - arrival_time) * time.step_size
                                 break
-
 
                 travel_times[t, link] = max(travel_times[t, link],
                                             np.float32((network.links.length[link] / network.links.v0[link])))
