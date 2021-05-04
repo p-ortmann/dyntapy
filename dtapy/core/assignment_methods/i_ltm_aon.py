@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from dtapy.core.demand import InternalDynamicDemand
+from dtapy.core.demand import InternalDynamicDemand, Demand
 from dtapy.core.network_loading.link_models.i_ltm import i_ltm
 from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_setup
 from dtapy.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot, cvn_to_travel_times
@@ -49,7 +49,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                     network=network)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
         if k > 1:
-            converged, current_gap = is_converged(old_flows, new_flows)
+            converged, current_gap = is_flow_converged(old_flows, new_flows)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
 
@@ -58,12 +58,12 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         _log('updating arrival in iteration ' + str(k), to_console=True)
         update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs,
                             costs)
-        #_rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
+        # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
         #               title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
         update_route_choice(aon_state, costs, network, dynamic_demand, route_choice_time, k, 'msa')
         if k == 10:
-            _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs*3600,
+            _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs * 3600,
                            title=f'RC state in iteration {k}')
     print('finished it ' + str(k))
     _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
@@ -81,8 +81,8 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
 
 
 # @njit(cache=True)
-def is_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parameters.assignment.gap,
-                 method="all"):
+def is_flow_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parameters.assignment.gap,
+                      method="all"):
     """
 
     Parameters
@@ -96,10 +96,38 @@ def is_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parame
     returns Tuple(boolean, np.float32)
     """
     if method == 'all':
-        result_gap = np.divide(np.float64(np.sum(np.abs(new_flows - old_flows))),np.float64(np.sum(old_flows)))
+        result_gap = np.divide(np.float64(np.sum(np.abs(new_flows - old_flows))), np.float64(np.sum(old_flows)))
         return result_gap < target_gap, result_gap
     else:
         raise NotImplementedError
+
+
+def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamicDemand,  target_gap=parameters.assignment.gap):
+    """
+
+    Parameters
+    ----------
+    target_gap : np.float64, threshold for convergence
+    costs : tot_time_steps x tot_links
+    flows : tot_time_steps x tot_links
+    arrival_map : tot_destinations x tot_time_steps x tot_nodes
+    dynamic_demand : InternalDynamicDemand
+
+    Returns
+    -------
+
+    """
+    experienced_travel_times = np.sum(np.multiply(costs.astype(np.float64), flows.astype(np.float64)))
+    shortest_path_travel_times = np.float64(0)
+    for t in dynamic_demand.loading_time_steps:
+        demand: Demand = dynamic_demand.get_demand(t)
+        for origin in demand.to_destinations.get_nnz_rows():
+            for flow, destination in zip(demand.to_destinations.get_row(origin),
+                                         demand.to_destinations.get_nnz(origin)):
+                shortest_path_travel_times += flow * arrival_map[
+                    np.flatnonzero(dynamic_demand.all_active_destinations == destination)[0], t, origin]
+    gap_value = np.divide(experienced_travel_times/shortest_path_travel_times)-1
+    return gap_value < target_gap, gap_value
 
 
 def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', toy_network=True):
