@@ -48,16 +48,17 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                     time=network_loading_time,
                                     network=network)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
+        _log('updating arrival in iteration ' + str(k), to_console=True)
+        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs,
+                            costs)
         if k > 1:
-            converged, current_gap = is_flow_converged(old_flows, new_flows)
+            converged, current_gap = is_cost_converged(costs, new_flows,aon_state.arrival_maps, dynamic_demand, route_choice_time.step_size)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
 
         old_flows = new_flows
         k = k + 1
-        _log('updating arrival in iteration ' + str(k), to_console=True)
-        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs,
-                            costs)
+
         # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
         #               title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
@@ -93,7 +94,7 @@ def is_flow_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=p
     method : str
     Returns
     -------
-    returns Tuple(boolean, np.float32)
+    returns Tuple(boolean, np.float64)
     """
     if method == 'all':
         result_gap = np.divide(np.float64(np.sum(np.abs(new_flows - old_flows))), np.float64(np.sum(old_flows)))
@@ -102,11 +103,12 @@ def is_flow_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=p
         raise NotImplementedError
 
 
-def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamicDemand,  target_gap=parameters.assignment.gap):
+def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamicDemand,step_size,  target_gap=parameters.assignment.gap):
     """
 
     Parameters
     ----------
+    step_size : np.float32, duration of a time step
     target_gap : np.float64, threshold for convergence
     costs : tot_time_steps x tot_links
     flows : tot_time_steps x tot_links
@@ -115,6 +117,7 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
 
     Returns
     -------
+    Tuple(boolean, np.float64)
 
     """
     experienced_travel_times = np.sum(np.multiply(costs.astype(np.float64), flows.astype(np.float64)))
@@ -124,9 +127,9 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
         for origin in demand.to_destinations.get_nnz_rows():
             for flow, destination in zip(demand.to_destinations.get_row(origin),
                                          demand.to_destinations.get_nnz(origin)):
-                shortest_path_travel_times += flow * arrival_map[
-                    np.flatnonzero(dynamic_demand.all_active_destinations == destination)[0], t, origin]
-    gap_value = np.divide(experienced_travel_times/shortest_path_travel_times)-1
+                shortest_path_travel_times += flow * (arrival_map[
+                    np.flatnonzero(dynamic_demand.all_active_destinations == destination)[0], t, origin]-t*step_size)
+    gap_value = np.divide(experienced_travel_times,shortest_path_travel_times)-1
     return gap_value < target_gap, gap_value
 
 
