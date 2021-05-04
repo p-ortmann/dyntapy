@@ -17,7 +17,7 @@ from dtapy.settings import parameters
 epsilon = parameters.network_loading.epsilon
 
 
-@njit(parallel=True)
+@njit(cache= True, parallel=True)
 def cvn_to_flows(cvn_down):
     """
 
@@ -39,9 +39,9 @@ def cvn_to_flows(cvn_down):
     return flows
 
 
-# @njit(parallel=True)
+#@njit(cache = True, parallel=True)
 def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: SimulationTime, network: Network,
-                        method='backward'):
+                        method='backward', dnl_precision =  parameters.network_loading.precision):
     """
     Calculates travel times per link based on single commodity cumulative vehicle numbers
     Parameters
@@ -126,7 +126,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
                                 travel_times[t, link] = (t + 1 - arrival_time) * time.step_size
                             elif cvn_up[t2 - 1, link] < cvn:
                                 if t2 == time.tot_time_steps:
-                                    if cvn - cvn_up[t2 - 1, link] > parameters.network_loading.precision:
+                                    if cvn - cvn_up[t2 - 1, link] > dnl_precision:
                                         raise ValueError('cvn_up cannot be smaller than cvn_down for a given time step')
                                     else:
                                         continue

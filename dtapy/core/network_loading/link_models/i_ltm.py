@@ -20,7 +20,7 @@ node_model_str = parameters.network_loading.node_model
 max_iterations = parameters.network_loading.max_iterations
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime,
           turning_fractions, connector_choice, k):
     turning_fractions = turning_fractions.transpose(1, 2, 0).copy()  # turning fractions in route choice typically get
@@ -52,13 +52,11 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     nodes_2_update = results.nodes_2_update
     cvn_up, cvn_down = results.cvn_up, results.cvn_down
     con_up, con_down = results.con_up, results.con_down
-    cvn_up[0,:,:] = 0
-    cvn_down[0,:,:] = 0
-    con_up[0,:]=False
-    con_down[0,:] = False
-    if k > 1:
-        print('check')
-    marg_comp = results.marg_comp
+    cvn_up[:,:,:] = 0
+    cvn_down[:,:,:] = 0
+    con_up[:,:]=False
+    con_down[:,:] = False
+    marg_comp = False
 
 
     # allocate memory to local variables some of these variables are filled with different states, we first
@@ -122,8 +120,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
 
             #  _______ main loops here, optimization crucial ______
             for node in node_processing_order[:cur_nodes_2_update]:
-                if node ==2 and k>1 and t>=0:
-                    print('hi')
                 local_in_links = in_links.get_nnz(node)
                 local_out_links = out_links.get_nnz(node)
                 tot_local_in_links = len(local_in_links)
@@ -186,7 +182,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     results.marg_comp=True
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def unload_destination_flows(nodes_2_update, destinations, in_links,
                              tot_receiving_flow, t, tmp_sending_flow, vrt, cvn_up, vind, cvn_down, tot_time_steps):
     _log('unloading destination traffic')
@@ -201,7 +197,7 @@ def unload_destination_flows(nodes_2_update, destinations, in_links,
                     nodes_2_update[np.uint32(min(t + 1, tot_time_steps - 1)), destination] = True
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,
                         tot_nodes_updates, out_links, cap,
                         step_size, con_up, vind, tot_time_steps, to_node, all_active_destinations):
@@ -246,8 +242,8 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                     destination_id = np.argwhere(all_active_destinations == destination)[0, 0]
                     if flow * fraction > 0.001:
                         never_flow = False
-                        # _log('flow ' + str(flow * fraction) + ' for destination ' + str(
-                        #    destination) + ' loaded on connector ' + str(connector))
+                        _log('flow ' + str(flow * fraction) + ' for destination ' + str(
+                            destination) + ' loaded on connector ' + str(connector), to_console=True)
                     tmp_sending_flow[0, destination_id] += flow * fraction
 
                 if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t , connector, :])) > gap:
@@ -278,7 +274,7 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
         raise Exception('no flow was loaded for this timestep, StaticDemand object issues ')
 
 
-# @njit
+#@njit
 def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, sending_flow
                        , sending_flow_init, local_sending_flow, tot_local_sending_flow, step_size):
     _log('calc sending flows')
@@ -325,7 +321,7 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
         tot_local_sending_flow[_id] = min(cap[link] * step_size, np.sum(local_sending_flow[_id, :]))
 
 
-
+#@njit
 def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_local_receiving_flow, tot_receiving_flow,
                          cvn_down, cvn_up,
                          receiving_flow_init, step_size):
@@ -369,13 +365,13 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
             tot_local_receiving_flow[out_id] = tot_local_receiving_flow[out_id] + wrt[link] * np.sum(
                 cvn_down[t, link, :])
         if tot_local_receiving_flow[out_id] < 0:
-            print(f'negative rf ' + str(tot_local_receiving_flow[out_id]))
+            #print(f'negative rf ' + str(tot_local_receiving_flow[out_id]))
             tot_local_receiving_flow[out_id] = 0
 
         tot_local_receiving_flow[out_id] = min(cap[link] * step_size, tot_local_receiving_flow[out_id])
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_links, turns, local_sending_flow,
                                local_turning_flows, turning_fractions, t, tot_in_links, tot_out_links,
                                ):
@@ -413,7 +409,7 @@ def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_
                 local_turning_fractions[in_id, out_id] = local_turning_flows[in_id, out_id] / max_desired_out_flow
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def calc_turning_flows_merge(local_in_links, local_turning_flows, local_sending_flow, local_turning_fractions):
     # simple merge
     local_turning_fractions[:, 0] = 1
@@ -422,7 +418,7 @@ def calc_turning_flows_merge(local_in_links, local_turning_flows, local_sending_
             local_sending_flow[in_id, :])
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flow, temp_sending_flow, receiving_flow,
                             tot_out_links,
                             local_in_links, local_out_links, tot_local_sending_flow, con_down, in_link_capacity,
@@ -543,8 +539,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         else:
             if np.sum(temp_sending_flow[in_id, :])>0:
                 cvn_down[t, in_link, :] = temp_sending_flow[in_id, :]
-        if np.any(cvn_down[t, in_link, :] - cvn_up[t, in_link, :]>0):
-            print('true violation')
+        # if np.any(cvn_down[t, in_link, :] - cvn_up[t, in_link, :]>0):
+        #     pass
         # if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
         #        temp_sending_flow[in_id, :]) > 0:
         #    raise ValueError('vehicle conservation violated')
@@ -554,6 +550,6 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         else:
             if np.sum(receiving_flow[out_id, :])>0:
                 cvn_up[t, out_link, :] =  receiving_flow[out_id, :]
-        if min(np.sum(cvn_up[t, out_link, :] - cvn_down[t - 1, out_link, :]),
-               np.sum(cvn_up[t, out_link, :] - cvn_down[t, out_link, :])) > k_jam[out_link] * length[out_link]:
-            print('true violation')
+        # if min(np.sum(cvn_up[t, out_link, :] - cvn_down[t - 1, out_link, :]),
+        #        np.sum(cvn_up[t, out_link, :] - cvn_down[t, out_link, :])) > k_jam[out_link] * length[out_link]:
+        #     pass

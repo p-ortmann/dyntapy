@@ -19,14 +19,15 @@ from dtapy.assignment import Assignment
 
 toy_network = 'cascetta'
 g = get_toy_network('cascetta')
-centroid_x = np.array([1, 7])
-centroid_y = np.array([1, 1])
+centroid_x = np.array([1, 7,4])
+centroid_y = np.array([1, 1, 3.5])
 g = add_centroids_to_graph(g, centroid_x, centroid_y, toy_network=True)  # also adds connectors automatically
 g = relabel_graph(g)  # adding link and node ids, connectors and centroids
 # are the first elements
 show_network(g, toy_network=True, title=toy_network)
-od_matrix = np.zeros(4).reshape((2, 2))
-od_matrix[0, 1] = 2499
+od_matrix = np.zeros(9).reshape((3, 3))
+od_matrix[0, 1] = 300
+od_matrix[0, 2] = 300
 od_graph = od_graph_from_matrix(od_matrix, centroid_x, centroid_y)
 show_demand(od_graph, toy_network=True)
 dynamic_demand = DynamicDemand([od_graph], insertion_times=[0])

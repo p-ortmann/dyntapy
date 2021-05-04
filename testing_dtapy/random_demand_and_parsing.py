@@ -17,7 +17,7 @@ from dtapy.visualization import show_demand, show_assignment
 step_size = parameters.network_loading.step_size
 # loading from data folder, assumes road_network_and_centroids was run previously
 g = load_pickle(city + '_grid_centroids')
-geo_jsons = [generate_od_xy(4, city, seed=seed, max_flow=500) for seed in [0, 1]]
+geo_jsons = [generate_od_xy(2, city, seed=seed, max_flow=200) for seed in [0, 1]]
 times = np.arange(2)
 trip_graphs = [parse_demand(geo_json, g, time) for geo_json, time in zip(geo_jsons, times)]
 for trip_graph, time in zip(trip_graphs, times):

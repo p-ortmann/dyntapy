@@ -21,6 +21,7 @@ from dtapy.settings import parameters
 from dtapy.utilities import _log
 from dtapy.core.route_choice.aon import update_arrival_maps
 from numba.typed import List
+from numba import njit
 
 smooth_turning_fractions = parameters.assignment.smooth_turning_fractions
 smooth_costs = parameters.assignment.smooth_costs
@@ -40,7 +41,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     converged = False
     old_flows = np.zeros((network_loading_time.tot_time_steps, network.tot_links), dtype=np.float32)
     while k < 1001 and not converged:
-        _log('calculating network state in iteration ' + str(k), to_console=True)
+        _log('calculating network state in iter0ation ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice, k)
         costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
@@ -52,20 +53,18 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs,
                             costs)
         if k > 1:
-            converged, current_gap = is_cost_converged(costs, new_flows,aon_state.arrival_maps, dynamic_demand, route_choice_time.step_size)
+            converged, current_gap = is_cost_converged(costs, new_flows, aon_state.arrival_maps, dynamic_demand,
+                                                       route_choice_time.step_size)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
-
-        old_flows = new_flows
+        _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs * 3600,
+                       title=f'RC state in iteration {k}')
         k = k + 1
 
         # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
         #               title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
         update_route_choice(aon_state, costs, network, dynamic_demand, route_choice_time, k, 'msa')
-        if k == 10:
-            _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs * 3600,
-                           title=f'RC state in iteration {k}')
     print('finished it ' + str(k))
     _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
                    title=f'RC state in iteration {k}')
@@ -81,7 +80,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     return flows, costs
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def is_flow_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parameters.assignment.gap,
                       method="all"):
     """
@@ -103,7 +102,9 @@ def is_flow_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=p
         raise NotImplementedError
 
 
-def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamicDemand,step_size,  target_gap=parameters.assignment.gap):
+#@njit(cache=True)
+def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamicDemand, step_size,
+                      target_gap=parameters.assignment.gap):
     """
 
     Parameters
@@ -128,8 +129,10 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
             for flow, destination in zip(demand.to_destinations.get_row(origin),
                                          demand.to_destinations.get_nnz(origin)):
                 shortest_path_travel_times += flow * (arrival_map[
-                    np.flatnonzero(dynamic_demand.all_active_destinations == destination)[0], t, origin]-t*step_size)
-    gap_value = np.divide(experienced_travel_times,shortest_path_travel_times)-1
+                                                          np.flatnonzero(
+                                                              dynamic_demand.all_active_destinations == destination)[
+                                                              0], t, origin] - t * step_size)
+    gap_value = np.divide(experienced_travel_times, shortest_path_travel_times) - 1
     return gap_value < target_gap, gap_value
 
 
@@ -137,6 +140,7 @@ def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', t
     from dtapy.visualization import show_assignment
     from dtapy.__init__ import current_network
     flows = cvn_to_flows(results.cvn_down)
+    toy_network = False
     cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
     show_assignment(current_network, time, toy_network=toy_network, title=title, link_kwargs=
     {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,

@@ -108,7 +108,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
 
 # TODO: test the @njit(parallel=True) option here
-# @njit(cache=True, parallel=True)
+@njit(cache=True, parallel=True)
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
@@ -166,7 +166,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     return turning_fractions
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
                                 dynamic_demand: InternalDynamicDemand):
     """
@@ -184,23 +184,23 @@ def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix
     -------
 
     """
-    values = np.zeros_like(connector_choice[0].values)
+
     for t_id, t in enumerate(dynamic_demand.loading_time_steps):
         demand = dynamic_demand.get_demand(t)
-        connector_choice[t_id].values = values  # initializing with zeros
+        connector_choice[t_id].values = np.zeros_like(connector_choice[0].values)  # initializing with zeros
         for origin in demand.origins:
             for d_id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
                 dist = np.inf
-                min_link = -1
-                for node, link in zip(network.nodes.out_links.get_row(origin), network.nodes.out_links.get_nnz(origin)):
+                min_connector= -1
+                for node, connector in zip(network.nodes.out_links.get_row(origin), network.nodes.out_links.get_nnz(origin)):
                     if arrival_maps[d_id, t, node] < dist:
                         dist = arrival_maps[d_id, t, node]
-                        min_link = link
-                connector_choice[t_id].get_row(min_link)[d_id] = 1.0
+                        min_connector = connector
+                connector_choice[t_id].get_row(min_connector)[d_id] = 1.0
     return connector_choice
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def update_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
                                    dynamic_demand: InternalDynamicDemand):
     """
@@ -218,10 +218,9 @@ def update_source_connector_choice(network: Network, connector_choice: F32CSRMat
     -------
 
     """
-    values = np.zeros_like(connector_choice[0].values)
     for t_id, t in enumerate(dynamic_demand.loading_time_steps):
         demand = dynamic_demand.get_demand(t)
-        connector_choice[t_id].values = values  # initializing with zeros
+        connector_choice[t_id].values = np.zeros_like(connector_choice[0].values)  # initializing with zeros
         for origin in demand.origins:
             for d_id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
                 dist = np.inf

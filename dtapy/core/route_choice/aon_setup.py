@@ -35,7 +35,7 @@ def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, 
     return arrival_map
 
 
-# @njit(cache=True)
+#@njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     free_flow_costs = network.links.length / network.links.v0
     costs= np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
@@ -61,7 +61,7 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                     index_array[_id] = [connector, destination_id]
                     _id += 1
         index_array = index_array[:_id].copy()
-        val = val[:_id].copy()
+        val = np.copy(val[:_id])
         val, col, row = csr_prep(index_array, val,
                                  shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations + 1))
         source_connector_choice.append(
