@@ -14,10 +14,11 @@ from dtapy.core.time import SimulationTime
 import numpy as np
 from dtapy.settings import default_city as city
 from dtapy.visualization import show_demand, show_assignment
+
 step_size = parameters.network_loading.step_size
 # loading from data folder, assumes road_network_and_centroids was run previously
 g = load_pickle(city + '_grid_centroids')
-geo_jsons = [generate_od_xy(2, city, seed=seed, max_flow=200) for seed in [0, 1]]
+geo_jsons = [generate_od_xy(1, city, seed=seed, max_flow=500) for seed in [1, 2]]
 times = np.arange(2)
 trip_graphs = [parse_demand(geo_json, g, time) for geo_json, time in zip(geo_jsons, times)]
 for trip_graph, time in zip(trip_graphs, times):
@@ -29,6 +30,6 @@ assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.fl
 # TODO: add tests for multi-edge parsing
 methods = assignment.get_methods()
 flows, costs = assignment.run(methods.i_ltm_aon)
-show_assignment(g, SimulationTime(np.float32(0.0),np.float32(2.0), step_size=step_size),
-                link_kwargs={'flows': flows, 'costs':costs}, show_nodes=False)
+show_assignment(g, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size),
+                link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
 print('ran successfully')

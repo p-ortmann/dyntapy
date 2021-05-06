@@ -108,7 +108,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
 
 # TODO: test the @njit(parallel=True) option here
-@njit(cache=True, parallel=True)
+#@njit(cache=True)
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
@@ -136,7 +136,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     next_node = np.int32(-1)
     turning_fractions = np.zeros((dynamic_demand.tot_active_destinations, time.tot_time_steps, network.tot_turns),
                                  dtype=np.float32)
-    for dest_idx in prange(dynamic_demand.all_active_destinations.size):
+    for dest_idx in range(dynamic_demand.all_active_destinations.size):
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
             for node in range(network.tot_nodes):

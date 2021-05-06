@@ -157,12 +157,13 @@ class Assignment:
             _to_links = nodes.out_links.get_nnz(via_node)
             for from_node, from_link in zip(_from_nodes, _from_links):
                 for to_node, to_link in zip(_to_nodes, _to_links):
-                    via_nodes.append(via_node)
-                    to_nodes.append(to_node)
-                    from_nodes.append(from_node)
-                    from_links.append(from_link)
-                    to_links.append(to_link)
-                    turn_counter += 1
+                    if from_link != to_link:
+                        via_nodes.append(via_node)
+                        to_nodes.append(to_node)
+                        from_nodes.append(from_node)
+                        from_links.append(from_link)
+                        to_links.append(to_link)
+                        turn_counter += 1
         number_of_turns = turn_counter
         capacity = np.full(number_of_turns, turn_capacity_default, dtype=np.float32)
         turn_type = np.full(number_of_turns, turn_type_default, dtype=np.int8)
@@ -183,6 +184,7 @@ class Assignment:
         -------
 
         """
+        length[length < 0.05] = 0.05
         costs = np.empty((tot_time_steps, tot_links), dtype=np.float32)
         v_wave = np.full(tot_links, v_wave_default, dtype=np.float32)
         number_of_turns = np.uint32(len(turns.to_link))

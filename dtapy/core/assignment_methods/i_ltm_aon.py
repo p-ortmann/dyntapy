@@ -39,9 +39,8 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
     k = 1
     converged = False
-    old_flows = np.zeros((network_loading_time.tot_time_steps, network.tot_links), dtype=np.float32)
     while k < 1001 and not converged:
-        _log('calculating network state in iter0ation ' + str(k), to_console=True)
+        _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice, k)
         costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
@@ -140,7 +139,7 @@ def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', t
     from dtapy.visualization import show_assignment
     from dtapy.__init__ import current_network
     flows = cvn_to_flows(results.cvn_down)
-    toy_network = False
+    toy_network = True
     cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
     show_assignment(current_network, time, toy_network=toy_network, title=title, link_kwargs=
     {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,

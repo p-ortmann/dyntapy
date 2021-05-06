@@ -367,7 +367,6 @@ def calc_receiving_flows(local_out_links, wrt, wind, kjm, length, cap, t, tot_lo
         if tot_local_receiving_flow[out_id] < 0:
             #print(f'negative rf ' + str(tot_local_receiving_flow[out_id]))
             tot_local_receiving_flow[out_id] = 0
-
         tot_local_receiving_flow[out_id] = min(cap[link] * step_size, tot_local_receiving_flow[out_id])
 
 
@@ -494,7 +493,11 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
             con_down[t, in_link] = 0
 
     for out_id, out_link in enumerate(local_out_links):
-        update_out_link = np.sum(
+        if t==0:
+            update_out_link = np.sum(
+                np.abs(cvn_up[t, out_link, :] - receiving_flow[out_id, :])) > gap
+        else:
+            update_out_link = np.sum(
             np.abs(cvn_up[t, out_link, :] - (cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]))) > gap
         update_node = update_out_link or update_node
 
@@ -538,18 +541,22 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
             cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
         else:
             if np.sum(temp_sending_flow[in_id, :])>0:
+                if np.any(cvn_down[t, in_link, :] - temp_sending_flow[in_id, :] > 0):
+                    print('monotonicty violated for link' + str(in_link))
                 cvn_down[t, in_link, :] = temp_sending_flow[in_id, :]
-        # if np.any(cvn_down[t, in_link, :] - cvn_up[t, in_link, :]>0):
-        #     pass
-        # if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
-        #        temp_sending_flow[in_id, :]) > 0:
-        #    raise ValueError('vehicle conservation violated')
+        if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
+                temp_sending_flow[in_id, :]) > 0:
+            pass
     for out_id, out_link in enumerate(local_out_links):
         if t!=0:
             cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]
         else:
             if np.sum(receiving_flow[out_id, :])>0:
                 cvn_up[t, out_link, :] =  receiving_flow[out_id, :]
+            if np.any(cvn_up[t, out_link, :] - cvn_down[t, out_link, :] < 0):
+                print('')
+
+
         # if min(np.sum(cvn_up[t, out_link, :] - cvn_down[t - 1, out_link, :]),
         #        np.sum(cvn_up[t, out_link, :] - cvn_down[t, out_link, :])) > k_jam[out_link] * length[out_link]:
         #     pass
