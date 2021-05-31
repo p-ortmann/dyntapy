@@ -28,8 +28,7 @@ dynamic_demand = DynamicDemand(trip_graphs, times)
 # convert everything to internal representations and parse
 assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size))
 # TODO: add tests for multi-edge parsing
-methods = assignment.get_methods()
-flows, costs = assignment.run(methods.i_ltm_aon)
+flows, costs = assignment.run(method='i_ltm_aon')
 show_assignment(g, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size),
                 link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
 print('ran successfully')

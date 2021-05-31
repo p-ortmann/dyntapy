@@ -32,6 +32,7 @@ node_capacity_default = parameters.supply.node_capacity_default
 turn_t0_default = parameters.supply.turn_t0_default
 node_control_default = parameters.supply.node_control_default
 network_loading_method = parameters.network_loading.link_model
+assignment_methods = parameters.assignment.methods
 
 
 class Assignment:
@@ -64,17 +65,14 @@ class Assignment:
                                                                                             simulation_time)
         log('demand simulation build')
 
-    def run(self, method: Callable):
-        from dtapy.core.assignment_methods.methods import valid_methods
+    def run(self, method: str):
         # TODO: generic way for adding keyword args
-        flows, costs = method(self.nb_network, self.nb_dynamic_demand, self.time.route_choice,
+        if method in assignment_methods.keys():
+            flows, costs = assignment_methods[method](self.nb_network, self.nb_dynamic_demand, self.time.route_choice,
                               self.time.network_loading)
+        else:
+            raise NotImplementedError(f'{method=} is not defined ')
         return flows, costs
-
-    @staticmethod
-    def get_methods():
-        from dtapy.core.assignment_methods.methods import valid_methods
-        return valid_methods
 
     def __build_network(self):
         edge_data = [(_, _, data) for _, _, data in self.g.edges.data()]
