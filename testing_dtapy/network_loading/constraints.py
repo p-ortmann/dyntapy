@@ -16,11 +16,12 @@ precision = parameters.network_loading.precision
 
 #@njit(cache=True)
 def continuity(cvn_up: ndarray, cvn_down: ndarray, in_links: UI32CSRMatrix,
-               out_links: UI32CSRMatrix, max_delta: float = precision):
+               out_links: UI32CSRMatrix, max_delta: float = precision, tot_centroids=0):
     """
 
     Parameters
     ----------
+    tot_centroids : number of centroids, assumed to be labelled as the first nodes
     cvn_up : upstream cumulative numbers, tot_time_steps x tot_links x tot_destinations
     cvn_down : downstream cumulative numbers, tot_time_steps x tot_links x tot_destinations
     in_links : CSR node x links
@@ -34,7 +35,7 @@ def continuity(cvn_up: ndarray, cvn_down: ndarray, in_links: UI32CSRMatrix,
     tot_destinations = cvn_down.shape[2]
     for t in prange(tot_time_steps):
         for d in prange(tot_destinations):
-            for node in range(in_links.nnz_rows.size):
+            for node in range(tot_centroids, in_links.nnz_rows.size):
                 in_flow = 0.0
                 out_flow = 0.0
                 for in_link in in_links.get_nnz(node):
@@ -46,3 +47,4 @@ def continuity(cvn_up: ndarray, cvn_down: ndarray, in_links: UI32CSRMatrix,
                           " at time " + str(t) + " for destination id " + str(d))
                     raise ValueError()
     print('continuity test passed successfully')
+
