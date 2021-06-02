@@ -164,6 +164,8 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                 for turn in network.links.in_turns.get_row(next_link):
                     assert network.turns.to_link[turn]==next_link
                     turning_fractions[dest_idx, t, turn] = 1
+                    # this does not actually assign any turning fraction to an in_link that does NOT
+                    # have a turn that leads to next_link, to be fixed tmrw..
     return turning_fractions
 
 

@@ -31,7 +31,7 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
     -------
 
     """
-    links_to_check = np.argwhere(link_types != 0 or link_types != 1)[0]
+    links_to_check = np.nonzero(np.invert((link_types==-1) + (link_types==1)))[0]
     try:
         for t in prange(turning_fractions.shape[1]):
             for dest_id in prange(turning_fractions.shape[0]):
@@ -45,7 +45,7 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
                         raise ValueError
     except ValueError:
         warn('sum_of_turning_fractions test failed')
-        pass
+        return None
 
     print('turning fraction sum test passed successfully')
 
@@ -89,7 +89,7 @@ def continuity(cvn_up: np.ndarray, cvn_down: np.ndarray, in_links: UI32CSRMatrix
                               " at time " + str(t) + " for destination id " + str(d))
     except ValueError:
         warn('continuity test failed')
-        pass
+        return None
     print('continuity test passed successfully')
 
 
@@ -119,7 +119,7 @@ def monotonicity(cvn_up, cvn_down):
                         raise ValueError
     except ValueError:
         warn('monotonicity test failed')
-        pass
+        return None
     print('monotonicity test passed successfully')
 
 
@@ -147,5 +147,5 @@ def storage(cvn_up: np.ndarray, cvn_down: np.ndarray, storage: np.ndarray):
                     raise ValueError
     except ValueError:
         warn('storage test failed')
-        pass
+        return None
     print('storage test passed successfully')
