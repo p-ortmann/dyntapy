@@ -12,7 +12,6 @@
 # file containing all the parameters used in the assignment procedures for DTA
 import numpy as np
 from dataclasses import dataclass
-from dtapy.core.assignment_methods import i_ltm_aon
 import os
 
 # File IO and Logging
@@ -128,7 +127,6 @@ class _Assignment:
     max_iterations: np.uint = 5
     smooth_turning_fractions: str = 'MSA'  # valid entry only 'MSA' for now
     smooth_costs: bool = False
-    methods: dict = {'i_ltm_aon': i_ltm_aon}  # a dictionary of usable assignment methods
 
 
 @dataclass

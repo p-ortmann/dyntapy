@@ -162,6 +162,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                             min_dist = dist
                             next_link = link
                 for turn in network.links.in_turns.get_row(next_link):
+                    assert network.turns.to_link[turn]==next_link
                     turning_fractions[dest_idx, t, turn] = 1
     return turning_fractions
 

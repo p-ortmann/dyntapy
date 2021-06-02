@@ -169,7 +169,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                                         cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps,
                                         network.links.out_turns, cvn_up, tot_receiving_flow, con_up, vind, to_node, vrt,
                                         marg_comp,
-                                        node, kjm, length)
+                                        node, kjm, length, network.nodes.turn_based_out_links.get_row(node), network.nodes.turn_based_out_links.get_nnz(node))
                 for centroid in dynamic_demand.all_centroids:
                     delta_change[centroid] = 0
             node_processing_order = np.ascontiguousarray(np.argsort(delta_change)[::-1])
@@ -391,7 +391,7 @@ def calc_turning_flows_general(local_turning_fractions, turn_in_links, turn_out_
     t : scalar, current time_step
     """
     _log('calc turning flows')
-    local_turning_flows[:, :] = np.float32(0)
+    local_turning_flows[:tot_in_links, :tot_out_links] = np.float32(0)
     # multiple outgoing links
     for in_id, out_id, turn in zip(turn_in_links, turn_out_links, turns):
         # in_link and out_link values here start at zero as they reference
@@ -424,7 +424,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                             time_step, t,
                             cvn_down, wind, wrt, from_node, nodes_2_update, delta_change, tot_time_steps,
                             out_turns, cvn_up, total_receiving_flow, con_up, vind, to_nodes, vrt, marg_comp, node,
-                            k_jam, length):
+                            k_jam, length, turn_based_out_links, node_turns):
     _log('updating cvns')
     update_node = False
     result_tot_sending_flow = np.sum(result_turning_flows, axis=1)
@@ -480,8 +480,9 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                                                                 temp_sending_flow[in_id, destination]
             else:
                 for destination in active_destinations:
-                    for turn, out_link, out_id in zip(out_turns.get_row(in_link), out_turns.get_nnz(in_link),
-                                                      range(out_turns.get_row(in_link).size)):
+                    for turn in out_turns.get_row(in_link):
+                        local_turn_id=np.argwhere(node_turns==turn)[0][0]
+                        out_id = turn_based_out_links[local_turn_id]
                         receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + \
                                                               temp_sending_flow[
                                                                   in_id, destination] * turning_fractions[

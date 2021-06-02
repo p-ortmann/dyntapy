@@ -17,6 +17,7 @@ from dtapy.core.supply import Links, Nodes, Network, Turns
 from dtapy.core.demand import Demand, InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from dtapy.demand import _check_centroid_connectivity
+from dtapy.core.assignment_methods.i_ltm_aon import i_ltm_aon
 from dtapy.settings import parameters
 from dataclasses import dataclass
 from dtapy.demand import DynamicDemand
@@ -32,7 +33,6 @@ node_capacity_default = parameters.supply.node_capacity_default
 turn_t0_default = parameters.supply.turn_t0_default
 node_control_default = parameters.supply.node_control_default
 network_loading_method = parameters.network_loading.link_model
-assignment_methods = parameters.assignment.methods
 
 
 class Assignment:
@@ -67,9 +67,10 @@ class Assignment:
 
     def run(self, method: str):
         # TODO: generic way for adding keyword args
-        if method in assignment_methods.keys():
-            flows, costs = assignment_methods[method](self.nb_network, self.nb_dynamic_demand, self.time.route_choice,
-                              self.time.network_loading)
+        methods = {'i_ltm_aon': i_ltm_aon}
+        if method in methods:
+            flows, costs = methods[method](self.nb_network, self.nb_dynamic_demand, self.time.route_choice,
+                                           self.time.network_loading)
         else:
             raise NotImplementedError(f'{method=} is not defined ')
         return flows, costs
@@ -155,7 +156,7 @@ class Assignment:
             _to_links = nodes.out_links.get_nnz(via_node)
             for from_node, from_link in zip(_from_nodes, _from_links):
                 for to_node, to_link in zip(_to_nodes, _to_links):
-                    if from_link != to_link:
+                    if from_node!= to_node:
                         via_nodes.append(via_node)
                         to_nodes.append(to_node)
                         from_nodes.append(from_node)

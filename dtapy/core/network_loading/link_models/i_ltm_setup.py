@@ -14,6 +14,7 @@ from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from numba import njit
+
 @njit(cache=True)
 def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     # link properties
@@ -81,7 +82,7 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
                                 network.nodes.out_links.row_index)
     iltm_nodes = ILTMNodes(network.nodes, turn_based_in_links, turn_based_out_links, in_link_cap,
                            out_link_cap)
-    network = ILTMNetwork(network, iltm_links, iltm_nodes, network.turns)
+    i_ltm_network = ILTMNetwork(network, iltm_links, iltm_nodes, network.turns)
 
     # attributes that share the same sparsity structure should have the same index arrays and the underlying data
     # should be stored with a shared matrix where each row is an individual data array for a sparse matrix
@@ -90,9 +91,9 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     # cold start
     marg_comp = False
     tot_destinations = dynamic_demand.tot_active_destinations
-    tot_links = network.tot_links
-    tot_nodes = network.tot_nodes
-    tot_turns = network.tot_turns
+    tot_links = i_ltm_network.tot_links
+    tot_nodes = i_ltm_network.tot_nodes
+    tot_turns = i_ltm_network.tot_turns
     costs = np.zeros((tot_links, tot_time_steps),
                      dtype=np.float32)  # order of arguments is changed here, for route choice
     # iterate over multiple time steps for a single link ..
@@ -120,4 +121,4 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
     # may investigate use of sparse structure for turning fractions
     results = ILTMState(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
                         nodes_2_update, costs)
-    return results, network
+    return results, i_ltm_network
