@@ -20,6 +20,7 @@ from dtapy.core.time import SimulationTime
 from dtapy.settings import parameters
 from dtapy.utilities import _log
 from dtapy.core.route_choice.aon import update_arrival_maps
+from dtapy.core.debugging import sum_of_turning_fractions, continuity
 from numba.typed import List
 from numba import njit
 
@@ -39,10 +40,12 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
     k = 1
     converged = False
+    sum_of_turning_fractions(aon_state.turning_fractions ,network.links.out_turns, network.links.link_type)
     while k < 1001 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
               aon_state.connector_choice, k)
+        continuity(iltm_state.cvn_up, iltm_state.cvn_down,network.nodes.in_links, network.nodes.out_links, tot_centroids=dynamic_demand.tot_centroids)
         costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                     cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                     time=network_loading_time,
