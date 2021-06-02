@@ -32,5 +32,5 @@ import dtapy
 ```
 voila!
 
-There are some implementation notes of this repository may be helpful if you 
-run into unresolved issues, see [here](https://hackmd.io/@p-ortmann/H1jRwuCwu)
+There are some implementation notes of this repository. May be helpful if you 
+run into unresolved issues or want to contribute, see [here](https://hackmd.io/@p-ortmann/H1jRwuCwu)

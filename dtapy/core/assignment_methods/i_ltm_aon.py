@@ -56,8 +56,9 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                                        route_choice_time.step_size)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
+
         _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs * 3600,
-                       title=f'RC state in iteration {k}')
+                       title=f'RC state in iteration {k}', highlight_nodes= [])
         k = k + 1
 
         # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
@@ -135,7 +136,7 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
     return gap_value < target_gap, gap_value
 
 
-def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', toy_network=True):
+def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', highlight_nodes=[], toy_network=True):
     from dtapy.visualization import show_assignment
     from dtapy.__init__ import current_network
     flows = cvn_to_flows(results.cvn_down)
@@ -144,4 +145,4 @@ def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', t
     show_assignment(current_network, time, toy_network=toy_network, title=title, link_kwargs=
     {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
      'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues, 'costs': link_costs},
-                    node_kwargs={'arrival': rc_state.arrival_maps.transpose(1, 2, 0)})
+                    node_kwargs={'arrival': rc_state.arrival_maps.transpose(1, 2, 0)}, highlight_nodes=highlight_nodes)

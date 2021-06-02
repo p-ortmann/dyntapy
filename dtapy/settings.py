@@ -115,6 +115,7 @@ class _RouteChoice:
     aggregation: np.float32 = 0.5
     step_size: np.float32 = 0.25  # time discretization
     delta_cost: np.float32 = 0.000001  # in hours
+    precision: np.float32 = 0.000001
 
 
 class _Assignment:
