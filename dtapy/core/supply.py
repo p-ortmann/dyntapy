@@ -246,17 +246,19 @@ spec_uncompiled_network = [
     ('static_events', ListType(StaticEvent.class_type.instance_type)),
     ('tot_links', uint32),
     ('tot_nodes', uint32),
-    ('tot_turns', uint32)]
+    ('tot_turns', uint32),
+    ('tot_connectors', uint32)]
 
 
 class UncompiledNetwork(object):
-    def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_turns):
+    def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_turns, tot_connectors):
         self.links = links
         self.nodes = nodes
         self.turns = turns
         self.tot_links = tot_links
         self.tot_nodes = tot_nodes
         self.tot_turns = tot_turns
+        self.tot_connectors = tot_connectors
         # TODO: add lookup tables for name to index
 
     def set_static_events(self, list_static_events):

@@ -10,13 +10,30 @@ import numpy as np
 from dtapy.settings import parameters
 from warnings import warn
 from numba import njit, prange
+from dtapy.core.supply import Network
 
 rc_precision = parameters.route_choice.precision
 
 
+def verify_network_state(network: Network, turning_fractions: np.ndarray, cvn_up: np.ndarray, cvn_down: np.ndarray, tot_centroids: int):
+    """
+    runs all available consistency tests on the assignment state
+    """
+    sum_of_turning_fractions(turning_fractions, network.links.out_turns, network.links.link_type,
+                             network.turns.to_node, tot_centroids=tot_centroids)
+    continuity(cvn_up, cvn_down, network.nodes.in_links,
+               network.nodes.out_links, tot_centroids=tot_centroids)
+    monotonicity(cvn_up, cvn_down)
+    storage(cvn_up, cvn_down, network.links.k_jam)
+
+
+
+
+
 # @njit(parallel=True, cache=True)
 def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMatrix, link_types: np.ndarray,
-                             precision: float = rc_precision):
+                             turn_to_nodes,
+                             tot_centroids: int = 0, precision: float = rc_precision):
     """
     verifies if for each link the sum of the turning
     fractions for all outgoing turns is equal to 1.
@@ -25,21 +42,26 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
     link_types: type of the links, source and sink connectors (1,-1) are excluded
     turning_fractions : array, tot_active_destinations x tot_time_steps x tot_turns
     out_turns : CSR, link x link
+    turn_to_nodes : to_node for each turn
+    tot_centroids :
     precision : float
 
     Returns
     -------
 
     """
-    links_to_check = np.nonzero(np.invert((link_types==-1) + (link_types==1)))[0]
+    links_to_check = np.nonzero(np.invert((link_types == -1) + (link_types == 1)))[0]
     try:
         for t in prange(turning_fractions.shape[1]):
             for dest_id in prange(turning_fractions.shape[0]):
                 for link in links_to_check:
                     tf_sum = 0.0
+                    any_network_turns = False
                     for turn in out_turns.get_row(link):
                         tf_sum += turning_fractions[dest_id, t, turn]
-                    if np.abs(tf_sum - 1.0) > precision:
+                        if turn_to_nodes[turn] > tot_centroids:
+                            any_network_turns = True
+                    if np.abs(tf_sum - 1.0) > precision and len(out_turns.get_row(link)) != 0 and any_network_turns:
                         print("turning fraction sum violation for link " + str(link) +
                               " at time " + str(t) + " for destination id " + str(dest_id))
                         raise ValueError
@@ -123,14 +145,15 @@ def monotonicity(cvn_up, cvn_down):
     print('monotonicity test passed successfully')
 
 
-def storage(cvn_up: np.ndarray, cvn_down: np.ndarray, storage: np.ndarray):
+def storage(cvn_up: np.ndarray, cvn_down: np.ndarray, jam_density: np.ndarray, length: np.ndarray):
     """
 
     Parameters
     ----------
     cvn_up : upstream cumulative numbers, tot_time_steps x tot_links x tot_destinations
     cvn_down : downstream cumulative numbers, tot_time_steps x tot_links x tot_destinations
-    storage : amount of vehicles that can be kept on each link
+    jam_density : max density for each link in veh/km
+    length : for each link in km
 
     Returns
     -------
@@ -141,7 +164,7 @@ def storage(cvn_up: np.ndarray, cvn_down: np.ndarray, storage: np.ndarray):
     try:
         for t in prange(tot_time_steps - 1):
             for link in prange(tot_links):
-                if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :]) > storage[link]:
+                if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :]) > jam_density[link]*length[link]:
                     print("storage violation for link " + str(link) +
                           " at time " + str(t))
                     raise ValueError

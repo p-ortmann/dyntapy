@@ -34,13 +34,13 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
               network_loading_time: SimulationTime):
     convergence = List()
     convergence.append(np.inf)
-    _log('initializing AON', to_console=True)
-    aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     _log('setting up data structures for i_ltm', to_console=True)
     iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
+    _log('initializing AON', to_console=True)
+    aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     k = 1
     converged = False
-    sum_of_turning_fractions(aon_state.turning_fractions ,network.links.out_turns, network.links.link_type)
+    sum_of_turning_fractions(aon_state.turning_fractions ,network.links.out_turns, network.links.link_type,network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     while k < 1001 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,

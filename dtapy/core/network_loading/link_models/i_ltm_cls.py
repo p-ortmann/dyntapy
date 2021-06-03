@@ -37,7 +37,7 @@ class ILTMNodes(UncompiledNodes):
         out_link_cap: csr matrix node x links
 
         the values of the turn_based - in and out_link csr matrices are the index
-        of the corresponding sending and receiving flow vector that the node model receives, capacities are also given
+        of the corresponding sending and receiving flow vector that the node model gets, capacities are also given
         ordered by in- and out links, see technical.md.
         """
         self.__init__Nodes(nodes.out_links, nodes.in_links, nodes.tot_out_links, nodes.tot_in_links, nodes.control_type,
@@ -112,4 +112,4 @@ class ILTMNetwork(UncompiledNetwork):
     __init__Network = UncompiledNetwork.__init__
 
     def __init__(self, network, links, nodes, turns):
-        self.__init__Network(links, nodes, turns, network.tot_links, network.tot_nodes, network.tot_turns)
+        self.__init__Network(links, nodes, turns, network.tot_links, network.tot_nodes, network.tot_turns, network.tot_connectors)

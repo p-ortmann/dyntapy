@@ -12,6 +12,8 @@ from dtapy.core.time import SimulationTime
 import numpy as np
 from dtapy.settings import parameters
 from numba import prange
+from numba.typed import List
+from heapq import heappush, heappop
 from dtapy.utilities import _log
 from dtapy.datastructures.csr import F32CSRMatrix
 
@@ -112,7 +114,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
-
+    calculates turning fractions taking into account closed turns but no turn delays as of now.
     Parameters
     ----------
     network : numba.experimental.jitclass.boxing.Network
@@ -132,40 +134,47 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     # _log('calculating arrival maps ')
 
     step_size = time.step_size
-    next_link = np.int32(-1)
-    next_node = np.int32(-1)
+    my_heap = []
+    link_has_active_out_turn = np.full(np.max(network.nodes.tot_in_links), True)
     turning_fractions = np.zeros((dynamic_demand.tot_active_destinations, time.tot_time_steps, network.tot_turns),
                                  dtype=np.float32)
     for dest_idx in range(dynamic_demand.all_active_destinations.size):
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
-            for node in range(network.tot_nodes):
-                next_node = node
-                min_dist = np.inf
-                for link, to_node in zip(network.nodes.out_links.get_nnz(next_node),
-                                         network.nodes.out_links.get_row(next_node)):
+            for via_node in range(dynamic_demand.tot_centroids,network.tot_nodes):
+                in_links = network.nodes.in_links.get_nnz(via_node)
+                link_has_active_out_turn[:len(in_links)] = False
+                local_turns = network.nodes.turn_based_in_links.get_nnz(via_node)
+                local_turn_based_in_links = network.nodes.turn_based_in_links.get_row(via_node)
+                for out_link, to_node in zip(network.nodes.out_links.get_nnz(via_node),
+                                         network.nodes.out_links.get_row(via_node)):
                     if to_node < dynamic_demand.tot_centroids and to_node != dynamic_demand.all_active_destinations[
                         dest_idx]:
                         continue
                     else:
-                        link_time = np.floor(departure_time_offset + new_costs[t, link] / step_size)
+                        link_time = np.floor(departure_time_offset + new_costs[t, out_link] / step_size)
                         if t + np.uint32(link_time) < time.tot_time_steps - 1:
                             interpolation_fraction = departure_time_offset + new_costs[
-                                t, link] / step_size - link_time
+                                t, out_link] / step_size - link_time
                             dist = (1 - interpolation_fraction) * arrival_maps[
                                 dest_idx, t + np.uint32(link_time), to_node] + interpolation_fraction * arrival_maps[
                                        dest_idx, t + np.uint32(link_time) + 1, to_node]
                         else:
                             dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_node] + new_costs[
-                                t, link]
-                        if dist < min_dist:
-                            min_dist = dist
-                            next_link = link
-                for turn in network.links.in_turns.get_row(next_link):
-                    assert network.turns.to_link[turn]==next_link
-                    turning_fractions[dest_idx, t, turn] = 1
-                    # this does not actually assign any turning fraction to an in_link that does NOT
-                    # have a turn that leads to next_link, to be fixed tmrw..
+                                t, out_link]
+                        heappush(my_heap,(np.float32(dist), np.float32(out_link)))
+                while len(my_heap)>0:
+                    (_, next_link) =  heappop(my_heap)
+                    next_link= np.uint32(next_link)
+                    if not np.all(link_has_active_out_turn):
+                        for turn in network.links.in_turns.get_row(next_link):
+                            local_turn_id=np.argwhere(local_turns==turn)[0][0]
+                            if not link_has_active_out_turn[local_turn_based_in_links[local_turn_id]]:
+                                link_has_active_out_turn[local_turn_based_in_links[local_turn_id]]=True
+                                assert network.turns.to_link[turn]==next_link
+                                turning_fractions[dest_idx, t, turn] = 1
+                            # this does not actually assign any turning fraction to an in_link that does NOT
+                            # have a turn that leads to next_link
     return turning_fractions
 
 
