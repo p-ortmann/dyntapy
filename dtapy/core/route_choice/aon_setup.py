@@ -46,28 +46,28 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                                      dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
                                      network.tot_nodes, dynamic_demand.all_centroids)
 
-    source_connector_choice = List()
-    last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
-    for t in dynamic_demand.loading_time_steps:
-        _id = 0
-        index_array = np.empty((network.tot_connectors * dynamic_demand.tot_active_destinations,
-                                np.uint32(2)), dtype=np.uint32)
-        val = np.zeros(network.tot_connectors * dynamic_demand.tot_active_destinations, dtype=np.float32)
-        demand = dynamic_demand.get_demand(t)
-        for origin in demand.origins:
-            for destination in demand.to_destinations.get_nnz(origin):
-                destination_id = np.argwhere(dynamic_demand.all_active_destinations == destination)[0, 0]
-                for connector in network.nodes.out_links.get_nnz(origin):
-                    index_array[_id] = [connector, destination_id]
-                    _id += 1
-        index_array = index_array[:_id].copy()
-        val = np.copy(val[:_id])
-        val, col, row = csr_prep(index_array, val,
-                                 shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations + 1))
-        source_connector_choice.append(
-            F32CSRMatrix(val, col, row))
-    _log('Calculating initial turning fractions', to_console=True)
+    # source_connector_choice = List()
+    # last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
+    # for t in dynamic_demand.loading_time_steps:
+    #     _id = 0
+    #     index_array = np.empty((network.tot_connectors * dynamic_demand.tot_active_destinations,
+    #                             np.uint32(2)), dtype=np.uint32)
+    #     val = np.zeros(network.tot_connectors * dynamic_demand.tot_active_destinations, dtype=np.float32)
+    #     demand = dynamic_demand.get_demand(t)
+    #     for origin in demand.origins:
+    #         for destination in demand.to_destinations.get_nnz(origin):
+    #             destination_id = np.argwhere(dynamic_demand.all_active_destinations == destination)[0, 0]
+    #             for connector in network.nodes.out_links.get_nnz(origin):
+    #                 index_array[_id] = [connector, destination_id]
+    #                 _id += 1
+    #     index_array = index_array[:_id].copy()
+    #     val = np.copy(val[:_id])
+    #     val, col, row = csr_prep(index_array, val,
+    #                              shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations + 1))
+    #     source_connector_choice.append(
+    #         F32CSRMatrix(val, col, row))
+    # _log('Calculating initial turning fractions', to_console=True)
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, costs)
     _log('Calculating initial source connector choice', to_console=True)
-    connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
+    # connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
     return RouteChoiceState(costs, arrival_maps, turning_fractions, connector_choice)

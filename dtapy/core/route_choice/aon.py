@@ -9,13 +9,13 @@ from numba import njit
 from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
-import numpy as np
 from dtapy.settings import parameters
+import numpy as np
 from numba import prange
 from numba.typed import List
 from heapq import heappush, heappop
 from dtapy.utilities import _log
-from dtapy.datastructures.csr import F32CSRMatrix
+from dtapy.datastructures.csr import F32CSRMatrix, UI32CSRMatrix
 
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
@@ -176,6 +176,39 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                             # this does not actually assign any turning fraction to an in_link that does NOT
                             # have a turn that leads to next_link
     return turning_fractions
+@njit(parallel=True)
+def link_to_turn_costs(out_links: UI32CSRMatrix,in_links:UI32CSRMatrix, link_costs:np.ndarray, out_turns: UI32CSRMatrix,in_turns: UI32CSRMatrix, tot_turns):
+    #TODO: testing of this function
+    """
+    calculates turn from link costs assuming no turn delays
+    Parameters
+    ----------
+    out_links : csr, node x links
+    link_costs : array, tot_time_steps x tot_links
+    out_turns : csr, link x turns
+
+    Returns
+    -------
+    turn_costs as an array, tot_time_steps x turns
+    """
+    tot_time_steps = link_costs.shape[0]
+    turn_costs=np.zeros((tot_time_steps,tot_turns), dtype=np.float32)
+    for node in prange(out_links.get_nnz_rows.size):
+        # turn and link labelling follows the node labelling
+        # turns with the same via node are labelled consecutively
+        # the same is usually true for the outgoing links of a node (if it's not a connector)
+        for link in out_links.get_nnz(node):
+            for turn in in_turns.get_nnz(link):
+                turn_costs[:,turn]+=link_costs[:,link]
+        for link in in_links.get_nnz(node): # this is more expensive since the in_links are not labelled consecutively
+            for turn in out_turns.get_nnz(link):
+                turn_costs[:,turn]+=link_costs[:,link]
+
+
+
+
+
+
 
 
 #@njit(cache=True)

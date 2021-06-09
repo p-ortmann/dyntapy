@@ -14,7 +14,7 @@ from numba.typed import List
 
 from dtapy.core.assignment_methods.smoothing import smooth_sparse, smooth_arrays
 from dtapy.core.demand import InternalDynamicDemand
-from dtapy.core.route_choice.aon import get_source_connector_choice, get_turning_fractions, update_arrival_maps
+from dtapy.core.route_choice.aon import get_turning_fractions, update_arrival_maps
 from dtapy.core.supply import Network
 from dtapy.core.time import SimulationTime
 from dtapy.datastructures.csr import F32CSRMatrix
@@ -30,19 +30,16 @@ spec_rc_state = [('costs', float32[:, :]),
 
 @jitclass(spec_rc_state)
 class RouteChoiceState(object):
-    def __init__(self, cur_costs, arrival_maps, turning_fractions, connector_choice):
+    def __init__(self, cur_costs, arrival_maps, turning_fractions):
         """
         Parameters
         ----------
         cur_costs : float32 array, time_steps x links
         arrival_maps : float32 array, destinations x time_steps x nodes
-        connector_choice : List<F32CSRMatrix>
         """
         self.costs = cur_costs
         self.arrival_maps = arrival_maps
         self.turning_fractions = turning_fractions
-        self.connector_choice = connector_choice
-
 
 # @njit
 def update_route_choice(state, costs: np.ndarray, network: Network, dynamic_demand: InternalDynamicDemand,
@@ -62,15 +59,7 @@ def update_route_choice(state, costs: np.ndarray, network: Network, dynamic_dema
 
     """
     print('hi from cost update')
-    #update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.costs, costs)
+    update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.costs, costs)
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, costs)
-    connector_choice = List()
-    for item in state.connector_choice:
-        connector_choice.append(F32CSRMatrix(np.zeros_like(item.values), item.col_index, item.row_index))
-    connector_choice = get_source_connector_choice(network, connector_choice,
-                                                   state.arrival_maps, dynamic_demand)
-    for t_id, (current, previous) in enumerate(zip(connector_choice, state.connector_choice)):
-        connector_choice[t_id] = smooth_sparse(current, previous, k, method)
-    state.connector_choice = connector_choice
     state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)
     state.costs = costs
