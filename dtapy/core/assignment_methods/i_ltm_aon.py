@@ -11,7 +11,7 @@ import numpy as np
 
 from dtapy.core.demand import InternalDynamicDemand, Demand
 from dtapy.core.network_loading.link_models.i_ltm import i_ltm
-from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_setup
+from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_aon_setup
 from dtapy.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot, cvn_to_travel_times
 from dtapy.core.route_choice.aon_cls import update_route_choice
 from dtapy.core.route_choice.aon_setup import setup_aon
@@ -35,7 +35,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     convergence = List()
     convergence.append(np.inf)
     _log('setting up data structures for i_ltm', to_console=True)
-    iltm_state, network = i_ltm_setup(network, network_loading_time, dynamic_demand)
+    iltm_state, network = i_ltm_aon_setup(network, network_loading_time, dynamic_demand)
     _log('initializing AON', to_console=True)
     aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     k = 1

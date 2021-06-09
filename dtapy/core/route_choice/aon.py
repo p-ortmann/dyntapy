@@ -114,7 +114,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
-    calculates turning fractions taking into account closed turns but no turn delays as of now.
+    calculates turning fractions taking into account closed turns.
     Parameters
     ----------
     network : numba.experimental.jitclass.boxing.Network

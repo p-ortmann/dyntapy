@@ -16,7 +16,10 @@ from dtapy.core.time import SimulationTime
 from numba import njit
 
 @njit(cache=True)
-def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
+def i_ltm_aon_setup(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
+    """
+    Adding additional structures (arrays, sparse matrices) to the network for i_ltm and deterministic routing to work.
+    """
     # link properties
     length = network.links.length
     v0 = network.links.v0
@@ -118,7 +121,6 @@ def i_ltm_setup(network: Network, time: SimulationTime, dynamic_demand: Internal
             nodes_2_update[t, origin] = True
 
     turning_fractions = np.zeros((tot_time_steps, tot_turns, tot_destinations), dtype=np.float32)
-    # may investigate use of sparse structure for turning fractions
     results = ILTMState(turning_fractions, cvn_up, cvn_down, con_up, con_down, marg_comp,
                         nodes_2_update, costs)
     return results, i_ltm_network

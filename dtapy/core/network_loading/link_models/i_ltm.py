@@ -47,7 +47,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
     wrt = network.links.vw_ratio
 
     # local rename results properties
-    # check for warm and cold starting is done in i_ltm_setup.py
+    # check for warm and cold starting is done in i_ltm_aon_setup.py
 
     nodes_2_update = results.nodes_2_update
     cvn_up, cvn_down = results.cvn_up, results.cvn_down

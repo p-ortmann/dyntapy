@@ -179,19 +179,25 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     return x, y
 
 
-def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, toy_network=False):
+def add_centroids_to_graph(g, X, Y, k=1, add_link_connectors=False, add_turn_connectors=True, euclidean=False):
     """
     Adds centroids to g.
     Each centroids data dict contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y
     and 'centroid' a boolean set to True.
-    k*2 connectors are added per centroid, one for each direction as defined below. Defaults can be
+    if add_link_connectors:
+        k*2 connectors are added per centroid, one for each direction as defined below.
+    if add_turn_connectors:
+        k*2+2 connectors are added per centroid. There is another artificial node between the centroid and the first
+        intersection node. All connector turns share the first starting link from centroid to this artificial node.
+    Default attributes for connectors can be
     changed in the settings.
 
 
     Parameters
     ----------
-    toy_network : bool, toy networks are not described in lat lon
-    add_connectors : whether to add auto-configured connectors, k*2 for each centroid
+    euclidean : bool, toy networks use the euclidean coordinate system
+    add_link_connectors : whether to add auto-configured link-connectors, k*2 for each centroid
+    add_turn_connectors: whether to add auto-configured turn-connectors, k*2+2 for each centroid
     Y : lat vector of centroids
     X : lon vector of centroids
     k : number of road network nodes to connect to per centroid.
@@ -212,31 +218,72 @@ def add_centroids_to_graph(g, X, Y, k=1, add_connectors=True, toy_network=False)
         new_g.add_node(u, **data)
     for u, v, data in g.edges.data():
         new_g.add_edge(u, v, **data)
-    if add_connectors:
+
+    if add_link_connectors:
         for u, data in new_centroids:
-            tmp: nx.MultiDiGraph = g  # calculate distance to road network graph
-            og_nodes = list(g.nodes)
-            for _ in range(k):
-                # find the nearest node j k times, ignoring previously nearest nodes in consequent iterations if
-                # multiple connectors are wanted
-                if not toy_network:
-                    v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), return_dist=True)
-                else:
-                    v, length = get_nearest_node(tmp, (data['y_coord'], data['x_coord']), method='euclidean',
-                                                 return_dist=True)
-                og_nodes.remove(v)
-                tmp = tmp.subgraph(og_nodes)
-                source_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
-                               'lanes': default_connector_lanes,
-                               'capacity': default_connector_capacity,
-                               'link_type': np.int8(1)}  # length in km
-                sink_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
-                             'lanes': default_connector_lanes,
-                             'capacity': default_connector_capacity,
-                             'link_type': np.int8(-1)}
-                new_g.add_edge(u, v, **source_data)
-                new_g.add_edge(v, u, **sink_data)
+            add_connectors(data['x_coord'], data['y_coord'], u, k, g, new_g, euclidean)
+
+    if add_turn_connectors:
+        j0 = max(new_g.nodes)+1
+        for j, (u, data) in enumerate(new_centroids):
+            if euclidean:
+                delta_y = 0.1  # assuming that toy networks work with unit lengths
+            else:
+                delta_y = (
+                                  100 / 6378137) * 180 / np.pi  # placing the artificial connecting node approx. 100 meters north
+            new_g.add_node(j0 + j, **{'x_coord': data['x_coord'], 'y_coord': data['y_coord'] + delta_y})
+            new_g.add_edge(u, j0 + j, **{'connector': True, 'length': delta_y, 'free_speed': default_connector_speed,
+                                         'lanes': default_connector_lanes,
+                                         'capacity': default_connector_capacity,
+                                         'link_type': np.int8(1)})
+            new_g.add_edge(j0 + j, u, **{'connector': True, 'length': delta_y, 'free_speed': default_connector_speed,
+                                         'lanes': default_connector_lanes,
+                                         'capacity': default_connector_capacity,
+                                         'link_type': np.int8(-1)})
+            add_connectors(data['x_coord'], data['y_coord'] + delta_y, j0 + j, k, g, new_g, euclidean)
+
     return new_g
+
+
+def add_connectors(x, y, u, k, g, new_g, euclidean):
+    """
+    adding connectors to new_g from starting node u with coordinates x and y to nearest k intersection nodes in g.
+    Parameters
+    ----------
+    euclidean : bool, whether x and y are euclidean
+    x : lon
+    y : lat
+    u : connector from_node in new_g
+    k : number of (bidirectional) connectors to add
+    g : nx.MultiDiGraph containing all road network nodes
+    new_g : nx.MultiDiGraph containing at least u and all nodes of g
+
+    Returns
+    -------
+
+    """
+    tmp: nx.MultiDiGraph = g  # calculate distance to road network graph
+    og_nodes = list(g.nodes)
+    for _ in range(k):
+        # find the nearest node j k times, ignoring previously nearest nodes in consequent iterations if
+        # multiple connectors are wanted
+        if not euclidean:
+            v, length = get_nearest_node(tmp, (y, x), return_dist=True)
+        else:
+            v, length = get_nearest_node(tmp, (y, x), method='euclidean',
+                                         return_dist=True)
+        og_nodes.remove(v)
+        tmp = tmp.subgraph(og_nodes)
+        source_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
+                       'lanes': default_connector_lanes,
+                       'capacity': default_connector_capacity,
+                       'link_type': np.int8(1)}  # length in km
+        sink_data = {'connector': True, 'length': length / 1000, 'free_speed': default_connector_speed,
+                     'lanes': default_connector_lanes,
+                     'capacity': default_connector_capacity,
+                     'link_type': np.int8(-1)}
+        new_g.add_edge(u, v, **source_data)
+        new_g.add_edge(v, u, **sink_data)
 
 
 def parse_demand(data: str, g: nx.DiGraph, time=0):

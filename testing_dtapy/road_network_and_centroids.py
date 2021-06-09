@@ -8,7 +8,7 @@
 #
 #
 #
-from dtapy.network_data import get_from_ox_and_save, relabel_graph, save_pickle, load_pickle, sort_graph
+from dtapy.network_data import get_from_ox_and_save, relabel_graph, save_pickle, load_pickle
 from dtapy.demand import add_centroids_to_graph, get_centroid_grid_coords
 from dtapy.settings import parameters
 from dtapy.settings import default_city as city

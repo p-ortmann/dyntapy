@@ -68,7 +68,7 @@ class _Demand:
     default_connector_speed: np.float32 = np.float32(200)
     default_connector_capacity: np.float32 = np.float32(10000)
     default_connector_lanes: np.uint8 = np.uint8(10)
-    default_centroid_spacing: int = 2000  # in meters
+    default_centroid_spacing: int = 500  # in meters
 
 
 @dataclass
@@ -102,7 +102,7 @@ class _Visualization:
     link_highlight_color = '#ff6ec7'  # neon pink
     node_highlight_color = '#ff6ec7'  # neon pink
     node_color = '#424949'  # dark gray
-    centroid_color = '#9063CD'  # purple
+    centroid_color = '#ff00b7'  # purple
     link_color = ' #f2f4f4'  # light gray,  only for no flow scenarios
 
 

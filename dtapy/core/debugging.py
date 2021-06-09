@@ -15,7 +15,8 @@ from dtapy.core.supply import Network
 rc_precision = parameters.route_choice.precision
 
 
-def verify_network_state(network: Network, turning_fractions: np.ndarray, cvn_up: np.ndarray, cvn_down: np.ndarray, tot_centroids: int):
+def verify_assignment_state(network: Network, turning_fractions: np.ndarray, cvn_up: np.ndarray, cvn_down: np.ndarray,
+                            tot_centroids: int):
     """
     runs all available consistency tests on the assignment state
     """
@@ -24,10 +25,11 @@ def verify_network_state(network: Network, turning_fractions: np.ndarray, cvn_up
     continuity(cvn_up, cvn_down, network.nodes.in_links,
                network.nodes.out_links, tot_centroids=tot_centroids)
     monotonicity(cvn_up, cvn_down)
-    storage(cvn_up, cvn_down, network.links.k_jam)
-
-
-
+    try:
+        storage(cvn_up, cvn_down, network.links.k_jam)
+    except AttributeError:
+        print('storage test cannot be run, missing attributes')
+        pass
 
 
 # @njit(parallel=True, cache=True)
@@ -164,7 +166,7 @@ def storage(cvn_up: np.ndarray, cvn_down: np.ndarray, jam_density: np.ndarray, l
     try:
         for t in prange(tot_time_steps - 1):
             for link in prange(tot_links):
-                if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :]) > jam_density[link]*length[link]:
+                if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :]) > jam_density[link] * length[link]:
                     print("storage violation for link " + str(link) +
                           " at time " + str(t))
                     raise ValueError

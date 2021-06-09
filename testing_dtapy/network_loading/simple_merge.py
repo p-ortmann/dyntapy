@@ -21,7 +21,7 @@ toy_network = 'simple_merge'
 g = get_toy_network(toy_network)
 centroid_x = np.array([1, 1, 7])
 centroid_y = np.array([1, 2, 1.5])
-g = add_centroids_to_graph(g, centroid_x, centroid_y, toy_network=True)  # also adds connectors automatically
+g = add_centroids_to_graph(g, centroid_x, centroid_y, euclidean=True)  # also adds connectors automatically
 g = relabel_graph(g)  # adding link and node ids, connectors and centroids
 # are the first elements
 show_network(g, toy_network=True, title=toy_network)
