@@ -11,7 +11,7 @@ from numba import uint32, boolean, njit
 from collections import OrderedDict
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
-from dtapy.datastructures.csr import f32csr_type
+from dtapy.datastructures.csr import f32csr_type, UI32CSRMatrix
 
 spec_demand = [('to_destinations', f32csr_type),
                ('to_origins', f32csr_type),
@@ -47,12 +47,13 @@ spec_simulation = [('next', Demand.class_type.instance_type),
 
 @jitclass(spec_simulation)
 class InternalDynamicDemand(object):
-    def __init__(self, demands, tot_time_steps, tot_centroids):
+    def __init__(self, demands, tot_time_steps, tot_centroids, in_links: UI32CSRMatrix):
         self.demands = demands
         self.next = demands[0]
         self.loading_time_steps = _get_loading_time_steps(demands)
         # time step traffic is loaded into the network
         self.all_active_destinations = get_all_destinations(demands)
+        self.all_active_destination_links = get_destination_links(self.all_active_destinations, in_links)
         self.all_active_origins = get_all_origins(demands)
         self.tot_active_origins = self.all_active_origins.size
         self.tot_active_destinations = self.all_active_destinations.size
@@ -110,3 +111,21 @@ def get_all_origins(demands):
         current = np.concatenate((demand.origins, previous))
         previous = current
     return np.unique(current)
+def get_destination_links(destinations: np.ndarray, in_links:UI32CSRMatrix):
+    """
+
+    Parameters
+    ----------
+    destinations : destinations to get links for
+    in_links : CSRMatrix, in_links for all nodes in the network
+
+    Returns
+    -------
+
+    """
+    destinations_link= np.empty(destinations.size, dtype=np.uint32)
+    for d_id, destination in enumerate(destinations):
+        assert in_links.get_nnz(destination).size==1
+        for link in in_links.get_nnz(destination):
+            destinations_link[d_id]=link
+    return destinations_link

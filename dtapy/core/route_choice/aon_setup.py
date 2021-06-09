@@ -16,7 +16,7 @@ from dtapy.core.time import SimulationTime
 from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
 from dtapy.utilities import _log
-from dtapy.core.route_choice.aon import update_arrival_maps, get_turning_fractions, get_source_connector_choice
+from dtapy.core.route_choice.aon import update_arrival_maps, get_turning_fractions, link_to_turn_costs
 from numba import njit
 
 
@@ -35,14 +35,14 @@ def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, 
     return arrival_map
 
 
-#@njit(cache=True)
+# @njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     free_flow_costs = network.links.length / network.links.v0
-    costs= np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
+    costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
         costs[t, :] = free_flow_costs
-
-    arrival_maps = init_arrival_maps(costs, network.nodes.in_links,
+    turn_costs = link_to_turn_costs(costs)
+    arrival_maps = init_arrival_maps(turn_costs, network.nodes.in_links,
                                      dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
                                      network.tot_nodes, dynamic_demand.all_centroids)
 

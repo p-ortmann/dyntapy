@@ -20,7 +20,8 @@ from dtapy.datastructures.csr import F32CSRMatrix, UI32CSRMatrix
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 
-#TODO: test function for arrival map topological order
+
+# TODO: test function for arrival map topological order
 
 # @njit(cache=True, parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, arrival_maps,
@@ -103,14 +104,14 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                         # only adds the in_links if it's not a centroid
                         # the first nodes are centroids, see labelling in assignment.py
                         for link in in_links.get_nnz(min_node):
-                            if from_node[link]!=dynamic_demand.all_active_destinations[destination]:
-                            # _log('activated node ' + str(from_node[link]))
+                            if from_node[link] != dynamic_demand.all_active_destinations[destination]:
+                                # _log('activated node ' + str(from_node[link]))
                                 nodes_2_update[from_node[link]] = True
                                 next_nodes_2_update[from_node[link]] = True
 
 
 # TODO: test the @njit(parallel=True) option here
-#@njit(cache=True)
+# @njit(cache=True)
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
@@ -141,13 +142,13 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     for dest_idx in range(dynamic_demand.all_active_destinations.size):
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
-            for via_node in range(dynamic_demand.tot_centroids,network.tot_nodes):
+            for via_node in range(dynamic_demand.tot_centroids, network.tot_nodes):
                 in_links = network.nodes.in_links.get_nnz(via_node)
                 link_has_active_out_turn[:len(in_links)] = False
                 local_turns = network.nodes.turn_based_in_links.get_nnz(via_node)
                 local_turn_based_in_links = network.nodes.turn_based_in_links.get_row(via_node)
                 for out_link, to_node in zip(network.nodes.out_links.get_nnz(via_node),
-                                         network.nodes.out_links.get_row(via_node)):
+                                             network.nodes.out_links.get_row(via_node)):
                     if to_node < dynamic_demand.tot_centroids and to_node != dynamic_demand.all_active_destinations[
                         dest_idx]:
                         continue
@@ -162,23 +163,26 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                         else:
                             dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_node] + new_costs[
                                 t, out_link]
-                        heappush(my_heap,(np.float32(dist), np.float32(out_link)))
-                while len(my_heap)>0:
-                    (_, next_link) =  heappop(my_heap)
-                    next_link= np.uint32(next_link)
+                        heappush(my_heap, (np.float32(dist), np.float32(out_link)))
+                while len(my_heap) > 0:
+                    (_, next_link) = heappop(my_heap)
+                    next_link = np.uint32(next_link)
                     if not np.all(link_has_active_out_turn):
                         for turn in network.links.in_turns.get_row(next_link):
-                            local_turn_id=np.argwhere(local_turns==turn)[0][0]
+                            local_turn_id = np.argwhere(local_turns == turn)[0][0]
                             if not link_has_active_out_turn[local_turn_based_in_links[local_turn_id]]:
-                                link_has_active_out_turn[local_turn_based_in_links[local_turn_id]]=True
-                                assert network.turns.to_link[turn]==next_link
+                                link_has_active_out_turn[local_turn_based_in_links[local_turn_id]] = True
+                                assert network.turns.to_link[turn] == next_link
                                 turning_fractions[dest_idx, t, turn] = 1
                             # this does not actually assign any turning fraction to an in_link that does NOT
                             # have a turn that leads to next_link
     return turning_fractions
+
+
 @njit(parallel=True)
-def link_to_turn_costs(out_links: UI32CSRMatrix,in_links:UI32CSRMatrix, link_costs:np.ndarray, out_turns: UI32CSRMatrix,in_turns: UI32CSRMatrix, tot_turns):
-    #TODO: testing of this function
+def link_to_turn_costs(out_links: UI32CSRMatrix, in_links: UI32CSRMatrix, link_costs: np.ndarray,
+                       out_turns: UI32CSRMatrix, in_turns: UI32CSRMatrix, tot_turns):
+    # TODO: testing of this function
     """
     calculates turn from link costs assuming no turn delays
     Parameters
@@ -192,26 +196,21 @@ def link_to_turn_costs(out_links: UI32CSRMatrix,in_links:UI32CSRMatrix, link_cos
     turn_costs as an array, tot_time_steps x turns
     """
     tot_time_steps = link_costs.shape[0]
-    turn_costs=np.zeros((tot_time_steps,tot_turns), dtype=np.float32)
+    turn_costs = np.zeros((tot_time_steps, tot_turns), dtype=np.float32)
     for node in prange(out_links.get_nnz_rows.size):
         # turn and link labelling follows the node labelling
         # turns with the same via node are labelled consecutively
         # the same is usually true for the outgoing links of a node (if it's not a connector)
         for link in out_links.get_nnz(node):
             for turn in in_turns.get_nnz(link):
-                turn_costs[:,turn]+=link_costs[:,link]
-        for link in in_links.get_nnz(node): # this is more expensive since the in_links are not labelled consecutively
+                turn_costs[:, turn] += link_costs[:, link]
+        for link in in_links.get_nnz(node):  # this is more expensive since the in_links are not labelled consecutively
             for turn in out_turns.get_nnz(link):
-                turn_costs[:,turn]+=link_costs[:,link]
+                turn_costs[:, turn] += link_costs[:, link]
+    return link_costs
 
 
-
-
-
-
-
-
-#@njit(cache=True)
+# @njit(cache=True)
 def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
                                 dynamic_demand: InternalDynamicDemand):
     """
@@ -236,8 +235,9 @@ def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix
         for origin in demand.origins:
             for d_id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
                 dist = np.inf
-                min_connector= -1
-                for node, connector in zip(network.nodes.out_links.get_row(origin), network.nodes.out_links.get_nnz(origin)):
+                min_connector = -1
+                for node, connector in zip(network.nodes.out_links.get_row(origin),
+                                           network.nodes.out_links.get_nnz(origin)):
                     if arrival_maps[d_id, t, node] < dist:
                         dist = arrival_maps[d_id, t, node]
                         min_connector = connector
