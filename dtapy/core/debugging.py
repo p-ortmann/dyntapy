@@ -55,7 +55,7 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
     links_to_check = np.nonzero(np.invert((link_types == -1) + (link_types == 1)))[0]
     try:
         for t in prange(turning_fractions.shape[1]):
-            for dest_id in prange(turning_fractions.shape[0]):
+            for dest_id in range(turning_fractions.shape[0]):
                 for link in links_to_check:
                     tf_sum = 0.0
                     any_network_turns = False

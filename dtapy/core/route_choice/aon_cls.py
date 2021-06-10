@@ -10,8 +10,6 @@ import numpy as np
 from numba import float32
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
-from numba.typed import List
-
 from dtapy.core.assignment_methods.smoothing import smooth_sparse, smooth_arrays
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.route_choice.aon import get_turning_fractions, update_arrival_maps
@@ -22,7 +20,8 @@ from dtapy.datastructures.csr import f32csr_type
 from dtapy.settings import parameters
 
 smoothing_method = parameters.assignment.smooth_costs
-spec_rc_state = [('costs', float32[:, :]),
+spec_rc_state = [('link_costs', float32[:, :]),
+                 ('turn_costs', float32[:,:]),
                  ('arrival_maps', float32[:, :, :]),
                  ('turning_fractions', float32[:, :, :]),
                  ('connector_choice', ListType(f32csr_type))]
@@ -30,14 +29,15 @@ spec_rc_state = [('costs', float32[:, :]),
 
 @jitclass(spec_rc_state)
 class RouteChoiceState(object):
-    def __init__(self, cur_costs, arrival_maps, turning_fractions):
+    def __init__(self, link_costs,turn_costs, arrival_maps, turning_fractions):
         """
         Parameters
         ----------
-        cur_costs : float32 array, time_steps x links
+        link_costs : float32 array, time_steps x links
         arrival_maps : float32 array, destinations x time_steps x nodes
         """
-        self.costs = cur_costs
+        self.link_costs = link_costs
+        self.turn_costs= turn_costs
         self.arrival_maps = arrival_maps
         self.turning_fractions = turning_fractions
 
