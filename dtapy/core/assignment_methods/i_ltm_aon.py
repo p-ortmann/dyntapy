@@ -43,8 +43,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     sum_of_turning_fractions(aon_state.turning_fractions ,network.links.out_turns, network.links.link_type,network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     while k < 1001 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
-        i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions,
-              aon_state.connector_choice, k)
+        i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
         continuity(iltm_state.cvn_up, iltm_state.cvn_down,network.nodes.in_links, network.nodes.out_links, tot_centroids=dynamic_demand.tot_centroids)
         costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                     cvn_down=np.sum(iltm_state.cvn_down, axis=2),
@@ -52,7 +51,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                     network=network)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
         _log('updating arrival in iteration ' + str(k), to_console=True)
-        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.costs,
+        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.link_costs,
                             costs)
         if k > 1:
             converged, current_gap = is_cost_converged(costs, new_flows, aon_state.arrival_maps, dynamic_demand,
@@ -147,5 +146,4 @@ def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', h
     cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
     show_assignment(current_network, time, toy_network=toy_network, title=title, link_kwargs=
     {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues, 'costs': link_costs},
-                    node_kwargs={'arrival': rc_state.arrival_maps.transpose(1, 2, 0)}, highlight_nodes=highlight_nodes)
+     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues, 'costs': link_costs}, highlight_nodes=highlight_nodes)

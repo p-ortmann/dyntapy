@@ -22,7 +22,7 @@ max_iterations = parameters.network_loading.max_iterations
 
 #@njit(cache=True)
 def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime,
-          turning_fractions, connector_choice, k):
+          turning_fractions, k):
     turning_fractions = turning_fractions.transpose(1, 2, 0).copy()  # turning fractions in route choice typically get
     # (destinations, time, turn)
     tot_time_steps = time.tot_time_steps
@@ -95,7 +95,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             _log('demand at time step  ' + str(t) + ' is loading ')
             current_demand: Demand = dynamic_demand.get_demand(t)
             t_id = np.argwhere(dynamic_demand.loading_time_steps == t)[0][0]
-            __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up,
+            __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,
                                 temp_local_sending_flow, tot_nodes_updates, out_links, cap, step_size, con_up, vind,
                                 tot_time_steps, to_node, dynamic_demand.all_active_destinations)
         elif t > 0:
@@ -198,7 +198,7 @@ def unload_destination_flows(nodes_2_update, destinations, in_links,
 
 
 #@njit(cache=True)
-def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,
+def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,
                         tot_nodes_updates, out_links, cap,
                         step_size, con_up, vind, tot_time_steps, to_node, all_active_destinations):
     _log('loading origin flow')
@@ -207,7 +207,6 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
     Parameters
     ----------
     current_demand :
-    connector_choice :
     nodes_2_update :
     t :
     t_id :
@@ -236,15 +235,14 @@ def __load_origin_flows(current_demand, connector_choice, nodes_2_update, t, t_i
                     tmp_sending_flow[0,:]=0
                 else:
                     tmp_sending_flow[0, :] = cvn_up[t - 1, connector, :]
-                for flow, destination, fraction in zip(current_demand.to_destinations.get_row(origin),
-                                                       current_demand.to_destinations.get_nnz(origin),
-                                                       connector_choice[t_id].get_row(connector)):
+                for flow, destination in zip(current_demand.to_destinations.get_row(origin),
+                                                       current_demand.to_destinations.get_nnz(origin)):
                     destination_id = np.argwhere(all_active_destinations == destination)[0, 0]
-                    if flow * fraction > 0.001:
+                    if flow > 0.001:
                         never_flow = False
-                        _log('flow ' + str(flow * fraction) + ' for destination ' + str(
+                        _log('flow ' + str(flow) + ' for destination ' + str(
                             destination) + ' loaded on connector ' + str(connector), to_console=True)
-                    tmp_sending_flow[0, destination_id] += flow * fraction
+                    tmp_sending_flow[0, destination_id] += flow
 
                 if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t , connector, :])) > gap:
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), origin] = True
@@ -481,7 +479,10 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
             else:
                 for destination in active_destinations:
                     for turn in out_turns.get_nnz(in_link):
-                        local_turn_id=np.argwhere(node_turns==turn)[0][0]
+                        try:
+                            local_turn_id=np.argwhere(node_turns==turn)[0][0]
+                        except IndexError:
+                            print('hi')
                         out_id = turn_based_out_links[local_turn_id]
                         receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + \
                                                               temp_sending_flow[
