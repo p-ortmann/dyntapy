@@ -179,8 +179,8 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     return turning_fractions
 
 
-@njit(parallel=True)
-def link_to_turn_costs(out_links: UI32CSRMatrix, in_links: UI32CSRMatrix, link_costs: np.ndarray,
+#@njit(parallel=True)
+def link_to_turn_costs(link_costs: np.ndarray,out_links: UI32CSRMatrix, in_links: UI32CSRMatrix,
                        out_turns: UI32CSRMatrix, in_turns: UI32CSRMatrix, tot_turns):
     # TODO: testing of this function
     """
@@ -197,17 +197,17 @@ def link_to_turn_costs(out_links: UI32CSRMatrix, in_links: UI32CSRMatrix, link_c
     """
     tot_time_steps = link_costs.shape[0]
     turn_costs = np.zeros((tot_time_steps, tot_turns), dtype=np.float32)
-    for node in prange(out_links.get_nnz_rows.size):
+    for node in prange(out_links.get_nnz_rows().size):
         # turn and link labelling follows the node labelling
         # turns with the same via node are labelled consecutively
         # the same is usually true for the outgoing links of a node (if it's not a connector)
         for link in out_links.get_nnz(node):
-            for turn in in_turns.get_nnz(link):
+            for turn in in_turns.get_row(link):
                 turn_costs[:, turn] += link_costs[:, link]
         for link in in_links.get_nnz(node):  # this is more expensive since the in_links are not labelled consecutively
-            for turn in out_turns.get_nnz(link):
+            for turn in out_turns.get_row(link):
                 turn_costs[:, turn] += link_costs[:, link]
-    return link_costs
+    return turn_costs
 
 
 # @njit(cache=True)

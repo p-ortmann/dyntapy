@@ -62,7 +62,7 @@ class Assignment:
         log('network build')
 
         self.nb_dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
-                                                                                            simulation_time)
+                                                                                            simulation_time, self.nb_network)
         log('demand simulation build')
 
     def run(self, method: str):
@@ -217,7 +217,7 @@ class Assignment:
         return DTATime()
 
     @staticmethod
-    def _build_internal_dynamic_demand(dynamic_demand: DynamicDemand, simulation_time: SimulationTime):
+    def _build_internal_dynamic_demand(dynamic_demand: DynamicDemand, simulation_time: SimulationTime, network:Network):
         """
 
         Parameters
@@ -257,7 +257,7 @@ class Assignment:
             static_demands.append(Demand(to_origins, to_destinations,
                                          to_destinations.get_nnz_rows(), to_origins.get_nnz_rows(),
                                          np.uint32(internal_time)))
-        return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids)
+        return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids, network.nodes.in_links)
 
 
 @dataclass()

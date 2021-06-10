@@ -41,10 +41,12 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
         costs[t, :] = free_flow_costs
-    turn_costs = link_to_turn_costs(costs)
-    arrival_maps = init_arrival_maps(turn_costs, network.nodes.in_links,
-                                     dynamic_demand.all_active_destinations, time.step_size, time.tot_time_steps,
-                                     network.tot_nodes, dynamic_demand.all_centroids)
+    turn_costs \
+        = link_to_turn_costs(costs,network.nodes.out_links, network.nodes.in_links,network.links.out_turns, network.links.in_turns, network.tot_turns)
+    arrival_maps = init_arrival_maps(turn_costs, network.links.in_turns,
+                                     dynamic_demand.all_active_destination_links, time.step_size, time.tot_time_steps,
+                                     network.tot_links, []) # since there are no u-turns centroid routing is
+    # prevented by default.
 
     # source_connector_choice = List()
     # last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
@@ -70,4 +72,4 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, costs)
     _log('Calculating initial source connector choice', to_console=True)
     # connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
-    return RouteChoiceState(costs, arrival_maps, turning_fractions, connector_choice)
+    return RouteChoiceState(costs, arrival_maps, turning_fractions)

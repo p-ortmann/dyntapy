@@ -37,6 +37,7 @@ spec_simulation = [('next', Demand.class_type.instance_type),
                    ('__time_step', uint32),
                    ('tot_time_steps', uint32),
                    ('all_active_destinations', uint32[:]),
+                   ('all_active_destination_links', uint32[:]),
                    ('all_active_origins', uint32[:]),
                    ('all_centroids', uint32[:]),
                    ('tot_centroids', uint32),
@@ -111,16 +112,18 @@ def get_all_origins(demands):
         current = np.concatenate((demand.origins, previous))
         previous = current
     return np.unique(current)
+
+@njit(cache=True)
 def get_destination_links(destinations: np.ndarray, in_links:UI32CSRMatrix):
     """
-
     Parameters
     ----------
     destinations : destinations to get links for
-    in_links : CSRMatrix, in_links for all nodes in the network
+    in_links : CSRMatrix, in_links for all nodes in the network. Assumes that every centroid only has one in_link.
 
     Returns
     -------
+    array containing the corresponding connector for each destination
 
     """
     destinations_link= np.empty(destinations.size, dtype=np.uint32)
