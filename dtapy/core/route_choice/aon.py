@@ -202,10 +202,10 @@ def link_to_turn_costs(link_costs: np.ndarray,out_links: UI32CSRMatrix, in_links
         # turns with the same via node are labelled consecutively
         # the same is usually true for the outgoing links of a node (if it's not a connector)
         for link in out_links.get_nnz(node):
-            for turn in in_turns.get_row(link):
+            for turn in in_turns.get_nnz(link):
                 turn_costs[:, turn] += link_costs[:, link]
         for link in in_links.get_nnz(node):  # this is more expensive since the in_links are not labelled consecutively
-            for turn in out_turns.get_row(link):
+            for turn in out_turns.get_nnz(link):
                 turn_costs[:, turn] += link_costs[:, link]
     return turn_costs
 

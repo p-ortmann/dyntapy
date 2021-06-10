@@ -213,8 +213,8 @@ class Assignment:
         val = turns.to_link
         val, col, row = csr_prep(fw_index_array, val, (tot_links, tot_turns), unsorted=False)
         out_turns = UI32CSRMatrix(val, col, row)
-        val = turns.from_link
-        val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_turns), unsorted=False)
+        val = np.copy(turns.from_link)
+        val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_turns))
         in_turns = UI32CSRMatrix(val, col, row)
 
         return Links(length, from_nodes, to_nodes, capacity, v_wave, costs, free_speed, out_turns, in_turns,

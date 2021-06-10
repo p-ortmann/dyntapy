@@ -21,7 +21,7 @@ from numba import njit, uint32
 
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
