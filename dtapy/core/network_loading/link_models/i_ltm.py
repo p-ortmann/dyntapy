@@ -480,7 +480,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                                                                 temp_sending_flow[in_id, destination]
             else:
                 for destination in active_destinations:
-                    for turn in out_turns.get_row(in_link):
+                    for turn in out_turns.get_nnz(in_link):
                         local_turn_id=np.argwhere(node_turns==turn)[0][0]
                         out_id = turn_based_out_links[local_turn_id]
                         receiving_flow[out_id, destination] = receiving_flow[out_id, destination] + \

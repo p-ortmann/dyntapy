@@ -59,11 +59,11 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
                 for link in links_to_check:
                     tf_sum = 0.0
                     any_network_turns = False
-                    for turn in out_turns.get_row(link):
+                    for turn in out_turns.get_nnz(link):
                         tf_sum += turning_fractions[dest_id, t, turn]
                         if turn_to_nodes[turn] > tot_centroids:
                             any_network_turns = True
-                    if np.abs(tf_sum - 1.0) > precision and len(out_turns.get_row(link)) != 0 and any_network_turns:
+                    if np.abs(tf_sum - 1.0) > precision and len(out_turns.get_nnz(link)) != 0 and any_network_turns:
                         print("turning fraction sum violation for link " + str(link) +
                               " at time " + str(t) + " for destination id " + str(dest_id))
                         raise ValueError

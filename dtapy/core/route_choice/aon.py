@@ -168,7 +168,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                     (_, next_link) = heappop(my_heap)
                     next_link = np.uint32(next_link)
                     if not np.all(link_has_active_out_turn):
-                        for turn in network.links.in_turns.get_row(next_link):
+                        for turn in network.links.in_turns.get_nnz(next_link):
                             local_turn_id = np.argwhere(local_turns == turn)[0][0]
                             if not link_has_active_out_turn[local_turn_based_in_links[local_turn_id]]:
                                 link_has_active_out_turn[local_turn_based_in_links[local_turn_id]] = True
