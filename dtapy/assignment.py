@@ -12,7 +12,7 @@
 import numpy as np
 import networkx as nx
 from numba.typed import List
-from dtapy.datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix
+from dtapy.datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix, csr_sort
 from dtapy.core.supply import Links, Nodes, Network, Turns
 from dtapy.core.demand import Demand, InternalDynamicDemand
 from dtapy.core.time import SimulationTime
@@ -62,7 +62,8 @@ class Assignment:
         log('network build')
 
         self.nb_dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
-                                                                                            simulation_time, self.nb_network)
+                                                                                            simulation_time,
+                                                                                            self.nb_network)
         log('demand simulation build')
 
     def run(self, method: str):
@@ -156,13 +157,33 @@ class Assignment:
             _to_links = nodes.out_links.get_nnz(via_node)
             for from_node, from_link in zip(_from_nodes, _from_links):
                 for to_node, to_link in zip(_to_nodes, _to_links):
-                    if from_node!= to_node:
+                    if from_node != to_node:
                         via_nodes.append(via_node)
                         to_nodes.append(to_node)
                         from_nodes.append(from_node)
                         from_links.append(from_link)
                         to_links.append(to_link)
                         turn_counter += 1
+        fw_index_array = np.column_stack((from_links, to_links))
+        turn_order = np.arange(turn_counter)
+        res, turn_order = csr_sort(fw_index_array, turn_order, turn_counter)
+        via_nodes = np.array(via_nodes, dtype=np.uint32)
+        to_nodes = np.array(to_nodes, dtype=np.uint32)
+        from_links = np.array(from_links, dtype=np.uint32)
+        to_links = np.array(to_links, dtype=np.uint32)
+
+        def sort(arr, order):
+            tmp = np.empty_like(arr)
+            for i, j in enumerate(order):
+                tmp[i] = arr[j]
+            return tmp
+
+        via_nodes = sort(via_nodes, turn_order)
+        from_nodes = sort(from_nodes, turn_order)
+        to_nodes = sort(to_nodes, turn_order)
+        from_links = sort(from_links, turn_order)
+        to_links = sort(to_links, turn_order)
+
         number_of_turns = turn_counter
         capacity = np.full(number_of_turns, turn_capacity_default, dtype=np.float32)
         turn_type = np.full(number_of_turns, turn_type_default, dtype=np.int8)
@@ -186,14 +207,14 @@ class Assignment:
         length[length < 0.05] = 0.05
         costs = np.empty((tot_time_steps, tot_links), dtype=np.float32)
         v_wave = np.full(tot_links, v_wave_default, dtype=np.float32)
-        number_of_turns = np.uint32(len(turns.to_link))
-        fw_index_array = np.column_stack((turns.from_link, turns.to_link))
-        bw_index_array = np.column_stack((turns.to_link, turns.from_link))
-        val = np.arange(number_of_turns, dtype=np.uint32)
-        val, col, row = csr_prep(fw_index_array, val, (tot_links, tot_links))
+        tot_turns = np.uint32(len(turns.to_link))
+        fw_index_array = np.column_stack((turns.from_link, np.arange(tot_turns, dtype=np.uint32)))
+        bw_index_array = np.column_stack((turns.to_link, np.arange(tot_turns, dtype=np.uint32)))
+        val = turns.to_link
+        val, col, row = csr_prep(fw_index_array, val, (tot_links, tot_turns), unsorted=False)
         out_turns = UI32CSRMatrix(val, col, row)
-        val = np.arange(number_of_turns, dtype=np.uint32)  # val gets shuffled by csr sort
-        val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_links))
+        val = turns.from_link
+        val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_turns), unsorted=False)
         in_turns = UI32CSRMatrix(val, col, row)
 
         return Links(length, from_nodes, to_nodes, capacity, v_wave, costs, free_speed, out_turns, in_turns,
@@ -217,7 +238,8 @@ class Assignment:
         return DTATime()
 
     @staticmethod
-    def _build_internal_dynamic_demand(dynamic_demand: DynamicDemand, simulation_time: SimulationTime, network:Network):
+    def _build_internal_dynamic_demand(dynamic_demand: DynamicDemand, simulation_time: SimulationTime,
+                                       network: Network):
         """
 
         Parameters
@@ -257,7 +279,8 @@ class Assignment:
             static_demands.append(Demand(to_origins, to_destinations,
                                          to_destinations.get_nnz_rows(), to_origins.get_nnz_rows(),
                                          np.uint32(internal_time)))
-        return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids, network.nodes.in_links)
+        return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids,
+                                     network.nodes.in_links)
 
 
 @dataclass()

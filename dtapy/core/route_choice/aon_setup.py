@@ -17,7 +17,8 @@ from dtapy.datastructures.csr import F32CSRMatrix, csr_prep
 from numba.typed import List
 from dtapy.utilities import _log
 from dtapy.core.route_choice.aon import update_arrival_maps, get_turning_fractions, link_to_turn_costs
-from numba import njit
+from numba import njit, uint32
+
 
 
 @njit(cache=True)
@@ -45,7 +46,7 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
         = link_to_turn_costs(costs,network.nodes.out_links, network.nodes.in_links,network.links.out_turns, network.links.in_turns, network.tot_turns)
     arrival_maps = init_arrival_maps(turn_costs, network.links.in_turns,
                                      dynamic_demand.all_active_destination_links, time.step_size, time.tot_time_steps,
-                                     network.tot_links, []) # since there are no u-turns centroid routing is
+                                     network.tot_links, List.empty_list(uint32)) # since there are no u-turns centroid routing is
     # prevented by default.
 
     # source_connector_choice = List()

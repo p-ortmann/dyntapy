@@ -18,7 +18,7 @@ numba_csr_val_types = [float32[:], uint32[:], uint8[:]]
 
 
 @nb.njit(cache=True)
-def __csr_sort(index_array, values, number_of_columns):
+def csr_sort(index_array, values, number_of_columns):
     """
     sorts index_array increasing according to rows, ties are broken by the columns
     example for sorted index_array:
@@ -122,7 +122,7 @@ def csr_prep(index_array, values, shape, unsorted=True):
     index_array :  2d array with each row containing the indexes of nnz element, uint32
     values : 1d array with corresponding value, any type
     shape : shape of sparse matrix (rows,colums), uint32/64
-    unsorted : index_array and values sorted or not, see __csr_sort, boolean
+    unsorted : index_array and values sorted or not, see csr_sort, boolean
 
     Returns
     -------
@@ -131,7 +131,7 @@ def csr_prep(index_array, values, shape, unsorted=True):
     if np.max(index_array[:, 1]) > (shape[1] - 1) or np.max(index_array[:, 0]) > (shape[0] - 1):
         raise ValueError('dimensions are smaller than respective cols and rows in index array')
     if unsorted:
-        index_array, values = __csr_sort(index_array, values, shape[1])
+        index_array, values = csr_sort(index_array, values, shape[1])
     col, row = __csr_format(index_array, shape[0])
     return values, col, row
 
@@ -149,7 +149,7 @@ def __csr_format(index_array, number_of_rows):
 
     """
     # index_array with the position of the elements (i,j), i being the row and j the column
-    # sorted by rows with ties settled by column. Values sorted accordingly, see __csr_sort
+    # sorted by rows with ties settled by column. Values sorted accordingly, see csr_sort
     col, row = nb.typed.List(), nb.typed.List()
     row.append(np.uint32(0))
     row_value_counter = np.uint32(0)
