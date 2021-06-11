@@ -15,6 +15,7 @@ from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_aon_setup
 from dtapy.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot, cvn_to_travel_times
 from dtapy.core.route_choice.aon_cls import update_route_choice
 from dtapy.core.route_choice.aon_setup import setup_aon
+from dtapy.core.route_choice.aon import link_to_turn_costs
 from dtapy.core.supply import Network
 from dtapy.core.time import SimulationTime
 from dtapy.settings import parameters
@@ -45,30 +46,31 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
         continuity(iltm_state.cvn_up, iltm_state.cvn_down,network.nodes.in_links, network.nodes.out_links, tot_centroids=dynamic_demand.tot_centroids)
-        costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
+        link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                     cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                     time=network_loading_time,
                                     network=network)
+        turn_costs = link_to_turn_costs(link_costs,network.nodes.out_links, network.nodes.in_links, network.links.out_turns, network.links.in_turns, network.tot_turns)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
         _log('updating arrival in iteration ' + str(k), to_console=True)
-        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.link_costs,
-                            costs)
+        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs,
+                            turn_costs)
         if k > 1:
-            converged, current_gap = is_cost_converged(costs, new_flows, aon_state.arrival_maps, dynamic_demand,
+            converged, current_gap = is_cost_converged(link_costs, new_flows, aon_state.arrival_maps, dynamic_demand,
                                                        route_choice_time.step_size)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
 
-        _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs * 3600,
+        _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs * 3600,
                        title=f'RC state in iteration {k}', highlight_nodes= [])
         k = k + 1
 
         # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
         #               title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
-        update_route_choice(aon_state, costs, network, dynamic_demand, route_choice_time, k, 'msa')
+        update_route_choice(aon_state, turn_costs, network, dynamic_demand, route_choice_time, k, 'msa')
     print('finished it ' + str(k))
-    _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
+    _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
                    title=f'RC state in iteration {k}')
 
     flows = cvn_to_flows(iltm_state.cvn_down)
@@ -79,7 +81,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     convergence_arr = np.empty(len(convergence))
     for _id, i in enumerate(convergence):
         convergence_arr[_id] = i
-    return flows, costs
+    return flows, link_costs
 
 
 @njit(cache=True)

@@ -96,7 +96,8 @@ class Assignment:
 
         nodes = self.__build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids)
         log("nodes passed")
-        turns = self.__build_turns(tot_nodes, nodes)
+        link_type = np.array([np.int8(d.get('link_type', 0)) for (_, _, d) in sorted_edges], dtype=np.int8)
+        turns = self.__build_turns(tot_nodes, nodes, link_type)
         log("turns passed")
 
         link_capacity = np.array([d['capacity'] for (_, _, d) in sorted_edges], dtype=np.float32)
@@ -106,9 +107,9 @@ class Assignment:
         max_length = np.max(length)
         if np.max(length) > 100:
             warn(f'Network contains very long links, up to {max_length} km. Implementation has not been verified for'
-                 f'this type of network. Single precision floats may yield unexpected results.')
+                 f'this type of network. calculations may yield unexpected results.')
 
-        link_type = np.array([np.int8(d.get('link_type', 0)) for (_, _, d) in sorted_edges], dtype=np.int8)
+
         tot_connectors = np.argwhere(link_type == 1).size + np.argwhere(link_type == -1).size
         # 1 is for sources (connectors leading out of a centroid)
         # -1 for sinks (connectors leading towards a centroid)
@@ -140,7 +141,7 @@ class Assignment:
         return Nodes(out_links, in_links, number_of_out_links, number_of_in_links, control_type, capacity)
 
     @staticmethod
-    def __build_turns(tot_nodes, nodes: Nodes):
+    def __build_turns(tot_nodes, nodes: Nodes, link_types):
         to_nodes = List()
         from_nodes = List()
         from_links = List()
@@ -157,7 +158,8 @@ class Assignment:
             _to_links = nodes.out_links.get_nnz(via_node)
             for from_node, from_link in zip(_from_nodes, _from_links):
                 for to_node, to_link in zip(_to_nodes, _to_links):
-                    if from_node != to_node:
+                    if from_node != to_node and not (link_types[from_link]==-1 and link_types[to_link]==1):
+                        # excluding turns that go from sink to source connectors and vice versa
                         via_nodes.append(via_node)
                         to_nodes.append(to_node)
                         from_nodes.append(from_node)

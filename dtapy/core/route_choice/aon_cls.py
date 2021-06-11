@@ -42,14 +42,14 @@ class RouteChoiceState(object):
         self.turning_fractions = turning_fractions
 
 # @njit
-def update_route_choice(state, costs: np.ndarray, network: Network, dynamic_demand: InternalDynamicDemand,
+def update_route_choice(state, turn_costs: np.ndarray, network: Network, dynamic_demand: InternalDynamicDemand,
                         time: SimulationTime, k: int, method='msa'):
     """
 
     Parameters
     ----------
     state : RouteChoiceState
-    costs : time_steps x links
+    turn_costs : time_steps x links
     network : Network
     dynamic_demand : InternalDynamicDemand
     time : SimulationTime
@@ -59,7 +59,7 @@ def update_route_choice(state, costs: np.ndarray, network: Network, dynamic_dema
 
     """
     print('hi from cost update')
-    update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.costs, costs)
-    turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, costs)
+    update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
+    turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, turn_costs)
     state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)
-    state.costs = costs
+    state.turn_costs = turn_costs

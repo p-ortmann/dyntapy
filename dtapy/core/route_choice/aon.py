@@ -27,18 +27,18 @@ route_choice_agg = parameters.route_choice.aggregation
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, arrival_maps,
                         old_costs, new_costs):
     tot_time_steps = time.tot_time_steps
-    from_node = network.links.from_node
+    from_link = network.turns.from_link
     to_node = network.links.to_node
-    out_links = network.nodes.out_links
-    in_links = network.nodes.in_links
+    out_turns = network.links.out_turns
+    in_turns = network.links.in_turns
     all_destinations = dynamic_demand.all_active_destinations
     delta_costs = np.abs(new_costs - old_costs)
-    next_nodes_2_update = np.full(network.tot_nodes, False, dtype=np.bool_)  # nodes to be
+    next_links_to_update = np.full(network.tot_nodes, False, dtype=np.bool_)  # nodes to be
     # activated for earlier time steps
     step_size = time.step_size
     np.floor_divide(new_costs, step_size)
-    link_time = np.floor_divide(new_costs, step_size)
-    interpolation_frac = np.divide(new_costs, step_size) - link_time
+    turn_time = np.floor_divide(new_costs, step_size)
+    interpolation_frac = np.divide(new_costs, step_size) - turn_time
     # TODO: revisit structuring of the travel time arrays
     # could be worth while to copy and reverse the order depending on where you're at in these loops ..
     # the following implementation closely follows the solution presented in
@@ -48,18 +48,17 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     tot_active_nodes = 0  # number of nodes in this time step that still need to be considered
     for destination in prange(all_destinations.size):
         _log(' processing new destination')
-        next_nodes_2_update = np.full(network.tot_nodes, False, dtype=np.bool_)
+        next_links_to_update = np.full(network.tot_links, False, dtype=np.bool_)
         for t in range(tot_time_steps - 1, -1, -1):
             _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t), to_console=True)
-            nodes_2_update = next_nodes_2_update.copy()
-            for link, delta in np.ndenumerate(delta_costs[t, :]):
+            links_2_update = next_links_to_update.copy()
+            for turn, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
                 if delta > route_choice_delta:
-                    node = from_node[link]
-                    if node != dynamic_demand.all_active_destinations[destination]:
-                        nodes_2_update[node] = True
-            while np.any(nodes_2_update == True):
+                    turn = from_link[turn]
+                    links_2_update[turn] = True
+            while np.any(links_2_update == True):
                 # _log('currently active nodes: ' + str(np.argwhere(nodes_2_update == True)))
                 # going through all the nodes that need updating for the current time step
                 # note that nodes_2_update changes dynamically as we traverse the graph ..
@@ -70,44 +69,34 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 # not straight forward to do as the distance labels are dynamically changing inside a single time step.
 
                 min_dist = np.inf
-                min_node = -1
-                for node, active in enumerate(nodes_2_update):
+                min_link = -1
+                for turn, active in enumerate(links_2_update):
                     if active:
-                        if arrival_maps[destination, t, node] < min_dist:
-                            min_node = node
-                            min_dist = arrival_maps[destination, t, node]
-                nodes_2_update[min_node] = False  # no longer considered
+                        if arrival_maps[destination, t, turn] <= min_dist:
+                            min_link = turn
+                            min_dist = arrival_maps[destination, t, turn]
+                links_2_update[min_link] = False  # no longer considered
                 # _log('deactivated node ' + str(min_node))
                 new_dist = np.inf
-                for out_node, link in zip(out_links.get_row(min_node), out_links.get_nnz(min_node)):
-                    if out_node != dynamic_demand.all_active_destinations[
-                        destination] and out_node < dynamic_demand.tot_centroids:
-                        # centroids cannot be part of a path and not be a terminal node
-                        continue
-                    else:
-                        if t + np.uint32(link_time[t, link]) >= tot_time_steps - 1:
-                            dist = arrival_maps[destination, tot_time_steps - 1, out_node] + new_costs[t, link]
-                            - (tot_time_steps - 1 - t) * step_size
+                for out_link, turn in zip(out_turns.get_row(min_link), out_turns.get_nnz(min_link)):
+                        if t + np.uint32(turn_time[t, turn]) >= tot_time_steps - 1:
+                            dist = arrival_maps[destination, tot_time_steps - 1, out_link] + new_costs[t, turn] - \
+                                   (tot_time_steps - 1 - t) * step_size
                         else:
-                            dist = (1 - interpolation_frac[t, link]) * arrival_maps[
-                                destination, t + np.uint32(link_time[t, link]), out_node] + interpolation_frac[
-                                       t, link] * arrival_maps[
-                                       destination, t + np.uint32(link_time[t, link]) + 1, out_node]
+                            dist = (1 - interpolation_frac[t, turn]) * arrival_maps[
+                                destination, t + np.uint32(turn_time[t, turn]), out_link] + interpolation_frac[
+                                       t, turn] * arrival_maps[
+                                       destination, t + np.uint32(turn_time[t, turn]) + 1, out_link]
                         # _log(f'distance to {min_node} via out_link node {to_node[link]} is {dist} ')
                         if dist < new_dist:
                             new_dist = dist
                 # _log(f'result for node {min_node} written back? {np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta}')
-                if np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta:
+                if np.abs(new_dist - arrival_maps[destination, t, min_link]) > route_choice_delta:
                     # new arrival time found
-                    arrival_maps[destination, t, min_node] = new_dist
-                    if min_node > dynamic_demand.tot_centroids:
-                        # only adds the in_links if it's not a centroid
-                        # the first nodes are centroids, see labelling in assignment.py
-                        for link in in_links.get_nnz(min_node):
-                            if from_node[link] != dynamic_demand.all_active_destinations[destination]:
-                                # _log('activated node ' + str(from_node[link]))
-                                nodes_2_update[from_node[link]] = True
-                                next_nodes_2_update[from_node[link]] = True
+                    arrival_maps[destination, t, min_link] = new_dist
+                    for turn in in_turns.get_nnz(min_link):
+                            links_2_update[from_link[turn]] = True
+                            next_links_to_update[from_link[turn]] = True
 
 
 # TODO: test the @njit(parallel=True) option here
@@ -135,14 +124,9 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     # _log('calculating arrival maps ')
 
     step_size = time.step_size
-    my_heap = []
-    link_has_active_out_turn = np.full(np.max(network.nodes.tot_in_links), True)
     turning_fractions = np.zeros((dynamic_demand.tot_active_destinations, time.tot_time_steps, network.tot_turns),
                                  dtype=np.float32)
-    min_dist=np.inf
-    min_turn=-1
     for dest_idx in range(dynamic_demand.all_active_destinations.size):
-        dest_link_id=dynamic_demand.all_active_destination_links[dest_idx]
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
             for link in range(network.tot_links):
