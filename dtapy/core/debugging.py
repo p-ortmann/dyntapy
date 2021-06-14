@@ -26,7 +26,7 @@ def verify_assignment_state(network: Network, turning_fractions: np.ndarray, cvn
                network.nodes.out_links, tot_centroids=tot_centroids)
     monotonicity(cvn_up, cvn_down)
     try:
-        storage(cvn_up, cvn_down, network.links.k_jam)
+        storage(cvn_up, cvn_down, network.links.k_jam, network.links.length)
     except AttributeError:
         print('storage test cannot be run, missing attributes')
         pass
@@ -170,6 +170,10 @@ def storage(cvn_up: np.ndarray, cvn_down: np.ndarray, jam_density: np.ndarray, l
                     print("storage violation for link " + str(link) +
                           " at time " + str(t))
                     raise ValueError
+                if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :])<0:
+                    print('negative queue length for link ' + str(link)+' at time '+str(t))
+                    raise ValueError
+
     except ValueError:
         warn('storage test failed')
         return None

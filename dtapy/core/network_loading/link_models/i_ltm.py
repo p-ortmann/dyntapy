@@ -95,14 +95,14 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             _log('demand at time step  ' + str(t) + ' is loading ')
             current_demand: Demand = dynamic_demand.get_demand(t)
             t_id = np.argwhere(dynamic_demand.loading_time_steps == t)[0][0]
-            __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,
+            __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,cvn_down,
                                 temp_local_sending_flow, tot_nodes_updates, out_links, cap, step_size, con_up, vind,
                                 tot_time_steps, to_node, dynamic_demand.all_active_destinations)
         elif t > 0:
             for origin in dynamic_demand.all_active_origins:
                 for connector in network.nodes.out_links.get_nnz(origin):
-                    cvn_up[t, connector, :] = cvn_up[t - 1, connector, :]
-                    cvn_down[t, connector, :] = cvn_down[t - 1, connector, :]
+                    cvn_up[t, connector, :] = np.maximum(cvn_up[t - 1, connector, :], cvn_up[t, connector, :])
+                    cvn_down[t, connector, :] = np.maximum(cvn_down[t - 1, connector, :])
 
         # njit tests pass until here without failure
         first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
@@ -198,7 +198,7 @@ def unload_destination_flows(nodes_2_update, destinations, in_links,
 
 
 #@njit(cache=True)
-def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up, tmp_sending_flow,
+def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,cvn_down, tmp_sending_flow,
                         tot_nodes_updates, out_links, cap,
                         step_size, con_up, vind, tot_time_steps, to_node, all_active_destinations):
     _log('loading origin flow')
@@ -244,9 +244,9 @@ def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up, tmp_sen
                             destination) + ' loaded on connector ' + str(connector), to_console=True)
                     tmp_sending_flow[0, destination_id] += flow
 
-                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_up[t , connector, :])) > gap:
+                if np.sum(np.abs(tmp_sending_flow[0, :] - (cvn_up[t , connector, :])-cvn_down[t,connector,:])) > gap:
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), origin] = True
-                    cvn_up[t, connector, :] = tmp_sending_flow[0, :]
+                    cvn_up[t, connector, :] = tmp_sending_flow[0, :]+cvn_up[t-1,connector,:]
                     if np.sum(cvn_up[t, connector, :] - cvn_up[t - 1, connector, :]) < cap[connector] * step_size:
                         con_up[t, connector] = False
                     else:
@@ -543,8 +543,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
             cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
         else:
             if np.sum(temp_sending_flow[in_id, :])>0:
-                if np.any(cvn_down[t, in_link, :] - temp_sending_flow[in_id, :] > 0):
-                    print('monotonicty violated for link' + str(in_link))
+            #    if np.any(cvn_up[t, in_link, :] - temp_sending_flow[in_id, :] < 0):
+            #        print('monotonicty violated for link' + str(in_link))
                 cvn_down[t, in_link, :] = temp_sending_flow[in_id, :]
         if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
                 temp_sending_flow[in_id, :]) > 0:
@@ -555,8 +555,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         else:
             if np.sum(receiving_flow[out_id, :])>0:
                 cvn_up[t, out_link, :] =  receiving_flow[out_id, :]
-            if np.any(cvn_up[t, out_link, :] - cvn_down[t, out_link, :] < 0):
-                print('')
+            #if np.any(cvn_up[t, out_link, :] - cvn_down[t, out_link, :] < 0):
+            #    print('')
 
 
         # if min(np.sum(cvn_up[t, out_link, :] - cvn_down[t - 1, out_link, :]),

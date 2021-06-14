@@ -21,7 +21,8 @@ from dtapy.core.time import SimulationTime
 from dtapy.settings import parameters
 from dtapy.utilities import _log
 from dtapy.core.route_choice.aon import update_arrival_maps
-from dtapy.core.debugging import sum_of_turning_fractions, continuity
+from dtapy.core.debugging import sum_of_turning_fractions, verify_assignment_state
+from dtapy.datastructures.csr import UI32CSRMatrix
 from numba.typed import List
 from numba import njit
 
@@ -45,7 +46,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     while k < 1001 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
-        continuity(iltm_state.cvn_up, iltm_state.cvn_down,network.nodes.in_links, network.nodes.out_links, tot_centroids=dynamic_demand.tot_centroids)
+        verify_assignment_state(network, aon_state.turning_fractions,iltm_state.cvn_up, iltm_state.cvn_down, dynamic_demand.tot_centroids)
         link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                     cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                     time=network_loading_time,
@@ -57,7 +58,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                             turn_costs)
         if k > 1:
             converged, current_gap = is_cost_converged(link_costs, new_flows, aon_state.arrival_maps, dynamic_demand,
-                                                       route_choice_time.step_size)
+                                                       route_choice_time.step_size, network.nodes.out_links)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
 
@@ -69,6 +70,8 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         #               title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
         update_route_choice(aon_state, turn_costs, network, dynamic_demand, route_choice_time, k, 'msa')
+        sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
+                                 network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     print('finished it ' + str(k))
     _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
                    title=f'RC state in iteration {k}')
@@ -108,11 +111,13 @@ def is_flow_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=p
 
 #@njit(cache=True)
 def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamicDemand, step_size,
+                      out_links: UI32CSRMatrix,
                       target_gap=parameters.assignment.gap):
     """
 
     Parameters
     ----------
+    out_links :
     step_size : np.float32, duration of a time step
     target_gap : np.float64, threshold for convergence
     costs : tot_time_steps x tot_links
@@ -135,7 +140,7 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
                 shortest_path_travel_times += flow * (arrival_map[
                                                           np.flatnonzero(
                                                               dynamic_demand.all_active_destinations == destination)[
-                                                              0], t, origin] - t * step_size)
+                                                              0], t+1, out_links.get_nnz(origin)[0]] - (t+1) * step_size)
     gap_value = np.divide(experienced_travel_times, shortest_path_travel_times) - 1
     return gap_value < target_gap, gap_value
 

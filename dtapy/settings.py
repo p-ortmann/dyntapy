@@ -112,7 +112,7 @@ class _RouteChoice:
     container for parameters that concern route choice
     Note: Changes to these values may only take affect after the numba_cache directory has been deleted
     """
-    aggregation: np.float32 = 0.5
+    aggregation: np.float32 = 1
     step_size: np.float32 = 0.25  # time discretization
     delta_cost: np.float32 = 0.000001  # in hours
     precision: np.float32 = 0.000001
