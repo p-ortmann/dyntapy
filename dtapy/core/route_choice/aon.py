@@ -147,7 +147,8 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                     if dist<=min_dist:
                         min_turn=out_turn
                         min_dist=dist
-                turning_fractions[dest_idx, t, min_turn] = 1
+                if min_turn!=-1:
+                    turning_fractions[dest_idx, t, min_turn] = 1
                             # this does not actually assign any turning fraction to an in_link that does NOT
                             # have a turn that leads to next_link
     return turning_fractions
