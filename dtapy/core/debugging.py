@@ -52,11 +52,11 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
     -------
 
     """
-    links_to_check = np.nonzero(np.invert((link_types == -1) + (link_types == 1)))[0]
+
     try:
         for t in prange(turning_fractions.shape[1]):
             for dest_id in range(turning_fractions.shape[0]):
-                for link in links_to_check:
+                for link in out_turns.get_nnz_rows():
                     tf_sum = 0.0
                     any_network_turns = False
                     for turn in out_turns.get_nnz(link):
@@ -110,7 +110,8 @@ def continuity(cvn_up: np.ndarray, cvn_down: np.ndarray, in_links: UI32CSRMatrix
                         out_flow += cvn_up[t, out_link, d]
                     if np.abs(out_flow - in_flow) > max_delta:
                         print("continuity violation in node " + str(node) +
-                              " at time " + str(t) + " for destination id " + str(d))
+                              " at time " + str(t) + " for destination id " + str(d)+' outflow - inflow: ' + str(out_flow - in_flow))
+                        raise ValueError
     except ValueError:
         warn('continuity test failed')
         return None

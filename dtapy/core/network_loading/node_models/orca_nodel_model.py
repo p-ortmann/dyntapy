@@ -4,11 +4,13 @@ from numba.core.types.containers import ListType
 from numba import float32, uint32
 from numba import int8, njit, int64
 from dtapy.utilities import _log
+from dtapy.settings import parameters
+precision = parameters.network_loading.precision
 
 
-@njit(cache=True)
-def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_flow,
-                    turn_capacity, in_link_capacity, tot_in_links, tot_out_links):
+#@njit(cache=True)
+def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiving_flow,
+                    turn_capacity, in_link_capacity, tot_in_links, tot_out_links, debugging=True):
     """
 
     Parameters
@@ -49,6 +51,14 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
     j_bucket = List.empty_list(int8)
     i_bucket = List.empty_list(int8)
     iters = 0
+    if np.min(sending_flow)<0:
+        raise ValueError
+    if np.min(receiving_flow)<0:
+        raise ValueError
+    if np.min(turning_flows)<0:
+        raise ValueError
+    if np.min(turning_fractions)<0:
+        raise ValueError
     for j in range(tot_out_links):
         try:
             U.append(List(np.where(turning_fractions[:, j] > np.float(0))[0]))
@@ -60,14 +70,24 @@ def orca_node_model(sending_flow, turning_fractions, turning_flows, receiving_fl
         a, min_a, _j = __find_most_restrictive_constraint(J, R, U, C, a)
         # print(f'new {_j}')
         # print(f'set is {J=}')
-
+        if min_a<0:
+            print('here')
         __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket)
         iters += 1
-
+    if np.min(q)<0:
+        raise ValueError('unexpected error in node model calculation')
+    if debugging:
+        if not np.all(np.sum(q, axis=0)-precision<=receiving_flow):
+            raise ValueError('node ' + str(node) + ' receiving flow violation')
+        if not np.all(np.sum(q,axis=1)-precision<=sending_flow):
+            raise ValueError('node ' + str(node) + ' sending flow violation')
+        if not np.all(np.sum(q,axis=1)-precision<=in_link_capacity):
+            raise ValueError('node ' + str(node) + ' in link capacity violation, given sending flow erroneous')
+        print('calculating node ' + str(node) + ' did not yield errors')
     return q
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
@@ -123,10 +143,11 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
         J.remove(j)
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def __find_most_restrictive_constraint(J, R, U, C, a):
     # loosely corresponds to step 3, pg 301
     _j = J[0]
+    amin=np.inf
     for _id, j in enumerate(J):
         R_j = R[j]
         if len(U[j]) == 0:
@@ -143,13 +164,14 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
             if _id == 0:
                 pass
             else:
-                if a[j] < a[J[_id - 1]]:
+                if a[j] <= amin:
+                    amin =a[j]
                     _j = j
 
     return a, a[_j], _j,  # determine most restrictive out_link j
 
 
-@njit(cache=True)
+#@njit(cache=True)
 def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, tot_in_links, tot_out_links,
                               use_turn_cap=False):
     """

@@ -98,11 +98,10 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
             __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,cvn_down,
                                 temp_local_sending_flow, tot_nodes_updates, out_links, cap, step_size, con_up, vind,
                                 tot_time_steps, to_node, dynamic_demand.all_active_destinations)
-        elif t > 0:
-            for origin in dynamic_demand.all_active_origins:
-                for connector in network.nodes.out_links.get_nnz(origin):
-                    cvn_up[t, connector, :] = np.maximum(cvn_up[t - 1, connector, :], cvn_up[t, connector, :])
-                    cvn_down[t, connector, :] = np.maximum(cvn_down[t - 1, connector, :])
+        for origin in dynamic_demand.all_active_origins:
+            for connector in network.nodes.out_links.get_nnz(origin):
+                cvn_up[t, connector, :] = np.maximum(cvn_up[t - 1, connector, :], cvn_up[t, connector, :])
+                cvn_down[t, connector, :] = np.maximum(cvn_down[t - 1, connector, :], cvn_down[t,connector,:])
 
         # njit tests pass until here without failure
         first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
@@ -150,12 +149,13 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 # Node model call
                 local_turning_capacity = np.full(len(local_out_links) * len(local_in_links), 100000.0, dtype=np.float32)
                 if node_model_str == 'orca':
-                    result_turning_flows = orca(tot_local_sending_flow[:tot_local_in_links],
+                    result_turning_flows = orca(node,tot_local_sending_flow[:tot_local_in_links],
                                                 local_turning_fractions[:tot_local_in_links, :tot_local_out_links],
                                                 local_turning_flows[:tot_local_in_links, :tot_local_out_links],
                                                 tot_local_receiving_flow[:tot_local_out_links],
                                                 local_turning_capacity, network.nodes.in_link_capacity.get_row(node),
                                                 len(local_in_links), len(local_out_links))
+
                     _log('got past node model')
                 else:
                     raise ValueError('node model ' + str(node_model_str) + ' not defined')
@@ -540,7 +540,10 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), node] = True
     for in_id, in_link in enumerate(local_in_links):
         if t!=0:
+            if np.any(temp_sending_flow[in_id,:]<0):
+                print('hi')
             cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
+
         else:
             if np.sum(temp_sending_flow[in_id, :])>0:
             #    if np.any(cvn_up[t, in_link, :] - temp_sending_flow[in_id, :] < 0):

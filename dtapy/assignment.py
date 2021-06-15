@@ -66,7 +66,7 @@ class Assignment:
                                                                                             self.nb_network)
         log('demand simulation build')
 
-    def run(self, method: str):
+    def run(self, method: str =  'i_ltm_aon'):
         # TODO: generic way for adding keyword args
         methods = {'i_ltm_aon': i_ltm_aon}
         if method in methods:
