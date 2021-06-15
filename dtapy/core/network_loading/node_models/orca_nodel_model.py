@@ -70,7 +70,7 @@ def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiv
         a, min_a, _j = __find_most_restrictive_constraint(J, R, U, C, a)
         # print(f'new {_j}')
         # print(f'set is {J=}')
-        if min_a<0:
+        if min_a != min(a):
             print('here')
         __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket)
         iters += 1
@@ -81,8 +81,6 @@ def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiv
             raise ValueError('node ' + str(node) + ' receiving flow violation')
         if not np.all(np.sum(q,axis=1)-precision<=sending_flow):
             raise ValueError('node ' + str(node) + ' sending flow violation')
-        if not np.all(np.sum(q,axis=1)-precision<=in_link_capacity):
-            raise ValueError('node ' + str(node) + ' in link capacity violation, given sending flow erroneous')
         print('calculating node ' + str(node) + ' did not yield errors')
     return q
 
@@ -121,7 +119,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
         for i in U[_j]:
             # all in_links of j get capacity proportional share
             for j in J:
-                q[i][j] = C[i][j] * min_a
+                q[i][j] = min(R[j],C[i][j] * min_a)
                 R[j] = R[j] - q[i][j]
                 # since i is constrained by _j, it takes it oriented
                 # capacity proportional share from all j
@@ -161,12 +159,9 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
             a[j] = R_j / sum_c_ij
             if sum_c_ij == 0:
                 a[j] = np.inf
-            if _id == 0:
-                pass
-            else:
-                if a[j] <= amin:
-                    amin =a[j]
-                    _j = j
+            if a[j] <= amin:
+                amin =a[j]
+                _j = j
 
     return a, a[_j], _j,  # determine most restrictive out_link j
 
