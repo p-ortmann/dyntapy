@@ -120,8 +120,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simulati
                         cvn = cvn_down[t, link]
                         for t2 in range(t + 1, -1, -1):
                             if t2 - 1 == -1:
-                                if cvn_up[0, link]==0:
-                                    print('hi')
+                                # if there is a zero division error here, we've got negative queues..
                                 arrival_time = 1 - \
                                                (cvn_up[0, link] - cvn) * 1 / (
                                                    cvn_up[0, link])

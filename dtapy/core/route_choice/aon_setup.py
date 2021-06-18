@@ -71,6 +71,5 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     #         F32CSRMatrix(val, col, row))
     # _log('Calculating initial turning fractions', to_console=True)
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, turn_costs)
-    _log('Calculating initial source connector choice', to_console=True)
     # connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
     return RouteChoiceState(costs,turn_costs, arrival_maps, turning_fractions)

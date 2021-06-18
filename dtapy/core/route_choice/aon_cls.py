@@ -58,7 +58,6 @@ def update_route_choice(state, turn_costs: np.ndarray, network: Network, dynamic
 
 
     """
-    print('hi from cost update')
     update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, turn_costs)
     state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)

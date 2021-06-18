@@ -53,7 +53,7 @@ class Assignment:
         # you have to be familiar with numba
         _check_centroid_connectivity(g)
         self.g = g
-        dtapy.__init__.current_network = g
+        dtapy.__init__.current_network = g  # enables you to import the current network from anywhere to plot
         self.dynamic_demand = dynamic_demand
         self.time = self.__init_time_obj(simulation_time)
         # get adjacency from nx, and
@@ -66,7 +66,7 @@ class Assignment:
                                                                                             self.nb_network)
         log('demand simulation build')
 
-    def run(self, method: str =  'i_ltm_aon'):
+    def run(self, method: str = 'i_ltm_aon'):
         # TODO: generic way for adding keyword args
         methods = {'i_ltm_aon': i_ltm_aon}
         if method in methods:
@@ -108,7 +108,6 @@ class Assignment:
         if np.max(length) > 100:
             warn(f'Network contains very long links, up to {max_length} km. Implementation has not been verified for'
                  f'this type of network. calculations may yield unexpected results.')
-
 
         tot_connectors = np.argwhere(link_type == 1).size + np.argwhere(link_type == -1).size
         # 1 is for sources (connectors leading out of a centroid)
@@ -158,7 +157,7 @@ class Assignment:
             _to_links = nodes.out_links.get_nnz(via_node)
             for from_node, from_link in zip(_from_nodes, _from_links):
                 for to_node, to_link in zip(_to_nodes, _to_links):
-                    if from_node != to_node and not (link_types[from_link]==-1 and link_types[to_link]==1):
+                    if from_node != to_node and not (link_types[from_link] == -1 and link_types[to_link] == 1):
                         # excluding turns that go from sink to source connectors and vice versa
                         via_nodes.append(via_node)
                         to_nodes.append(to_node)

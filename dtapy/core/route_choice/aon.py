@@ -12,8 +12,6 @@ from dtapy.core.time import SimulationTime
 from dtapy.settings import parameters
 import numpy as np
 from numba import prange
-from numba.typed import List
-from heapq import heappush, heappop
 from dtapy.utilities import _log
 from dtapy.datastructures.csr import F32CSRMatrix, UI32CSRMatrix
 
@@ -50,7 +48,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
         _log(' processing new destination')
         next_links_to_update = np.full(network.tot_links, False, dtype=np.bool_)
         for t in range(tot_time_steps - 1, -1, -1):
-            _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t), to_console=True)
+            _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t), to_console=False)
             links_2_update = next_links_to_update.copy()
             for turn, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
@@ -149,8 +147,6 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                         min_dist=dist
                 if min_turn!=-1:
                     turning_fractions[dest_idx, t, min_turn] = 1
-                            # this does not actually assign any turning fraction to an in_link that does NOT
-                            # have a turn that leads to next_link
     return turning_fractions
 
 

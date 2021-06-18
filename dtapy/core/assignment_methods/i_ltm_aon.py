@@ -25,6 +25,7 @@ from dtapy.core.debugging import sum_of_turning_fractions, verify_assignment_sta
 from dtapy.datastructures.csr import UI32CSRMatrix
 from numba.typed import List
 from numba import njit
+from dtapy.settings import debugging
 
 smooth_turning_fractions = parameters.assignment.smooth_turning_fractions
 smooth_costs = parameters.assignment.smooth_costs
@@ -42,16 +43,19 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     aon_state = setup_aon(network, route_choice_time, dynamic_demand)
     k = 1
     converged = False
-    sum_of_turning_fractions(aon_state.turning_fractions ,network.links.out_turns, network.links.link_type,network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
+    sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
+                             network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     while k < 1001 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
-        verify_assignment_state(network, aon_state.turning_fractions,iltm_state.cvn_up, iltm_state.cvn_down, dynamic_demand.tot_centroids)
+        verify_assignment_state(network, aon_state.turning_fractions, iltm_state.cvn_up, iltm_state.cvn_down,
+                                dynamic_demand.tot_centroids)
         link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
-                                    cvn_down=np.sum(iltm_state.cvn_down, axis=2),
-                                    time=network_loading_time,
-                                    network=network)
-        turn_costs = link_to_turn_costs(link_costs,network.nodes.out_links, network.nodes.in_links, network.links.out_turns, network.links.in_turns, network.tot_turns)
+                                         cvn_down=np.sum(iltm_state.cvn_down, axis=2),
+                                         time=network_loading_time,
+                                         network=network)
+        turn_costs = link_to_turn_costs(link_costs, network.nodes.out_links, network.nodes.in_links,
+                                        network.links.out_turns, network.links.in_turns, network.tot_turns)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
         _log('updating arrival in iteration ' + str(k), to_console=True)
         update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs,
@@ -61,55 +65,24 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                                        route_choice_time.step_size, network.nodes.out_links)
             convergence.append(current_gap)
             _log('new flows, gap is  : ' + str(current_gap), to_console=True)
-
-        _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs * 3600,
-                       title=f'RC state in iteration {k}', highlight_nodes= [])
         k = k + 1
 
-        # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, costs,
-        #               title=f'RC state in iteration {k}')
+        if debugging:
+            _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
+                           title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
         update_route_choice(aon_state, turn_costs, network, dynamic_demand, route_choice_time, k, 'msa')
         sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
                                  network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
-    print('finished it ' + str(k))
-    _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
-                   title=f'RC state in iteration {k}')
-
     flows = cvn_to_flows(iltm_state.cvn_down)
-    # costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
-    #                             cvn_down=np.sum(iltm_state.cvn_down, axis=2),
-    #                             time=network_loading_time,
-    #                             network=network)
     convergence_arr = np.empty(len(convergence))
     for _id, i in enumerate(convergence):
         convergence_arr[_id] = i
     return flows, link_costs
 
 
-@njit(cache=True)
-def is_flow_converged(old_flows: np.ndarray, new_flows: np.ndarray, target_gap=parameters.assignment.gap,
-                      method="all"):
-    """
 
-    Parameters
-    ----------
-    target_gap : float
-    old_flows : tot_time_steps x tot_links
-    new_flows : tot_time_steps x tot_links
-    method : str
-    Returns
-    -------
-    returns Tuple(boolean, np.float64)
-    """
-    if method == 'all':
-        result_gap = np.divide(np.float64(np.sum(np.abs(new_flows - old_flows))), np.float64(np.sum(old_flows)))
-        return result_gap < target_gap, result_gap
-    else:
-        raise NotImplementedError
-
-
-#@njit(cache=True)
+# @njit(cache=True)
 def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamicDemand, step_size,
                       out_links: UI32CSRMatrix,
                       target_gap=parameters.assignment.gap):
@@ -140,7 +113,8 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
                 shortest_path_travel_times += flow * (arrival_map[
                                                           np.flatnonzero(
                                                               dynamic_demand.all_active_destinations == destination)[
-                                                              0], t+1, out_links.get_nnz(origin)[0]] - (t+1) * step_size)
+                                                              0], t + 1, out_links.get_nnz(origin)[0]] - (
+                                                                  t + 1) * step_size)
     gap_value = np.divide(experienced_travel_times, shortest_path_travel_times) - 1
     return gap_value < target_gap, gap_value
 
@@ -153,4 +127,5 @@ def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', h
     cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
     show_assignment(current_network, time, toy_network=toy_network, title=title, link_kwargs=
     {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues, 'costs': link_costs}, highlight_nodes=highlight_nodes)
+     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues, 'costs': link_costs},
+                    highlight_nodes=highlight_nodes)

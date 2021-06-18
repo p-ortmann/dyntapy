@@ -81,7 +81,6 @@ def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiv
             raise ValueError('node ' + str(node) + ' receiving flow violation')
         if not np.all(np.sum(q,axis=1)-precision<=sending_flow):
             raise ValueError('node ' + str(node) + ' sending flow violation')
-        print('calculating node ' + str(node) + ' did not yield errors')
     return q
 
 

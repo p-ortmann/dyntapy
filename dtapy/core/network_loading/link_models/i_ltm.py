@@ -241,7 +241,7 @@ def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,cvn_down
                     if flow > 0.001:
                         never_flow = False
                         _log('flow ' + str(flow) + ' for destination ' + str(
-                            destination) + ' loaded on connector ' + str(connector), to_console=True)
+                            destination) + ' loaded on connector ' + str(connector))
                     tmp_sending_flow[0, destination_id] += flow
 
                 if np.sum(np.abs(tmp_sending_flow[0, :] - (cvn_up[t , connector, :])-cvn_down[t,connector,:])) > gap:
