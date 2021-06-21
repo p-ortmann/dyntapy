@@ -15,7 +15,6 @@ from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.route_choice.aon import get_turning_fractions, update_arrival_maps
 from dtapy.core.supply import Network
 from dtapy.core.time import SimulationTime
-from dtapy.datastructures.csr import F32CSRMatrix
 from dtapy.datastructures.csr import f32csr_type
 from dtapy.settings import parameters
 
@@ -29,7 +28,7 @@ spec_rc_state = [('link_costs', float32[:, :]),
 
 @jitclass(spec_rc_state)
 class RouteChoiceState(object):
-    def __init__(self, link_costs,turn_costs, arrival_maps, turning_fractions):
+    def __init__(self, link_costs, turn_costs, arrival_maps, turning_fractions):
         """
         Parameters
         ----------

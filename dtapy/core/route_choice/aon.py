@@ -77,24 +77,24 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 # _log('deactivated node ' + str(min_node))
                 new_dist = np.inf
                 for out_link, turn in zip(out_turns.get_row(min_link), out_turns.get_nnz(min_link)):
-                        if t + np.uint32(turn_time[t, turn]) >= tot_time_steps - 1:
-                            dist = arrival_maps[destination, tot_time_steps - 1, out_link] + new_costs[t, turn] - \
-                                   (tot_time_steps - 1 - t) * step_size
-                        else:
-                            dist = (1 - interpolation_frac[t, turn]) * arrival_maps[
-                                destination, t + np.uint32(turn_time[t, turn]), out_link] + interpolation_frac[
-                                       t, turn] * arrival_maps[
-                                       destination, t + np.uint32(turn_time[t, turn]) + 1, out_link]
-                        # _log(f'distance to {min_node} via out_link node {to_node[link]} is {dist} ')
-                        if dist < new_dist:
-                            new_dist = dist
+                    if t + np.uint32(turn_time[t, turn]) >= tot_time_steps - 1:
+                        dist = arrival_maps[destination, tot_time_steps - 1, out_link] + new_costs[t, turn] - \
+                               (tot_time_steps - 1 - t) * step_size
+                    else:
+                        dist = (1 - interpolation_frac[t, turn]) * arrival_maps[
+                            destination, t + np.uint32(turn_time[t, turn]), out_link] + interpolation_frac[
+                                   t, turn] * arrival_maps[
+                                   destination, t + np.uint32(turn_time[t, turn]) + 1, out_link]
+                    # _log(f'distance to {min_node} via out_link node {to_node[link]} is {dist} ')
+                    if dist < new_dist:
+                        new_dist = dist
                 # _log(f'result for node {min_node} written back? {np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta}')
                 if np.abs(new_dist - arrival_maps[destination, t, min_link]) > route_choice_delta:
                     # new arrival time found
                     arrival_maps[destination, t, min_link] = new_dist
                     for turn in in_turns.get_nnz(min_link):
-                            links_2_update[from_link[turn]] = True
-                            next_links_to_update[from_link[turn]] = True
+                        links_2_update[from_link[turn]] = True
+                        next_links_to_update[from_link[turn]] = True
 
 
 # TODO: test the @njit(parallel=True) option here
@@ -128,7 +128,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):
             for link in range(network.tot_links):
-                min_dist=np.inf
+                min_dist = np.inf
                 min_turn = -1
                 for out_turn, to_link in zip(network.links.out_turns.get_nnz(link),
                                              network.links.out_turns.get_row(link)):
@@ -142,16 +142,16 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
                     else:
                         dist = arrival_maps[dest_idx, time.tot_time_steps - 1, to_link] + new_costs[
                             t, out_turn]
-                    if dist<=min_dist:
-                        min_turn=out_turn
-                        min_dist=dist
-                if min_turn!=-1:
+                    if dist <= min_dist:
+                        min_turn = out_turn
+                        min_dist = dist
+                if min_turn != -1:
                     turning_fractions[dest_idx, t, min_turn] = 1
     return turning_fractions
 
 
-#@njit(parallel=True)
-def link_to_turn_costs(link_costs: np.ndarray,out_links: UI32CSRMatrix, in_links: UI32CSRMatrix,
+# @njit(parallel=True)
+def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix, in_links: UI32CSRMatrix,
                        out_turns: UI32CSRMatrix, in_turns: UI32CSRMatrix, tot_turns):
     # TODO: testing of this function
     """

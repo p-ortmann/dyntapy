@@ -58,19 +58,19 @@ class Assignment:
         self.time = self.__init_time_obj(simulation_time)
         # get adjacency from nx, and
         # self.demand = self.build_demand()
-        self.nb_network = self.__build_network()
+        self.internal_network = self.__build_network()
         log('network build')
 
-        self.nb_dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
-                                                                                            simulation_time,
-                                                                                            self.nb_network)
+        self.internal_dynamic_demand: InternalDynamicDemand = self._build_internal_dynamic_demand(dynamic_demand,
+                                                                                                  simulation_time,
+                                                                                                  self.internal_network)
         log('demand simulation build')
 
     def run(self, method: str = 'i_ltm_aon'):
         # TODO: generic way for adding keyword args
         methods = {'i_ltm_aon': i_ltm_aon}
         if method in methods:
-            flows, costs = methods[method](self.nb_network, self.nb_dynamic_demand, self.time.route_choice,
+            flows, costs = methods[method](self.internal_network, self.internal_dynamic_demand, self.time.route_choice,
                                            self.time.network_loading)
         else:
             raise NotImplementedError(f'{method=} is not defined ')

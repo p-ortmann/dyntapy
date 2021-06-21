@@ -8,7 +8,7 @@
 #
 import numpy as np
 from dtapy.core.network_loading.link_models.i_ltm_cls import ILTMNetwork
-from dtapy.visualization import show_assignment
+from dtapy.visualization import show_dynamic_network
 from dtapy.core.supply import Network
 from dtapy.core.time import SimulationTime
 from numba import njit, prange, objmode
@@ -159,6 +159,6 @@ def _debug_plot(results, network: ILTMNetwork, time, title='None', toy_network=T
     from dtapy.__init__ import current_network
     flows = cvn_to_flows(results.cvn_down)
     cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
-    show_assignment(current_network, time, toy_network=toy_network, title=title, link_kwargs=
+    show_dynamic_network(current_network, time, toy_network=toy_network, title=title, link_kwargs=
     {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
      'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues})

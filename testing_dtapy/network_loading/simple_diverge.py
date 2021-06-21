@@ -11,7 +11,7 @@
 from tutorials.toy_networks import get_toy_network
 from dtapy.demand import add_centroids_to_graph
 import numpy as np
-from dtapy.visualization import show_network, show_assignment, show_demand
+from dtapy.visualization import show_network, show_dynamic_network, show_demand
 from dtapy.network_data import relabel_graph
 from dtapy.demand import od_graph_from_matrix, DynamicDemand
 from dtapy.core.time import SimulationTime
@@ -36,5 +36,5 @@ simulation_time = SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.2
 assignment = Assignment(g, dynamic_demand, simulation_time)
 methods = assignment.get_methods()
 flows, costs = assignment.run(methods.i_ltm_aon)
-#show_assignment(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs*3600},
+#show_dynamic_network(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs*3600},
 #                title='assignment on ' + toy_network)

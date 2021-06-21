@@ -105,10 +105,10 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
     show(plot)
 
 
-def show_assignment(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs=dict(), node_kwargs=dict(),
-                    convergence=None,
-                    toy_network=False, highlight_nodes=np.array([]), highlight_links=np.array([]),
-                    title=None, plot_size=default_plot_size, notebook=False, show_nodes=True):
+def show_dynamic_network(g: nx.DiGraph, time: SimulationTime, flows=None, link_kwargs=dict(), node_kwargs=dict(),
+                         convergence=None,
+                         toy_network=False, highlight_nodes=np.array([]), highlight_links=np.array([]),
+                         title=None, plot_size=default_plot_size, notebook=False, show_nodes=True):
     """
 
     Parameters

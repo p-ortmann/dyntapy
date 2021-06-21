@@ -52,8 +52,8 @@ def nx_to_geojson(g: nx.DiGraph, meta_data=None, to_file=False, city_name=None):
             text_file.close()
             print(f'json dumped to file at {os.getcwd() + os.path.sep + os.path.join(results_folder, filename)}')
     else:
-        return dumps(FeatureCollection(my_link_features, meta_data), cls=NpEncoder, indent=4), \
-               dumps(FeatureCollection(my_node_features, meta_data), cls=NpEncoder, indent=4)
+        return dumps(FeatureCollection(my_link_features, meta_data), cls=NpEncoder), \
+               dumps(FeatureCollection(my_node_features, meta_data), cls=NpEncoder)
     
 
 

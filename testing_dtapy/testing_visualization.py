@@ -12,7 +12,7 @@ from dtapy.network_data import load_pickle
 import networkx as nx
 import numpy as np
 from dtapy.core.time import SimulationTime
-from dtapy.visualization import show_assignment, show_demand, show_network
+from dtapy.visualization import show_dynamic_network, show_demand, show_network
 from dtapy.demand import generate_od_xy, parse_demand
 from dtapy.visualization import xt_plot
 
@@ -34,8 +34,8 @@ node_kwargs = {
                                                                                                   g.number_of_nodes(),
                                                                                                   3)}
 
-show_assignment(g, time,flows, link_kwargs=link_kwargs, node_kwargs=node_kwargs, convergence=convergence,
-                highlight_links=[1, 7, 26], highlight_nodes=[1, 34, 3])
+show_dynamic_network(g, time, flows, link_kwargs=link_kwargs, node_kwargs=node_kwargs, convergence=convergence,
+                     highlight_links=[1, 7, 26], highlight_nodes=[1, 34, 3])
 show_network(g, highlight_nodes=np.arange(10), highlight_links=np.arange(10),
              node_kwargs={'random_node_property': np.random.rand(g.number_of_nodes())})
 

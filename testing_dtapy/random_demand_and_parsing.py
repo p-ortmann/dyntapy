@@ -13,7 +13,7 @@ from dtapy.settings import parameters
 from dtapy.core.time import SimulationTime
 import numpy as np
 from dtapy.settings import default_city as city
-from dtapy.visualization import show_demand, show_assignment
+from dtapy.visualization import show_demand, show_dynamic_network
 
 step_size = parameters.network_loading.step_size
 # loading from data folder, assumes road_network_and_centroids was run previously
@@ -29,6 +29,6 @@ dynamic_demand = DynamicDemand(trip_graphs, times)
 assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size))
 # TODO: add tests for multi-edge parsing
 flows, costs = assignment.run(method='i_ltm_aon')
-show_assignment(g, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size),
-                link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
+show_dynamic_network(g, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size),
+                     link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
 print('ran successfully')
