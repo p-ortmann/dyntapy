@@ -492,7 +492,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         else:
             # no flow on this link
             temp_sending_flow[in_id, :] = 0
-            con_down[t, in_link] = 0
+            con_down[t, in_link] = False
 
     for out_id, out_link in enumerate(local_out_links):
         if t==0:

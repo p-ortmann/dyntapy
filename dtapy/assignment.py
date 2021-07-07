@@ -21,7 +21,6 @@ from dtapy.core.assignment_methods.i_ltm_aon import i_ltm_aon
 from dtapy.settings import parameters
 from dataclasses import dataclass
 from dtapy.demand import DynamicDemand
-from typing import Callable
 from dtapy.utilities import log
 from warnings import warn
 import dtapy.__init__
