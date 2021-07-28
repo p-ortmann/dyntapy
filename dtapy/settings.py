@@ -33,6 +33,7 @@ numba_config = {  # see https://numba.pydata.org/numba-doc/dev/reference/envvars
     'NUMBA_DEBUG_CACHE': '0',
     'NUMBA_DEVELOPER_MODE': '0',
     'NUMBA_FULL_TRACEBACKS': '0',
+    'NUMBA_DISABLE_JIT': '1'
 }
 default_city = 'Zinnowitz'
 

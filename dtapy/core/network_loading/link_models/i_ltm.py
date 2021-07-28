@@ -434,8 +434,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         # check for all of the in_links if any of their cvns change significantly enough to trigger
         # recomputation of their tail nodes at backward time (spillback).
         if tot_local_sending_flow[in_id] > 0:
-            if result_tot_sending_flow[in_id] < tot_local_sending_flow[in_id] \
-                    or np.abs(result_tot_sending_flow[in_id] - in_link_capacity[in_id] * time_step) < gap:
+            if result_tot_sending_flow[in_id] < tot_local_sending_flow[in_id]:
                 con_down[t, in_link] = True
                 temp_sending_flow[in_id, :] = sending_flow[in_id, :] / np.sum(sending_flow[in_id, :]) * \
                                               result_tot_sending_flow[

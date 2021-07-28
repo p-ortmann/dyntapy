@@ -181,9 +181,17 @@ F32CSRMatrix = __build_csr_cls(nb.float32[:])
 UI32CSRMatrix = __build_csr_cls(nb.uint32[:])
 UI8CSRMatrix = __build_csr_cls(nb.uint8[:])
 
-ui32csr_type = UI32CSRMatrix.class_type.instance_type
-f32csr_type = F32CSRMatrix.class_type.instance_type
-ui8csr_type = UI8CSRMatrix.class_type.instance_type
+try:
+
+    ui32csr_type = UI32CSRMatrix.class_type.instance_type
+    f32csr_type = F32CSRMatrix.class_type.instance_type
+    ui8csr_type = UI8CSRMatrix.class_type.instance_type
+except Exception:
+    # numba disabled
+    ui32csr_type = None
+    f32csr_type = None
+    ui8csr_type = None
+
 
 # empty initilization below, be aware of missing boundscheck in numba .., unless the
 # wdir has a specified .numba_config_yaml with NUMBA_BOUNDSCHECK set they will not work.

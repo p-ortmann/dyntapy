@@ -31,19 +31,22 @@ class Demand(object):
         self.destinations = destinations  # array of active destination id's
         self.time_step = time_step  # time at which this demand is added to the network
 
-
-spec_simulation = [('next', Demand.class_type.instance_type),
-                   ('demands', ListType(Demand.class_type.instance_type)),
-                   ('__time_step', uint32),
-                   ('tot_time_steps', uint32),
-                   ('all_active_destinations', uint32[:]),
-                   ('all_active_destination_links', uint32[:]),
-                   ('all_active_origins', uint32[:]),
-                   ('all_centroids', uint32[:]),
-                   ('tot_centroids', uint32),
-                   ('tot_active_destinations', uint32),
-                   ('tot_active_origins', uint32),
-                   ('loading_time_steps', uint32[:])]
+try:
+    spec_simulation = [('next', Demand.class_type.instance_type),
+                       ('demands', ListType(Demand.class_type.instance_type)),
+                       ('__time_step', uint32),
+                       ('tot_time_steps', uint32),
+                       ('all_active_destinations', uint32[:]),
+                       ('all_active_destination_links', uint32[:]),
+                       ('all_active_origins', uint32[:]),
+                       ('all_centroids', uint32[:]),
+                       ('tot_centroids', uint32),
+                       ('tot_active_destinations', uint32),
+                       ('tot_active_origins', uint32),
+                       ('loading_time_steps', uint32[:])]
+except Exception:
+    # numba disabled
+    spec_simulation=None
 
 
 @jitclass(spec_simulation)

@@ -12,13 +12,15 @@ from dtapy.core.supply import Nodes, UncompiledNodes, spec_node, Links, Uncompil
 from numba import boolean, float32, int32
 from numba.experimental import jitclass
 from dtapy.datastructures.csr import ui8csr_type, f32csr_type
-
-spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
-                  ('turn_based_in_links', ui8csr_type),
-                  ('turn_based_out_links', ui8csr_type),
-                  ('in_link_capacity', f32csr_type),
-                  ('out_link_capacity', f32csr_type)
-                  ]
+try:
+    spec_iltm_node = [('nodes', Nodes.class_type.instance_type),
+                      ('turn_based_in_links', ui8csr_type),
+                      ('turn_based_out_links', ui8csr_type),
+                      ('in_link_capacity', f32csr_type),
+                      ('out_link_capacity', f32csr_type)
+                      ]
+except Exception:
+    spec_iltm_node = []
 
 
 @jitclass(spec_node + spec_iltm_node)
@@ -48,17 +50,18 @@ class ILTMNodes(UncompiledNodes):
         self.in_link_capacity = in_link_cap
         self.out_link_capacity = out_link_cap
 
+try:
+    spec_iltm_link = [('links', Links.class_type.instance_type),
+                      ('k_jam', float32[:]),
+                      ('k_crit', float32[:]),
+                      ('vf_index', int32[:]),
+                      ('vf_ratio', float32[:]),
+                      ('vw_index', int32[:]),
+                      ('vw_ratio', float32[:])]
+except Exception:
+    spec_iltm_link = []
 
-spec_iltm_link = [('links', Links.class_type.instance_type),
-                  ('k_jam', float32[:]),
-                  ('k_crit', float32[:]),
-                  ('vf_index', int32[:]),
-                  ('vf_ratio', float32[:]),
-                  ('vw_index', int32[:]),
-                  ('vw_ratio', float32[:])]
 
-
-# spec_iltm_link = OrderedDict(spec_iltm_link)
 
 
 @jitclass(spec_link + spec_iltm_link)
@@ -100,11 +103,13 @@ class ILTMState(object):
         self.nodes_2_update = nodes_2_update
         self.costs = costs
 
-
-spec_iltm_network = [('network', Network.class_type.instance_type),
-                     ('links', ILTMLinks.class_type.instance_type),
-                     ('nodes', ILTMNodes.class_type.instance_type),
-                     ('turns', Turns.class_type.instance_type)]
+try:
+    spec_iltm_network = [('network', Network.class_type.instance_type),
+                         ('links', ILTMLinks.class_type.instance_type),
+                         ('nodes', ILTMNodes.class_type.instance_type),
+                         ('turns', Turns.class_type.instance_type)]
+except:
+    spec_iltm_network=[]
 
 
 @jitclass(spec_uncompiled_network + spec_iltm_network)

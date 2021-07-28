@@ -181,10 +181,12 @@ class Turns(object):
         self.db_restrictions = db_restrictions
 
 
-
-spec_static_event = [('events', f32csr_type),
-                     ('attribute_id', uint32)]
-spec_static_event = OrderedDict(spec_static_event)
+try:
+    spec_static_event = [('events', f32csr_type),
+                         ('attribute_id', uint32)]
+    spec_static_event = OrderedDict(spec_static_event)
+except Exception:
+    spec_static_event =  []
 
 
 @jitclass(spec_static_event)
@@ -203,16 +205,18 @@ class StaticEvent(object):
     def get_attr_id(self):
         return self.__attribute_id
 
-
-spec_network = [('links', Links.class_type.instance_type),
-                ('nodes', Nodes.class_type.instance_type),
-                ('turns', Turns.class_type.instance_type),
-                ('static_events', ListType(StaticEvent.class_type.instance_type)),
-                ('tot_links', uint32),
-                ('tot_nodes', uint32),
-                ('tot_turns', uint32),
-                ('tot_connectors', uint32)]
-
+try:
+    spec_network = [('links', Links.class_type.instance_type),
+                    ('nodes', Nodes.class_type.instance_type),
+                    ('turns', Turns.class_type.instance_type),
+                    ('static_events', ListType(StaticEvent.class_type.instance_type)),
+                    ('tot_links', uint32),
+                    ('tot_nodes', uint32),
+                    ('tot_turns', uint32),
+                    ('tot_connectors', uint32)]
+except Exception:
+    # numba disabled
+    spec_network = []
 
 @jitclass(spec_network)
 class Network(object):
@@ -242,12 +246,15 @@ class Network(object):
 
 
 # @jitclass(spec_network)
-spec_uncompiled_network = [
-    ('static_events', ListType(StaticEvent.class_type.instance_type)),
-    ('tot_links', uint32),
-    ('tot_nodes', uint32),
-    ('tot_turns', uint32),
-    ('tot_connectors', uint32)]
+try:
+    spec_uncompiled_network = [
+        ('static_events', ListType(StaticEvent.class_type.instance_type)),
+        ('tot_links', uint32),
+        ('tot_nodes', uint32),
+        ('tot_turns', uint32),
+        ('tot_connectors', uint32)]
+except Exception:
+    spec_uncompiled_network=[]
 
 
 class UncompiledNetwork(object):
