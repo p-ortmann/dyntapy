@@ -43,7 +43,10 @@ def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiv
                                   use_turn_cap=True)
     q = np.zeros((tot_in_links, tot_out_links), dtype=np.float32)
     # J being the set of out_links with demand towards them
-    J = List(np.where(np.sum(turning_fractions, 0) > 0)[0])
+    J = List()
+    for i in np.where(np.sum(turning_fractions, 0) > 0)[0]:
+        # numba typed List instantiation not working properly
+        J.append(i)
     #J = np.full(receiving_flow.shape, False, dtype=np.bool_) # probably faster to do it with boolean arrays.
     # U is a list of lists with U[j] being the current contenders (in_links i) of out_link j
     U = List()

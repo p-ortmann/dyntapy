@@ -25,6 +25,8 @@ from json import loads
 import itertools
 from dtapy.settings import parameters
 from dtapy.utilities import log
+import pickle
+from argparse import ArgumentError
 
 default_connector_speed = parameters.demand.default_connector_speed
 default_connector_capacity = parameters.demand.default_connector_capacity
@@ -351,7 +353,7 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
 
 
 class DynamicDemand:
-    def __init__(self, od_graphs: list, insertion_times):
+    def __init__(self, od_graphs:list, insertion_times):
         """
         multiple edges for same od are not supported right now, MultiDiGraph is chosen to
         maintain compatibility with OSMNX tools
@@ -367,6 +369,8 @@ class DynamicDemand:
                 raise ValueError
         self.od_graphs = od_graphs
         self.insertion_times = np.array(insertion_times)
+
+
 
     def get_sparse_repr(self, time):
         """
