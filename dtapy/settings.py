@@ -22,11 +22,10 @@ log_level = 20
 
 # debugging
 log_numba = False  # this will affect performance dramatically, and should only be set to true for debugging
-debugging = False # whether to run various consistency checks during the computation
+debugging = True # whether to run various consistency checks during the computation
 
 numba_config = {  # see https://numba.pydata.org/numba-doc/dev/reference/envvars.html for config
-    # DISABLE_JIT doesn't work for now as jit-classes are not supported in pure python ..
-    # List creation from arrays is also not correct with jit disabled,
+    # List creation from arrays is not correct with jit disabled,
     # see https://github.com/numba/numba/issues/6001
     'NUMBA_CACHE_DIR': os.getcwd() + os.path.sep + 'numba_cache',
     'NUMBA_DEBUG': '0',

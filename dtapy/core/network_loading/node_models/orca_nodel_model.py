@@ -43,13 +43,15 @@ def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiv
                                   use_turn_cap=True)
     q = np.zeros((tot_in_links, tot_out_links), dtype=np.float32)
     # J being the set of out_links with demand towards them
-    J = List()
+    J=List()
+    #J = np.full(tot_out_links,False)
     for i in np.where(np.sum(turning_fractions, 0) > 0)[0]:
         # numba typed List instantiation not working properly
         J.append(i)
     #J = np.full(receiving_flow.shape, False, dtype=np.bool_) # probably faster to do it with boolean arrays.
     # U is a list of lists with U[j] being the current contenders (in_links i) of out_link j
-    U = List()
+    U=List()
+    #U = np.full(turning_flows.shape,False)
     #U = np.full(turning_flows.shape, False, dtype=np.bool)
     j_bucket = List.empty_list(int8)
     i_bucket = List.empty_list(int8)
@@ -64,7 +66,12 @@ def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiv
         raise ValueError
     for j in range(tot_out_links):
         try:
-            U.append(List(np.where(turning_fractions[:, j] > np.float(0))[0]))
+            new_list= List()
+            for i in np.where(turning_fractions[:, j] > np.float(0))[0]:
+                new_list.append(i)
+            U.append(new_list)
+            # U.append(List(np.where(turning_fractions[:, j] > np.float(0))[0])) doesn't work
+            # currently with jit disabled
         except Exception:  # type inference doesn't work if there are no active turning fractions
             U.append(List.empty_list(int64))
     a = np.full(tot_out_links, np.inf, dtype=np.float32)  # init of a with fixed size

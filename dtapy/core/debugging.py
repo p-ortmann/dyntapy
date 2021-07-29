@@ -14,6 +14,7 @@ from dtapy.core.supply import Network
 from dtapy.settings import debugging
 
 rc_precision = parameters.route_choice.precision
+dnl_precision =  parameters.network_loading.precision
 
 @njit()
 def verify_assignment_state(network: Network, turning_fractions: np.ndarray, cvn_up: np.ndarray, cvn_down: np.ndarray,
@@ -72,6 +73,7 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
                                 any_network_turns = True
                         if np.abs(tf_sum - 1.0) > precision and len(out_turns.get_nnz(link)) != 0 and any_network_turns:
                             print("turning fraction sum violation for link " + str(link) +
+
                                   " at time " + str(t) + " for destination id " + str(dest_id))
                             raise ValueError
         except Exception:
@@ -183,11 +185,11 @@ def storage(cvn_up: np.ndarray, cvn_down: np.ndarray, jam_density: np.ndarray, l
         try:
             for t in prange(tot_time_steps - 1):
                 for link in prange(tot_links):
-                    if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :]) > jam_density[link] * length[link]:
+                    if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :]) > jam_density[link] * length[link]+dnl_precision:
                         print("storage violation for link " + str(link) +
                               " at time " + str(t))
                         raise ValueError
-                    if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :])<0:
+                    if np.sum(cvn_up[t, link, :] - cvn_down[t, link, :])<-dnl_precision:
                         print('negative queue length for link ' + str(link)+' at time '+str(t))
                         raise ValueError
 

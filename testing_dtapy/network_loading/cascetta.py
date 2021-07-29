@@ -24,16 +24,16 @@ centroid_y = np.array([1, 1, 3.5])
 g = add_centroids_to_graph(g, centroid_x, centroid_y, euclidean=True)  # also adds connectors automatically
 g = relabel_graph(g)  # adding link and node ids, connectors and centroids
 # are the first elements
-#show_network(g, toy_network=True, title=toy_network)
+show_network(g, toy_network=True, title=toy_network)
 od_matrix = np.zeros(9).reshape((3, 3))
 od_matrix[0, 1] = 500
 od_matrix[2, 1] = 500
 od_graph = od_graph_from_matrix(od_matrix, centroid_x, centroid_y)
-#show_demand(od_graph, toy_network=True)
+show_demand(od_graph, toy_network=True)
 dynamic_demand = DynamicDemand([od_graph], insertion_times=[0])
 # convert everything to internal representations and parse
 simulation_time = SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.25)
 assignment = Assignment(g, dynamic_demand, simulation_time)
 flows, costs = assignment.run()
-#show_dynamic_network(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs},
-#                     title='assignment on ' + toy_network)
+show_dynamic_network(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs},
+                     title='assignment on ' + toy_network)
