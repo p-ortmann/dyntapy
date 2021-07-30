@@ -17,6 +17,7 @@ from dtapy.core.supply import Network
 from dtapy.core.time import SimulationTime
 from dtapy.datastructures.csr import f32csr_type
 from dtapy.settings import parameters
+from dtapy.core.route_choice.qr_projection import qr_projection
 
 smoothing_method = parameters.assignment.smooth_costs
 spec_rc_state = [('link_costs', float32[:, :]),
@@ -42,7 +43,7 @@ class RouteChoiceState(object):
 
 # @njit
 def update_route_choice(state, turn_costs: np.ndarray, network: Network, dynamic_demand: InternalDynamicDemand,
-                        time: SimulationTime, k: int, method='msa'):
+                        time: SimulationTime, k: int, method='quasi-reduced-projection'):
     """
 
     Parameters
@@ -57,7 +58,17 @@ def update_route_choice(state, turn_costs: np.ndarray, network: Network, dynamic
 
 
     """
-    update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
-    turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, turn_costs)
-    state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)
-    state.turn_costs = turn_costs
+    if method == 'msa':
+        # deterministic case non convergent, saw tooth pattern settles in ..
+        update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
+        turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, turn_costs)
+        state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)
+        state.turn_costs = turn_costs
+    if method == 'quasi-reduced-projection':
+        # deterministic approach of updating the turning fractions, see willem's thesis chapter 4 for background
+        # should lead to smooth convergence
+        qr_projection()
+
+
+    else:
+        raise NotImplementedError

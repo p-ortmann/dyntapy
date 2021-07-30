@@ -9,7 +9,7 @@
 
 from dtapy.core.route_choice.dynamic_dijkstra import dijkstra
 import numpy as np
-from dtapy.core.route_choice.aon_cls import RouteChoiceState
+from dtapy.core.route_choice.deterministic import RouteChoiceState
 from dtapy.core.supply import Network
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime

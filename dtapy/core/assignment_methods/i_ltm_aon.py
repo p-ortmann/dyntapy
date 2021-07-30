@@ -13,7 +13,7 @@ from dtapy.core.demand import InternalDynamicDemand, Demand
 from dtapy.core.network_loading.link_models.i_ltm import i_ltm
 from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_aon_setup
 from dtapy.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot, cvn_to_travel_times
-from dtapy.core.route_choice.aon_cls import update_route_choice
+from dtapy.core.route_choice.deterministic import update_route_choice
 from dtapy.core.route_choice.aon_setup import setup_aon
 from dtapy.core.route_choice.aon import link_to_turn_costs
 from dtapy.core.supply import Network

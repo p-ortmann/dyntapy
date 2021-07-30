@@ -63,16 +63,13 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 # finding the node with the minimal arrival time to the destination is meant
                 # to reduce the total nodes being added to the nodes_2_update list
 
-                # TODO: explore some other designs here -  like priority queue
-                # not straight forward to do as the distance labels are dynamically changing inside a single time step.
-
                 min_dist = np.inf
                 min_link = -1
-                for turn, active in enumerate(links_2_update):
+                for link, active in enumerate(links_2_update):
                     if active:
-                        if arrival_maps[destination, t, turn] <= min_dist:
-                            min_link = turn
-                            min_dist = arrival_maps[destination, t, turn]
+                        if arrival_maps[destination, t, link] <= min_dist:
+                            min_link = link
+                            min_dist = arrival_maps[destination, t, link]
                 links_2_update[min_link] = False  # no longer considered
                 # _log('deactivated node ' + str(min_node))
                 new_dist = np.inf
@@ -102,7 +99,8 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
-    calculates turning fractions taking into account closed turns.
+    Calculates turning fractions taking into account closed turns. Deterministic procedure; a turn has a fraction of 1
+    if it is on the destination based shortest path tree, zero otherwise.
     Parameters
     ----------
     network : numba.experimental.jitclass.boxing.Network
@@ -150,6 +148,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     return turning_fractions
 
 
+
 # @njit(parallel=True)
 def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix, in_links: UI32CSRMatrix,
                        out_turns: UI32CSRMatrix, in_turns: UI32CSRMatrix, tot_turns):
@@ -180,70 +179,3 @@ def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix, in_link
                 turn_costs[:, turn] += link_costs[:, link]
     return turn_costs
 
-
-# @njit(cache=True)
-def get_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
-                                dynamic_demand: InternalDynamicDemand):
-    """
-    replaces the values in the CSRMatrices in connector choice with the current values with the given arrival maps
-    and returns the result.
-    Connector choice is passed to get the sparsity structure.
-    Parameters
-    ----------
-    network : Network
-    connector_choice : List of CSRMatrices, as defined in datastructures
-    arrival_maps : 3D array, tot_active_destinations x time.tot_time_steps x tot_nodes
-    dynamic_demand : InternalDynamicDemand
-
-    Returns
-    -------
-
-    """
-
-    for t_id, t in enumerate(dynamic_demand.loading_time_steps):
-        demand = dynamic_demand.get_demand(t)
-        connector_choice[t_id].values = np.zeros_like(connector_choice[0].values)  # initializing with zeros
-        for origin in demand.origins:
-            for d_id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
-                dist = np.inf
-                min_connector = -1
-                for node, connector in zip(network.nodes.out_links.get_row(origin),
-                                           network.nodes.out_links.get_nnz(origin)):
-                    if arrival_maps[d_id, t, node] < dist:
-                        dist = arrival_maps[d_id, t, node]
-                        min_connector = connector
-                connector_choice[t_id].get_row(min_connector)[d_id] = 1.0
-    return connector_choice
-
-
-@njit(cache=True)
-def update_source_connector_choice(network: Network, connector_choice: F32CSRMatrix, arrival_maps,
-                                   dynamic_demand: InternalDynamicDemand):
-    """
-    replaces the values in the CSRMatrices in connector choice with the current values with the given arrival maps
-    and returns the result.
-    Connector choice is passed to get the sparsity structure.
-    Parameters
-    ----------
-    network : Network
-    connector_choice : List of CSRMatrices, as defined in datastructures
-    arrival_maps : 3D array, tot_active_destinations x time.tot_time_steps x tot_nodes
-    dynamic_demand : InternalDynamicDemand
-
-    Returns
-    -------
-
-    """
-    for t_id, t in enumerate(dynamic_demand.loading_time_steps):
-        demand = dynamic_demand.get_demand(t)
-        connector_choice[t_id].values = np.zeros_like(connector_choice[0].values)  # initializing with zeros
-        for origin in demand.origins:
-            for d_id, destination in enumerate(demand.to_destinations.get_nnz(origin)):
-                dist = np.inf
-                min_link = -1
-                for node, link in zip(network.nodes.out_links.get_row(origin), network.nodes.out_links.get_nnz(origin)):
-                    if arrival_maps[d_id, t, node] < dist:
-                        dist = arrival_maps[d_id, t, node]
-                        min_link = link
-                connector_choice[t_id].get_row(min_link)[d_id] = 1.0
-    return connector_choice
