@@ -71,7 +71,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
             _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
                            title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
-        update_route_choice(aon_state, turn_costs, network, dynamic_demand, route_choice_time, k, 'msa')
+        update_route_choice(aon_state, turn_costs, iltm_state.cvn_down,  network, dynamic_demand, route_choice_time, k)
         sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
                                  network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     flows = cvn_to_flows(iltm_state.cvn_down)
