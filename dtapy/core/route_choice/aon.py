@@ -151,7 +151,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
 
 # @njit(parallel=True)
 def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix, in_links: UI32CSRMatrix,
-                       out_turns: UI32CSRMatrix, in_turns: UI32CSRMatrix, tot_turns):
+                       out_turns: UI32CSRMatrix, in_turns: UI32CSRMatrix, tot_turns, time:SimulationTime):
     # TODO: testing of this function
     """
     calculates turn from link costs assuming no turn delays
@@ -167,15 +167,25 @@ def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix, in_link
     """
     tot_time_steps = link_costs.shape[0]
     turn_costs = np.zeros((tot_time_steps, tot_turns), dtype=np.float32)
-    for node in prange(out_links.get_nnz_rows().size):
-        # turn and link labelling follows the node labelling
-        # turns with the same via node are labelled consecutively
-        # the same is usually true for the outgoing links of a node (if it's not a connector)
-        for link in out_links.get_nnz(node):
-            for turn in in_turns.get_nnz(link):
-                turn_costs[:, turn] += link_costs[:, link]
-        for link in in_links.get_nnz(node):  # this is more expensive since the in_links are not labelled consecutively
-            for turn in out_turns.get_nnz(link):
-                turn_costs[:, turn] += link_costs[:, link]
+    for t in time.tot_time_steps:
+        for node in prange(out_links.get_nnz_rows().size):
+            # turn and link labelling follows the node labelling
+            # turns with the same via node are labelled consecutively
+            # the same is usually true for the outgoing links of a node (if it's not a connector)
+            for to_link in out_links.get_nnz(node):
+                for turn, from_link in in_turns.get_nnz(to_link), in_turns.get_row(to_link):
+                    turn_costs[t, turn] += link_costs[t, from_link]
+                    interpolation_fraction  =  link_costs[t, from_link]/time.step_size
+                    try:
+                        if interpolation_fraction<1:
+                            turn_costs[t,turn]+= np.interp(interpolation_fraction,[0,1],link_costs[t:t+1, to_link])
+                        else:
+                            arrival_period= np.floor(interpolation_fraction)
+                            interpolation_fraction = interpolation_fraction-arrival_period
+                            turn_costs[t, turn] += np.interp(interpolation_fraction, [0, 1],
+                                                             link_costs[arrival_period:arrival_period + 1, to_link])
+                    except IndexError:
+                        # arrival after simulation ends
+                        turn_costs += link_costs[-1,to_link]
     return turn_costs
 

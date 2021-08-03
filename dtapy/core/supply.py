@@ -56,7 +56,7 @@ class Links(object):
         self.v_wave = v_wave
         self.costs = costs
         self.v0 = v0
-        self.out_turns = out_turns  # csr link x link row is outgoing turns
+        self.out_turns = out_turns  # csr link x turns row is outgoing links
         self.in_turns = in_turns  # csr incoming turns
         self.lanes = lanes
         self.link_type = link_type
