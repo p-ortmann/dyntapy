@@ -12,7 +12,7 @@ from dtapy.core.time import SimulationTime
 from numba import prange
 
 HISTORICAL_SHIFT_FACTOR = 0.1
-TRANSLATION_FACTOR = 100
+TRANSLATION_FACTOR = 1
 
 
 def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turning_fractions,
@@ -89,18 +89,16 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                         raise AssertionError('where does this happen')
                     else:
                         ptr = 0
-                        try:
-                            for local_turn_id, turn in enumerate(network.links.out_turns.get_row(link)):
+                        for local_turn_id, turn in enumerate(network.links.out_turns.get_nnz(link)):
+                            if ptr<local_short_turns.size:
                                 if local_short_turns[ptr] == local_turn_id:
                                     shift[t, turn] = shift[t, turn] + np.abs(sum_shift / local_short_turns.size)
                                     # the previously applied reductions on turns that are not on the shortest path tree
                                     # are now evenly spread among the turns that are part of it, such that the sum of
                                     # the turning fractions is still 1.
                                     ptr += 1
-                                    turning_fractions[d,t,turn] = turning_fractions[d,t,turn] + shift[t,turn]
-                        except IndexError:
-                            # all shortest turns processed --> IndexError
-                            pass
+                            turning_fractions[d,t,turn] = turning_fractions[d,t,turn] + shift[t,turn]
+
 
                 gec[t]= gec[t]+gec_local
                 if gec_local>np.finfo(np.float32).resolution:
