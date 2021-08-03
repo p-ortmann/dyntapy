@@ -87,6 +87,8 @@ class _NetworkLoading:
     step_size: np.float32 = np.float32(0.25)
     node_model: str = 'orca'  # 'only 'orca' for now
     precision: np.float32 = np.float32(0.001)
+    use_turn_delays: np.bool =  False # whether or not to take into account turn delays in the route choice
+    # more of a space holder settings as it's not yet taken integrated into propagation ..
 
 
 @dataclass

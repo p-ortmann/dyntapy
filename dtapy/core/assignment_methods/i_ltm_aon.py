@@ -45,6 +45,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     converged = False
     sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
                              network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
+    turn_delays = np.full((route_choice_time.tot_time_steps,network.tot_turns),network.turns.t0)
     while k < 1001 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
@@ -54,8 +55,8 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                          cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                          time=network_loading_time,
                                          network=network, con_down=iltm_state.con_down)
-        turn_costs = link_to_turn_costs(link_costs, network.nodes.out_links, network.nodes.in_links,
-                                        network.links.out_turns, network.links.in_turns, network.tot_turns)
+        turn_costs = link_to_turn_costs(link_costs, network.nodes.out_links, network.links.in_turns, network.tot_turns,
+                                        route_choice_time, turn_delays, use_turn_delays=False)
         new_flows = cvn_to_flows(iltm_state.cvn_down)
         _log('updating arrival in iteration ' + str(k), to_console=True)
         update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs,

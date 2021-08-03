@@ -17,6 +17,7 @@ from dtapy.datastructures.csr import F32CSRMatrix, UI32CSRMatrix
 
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
+use_turn_delays=parameters.network_loading.use_turn_delays
 
 
 # TODO: test function for arrival map topological order
@@ -148,11 +149,14 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     return turning_fractions
 
 
-
 # @njit(parallel=True)
-def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix, in_links: UI32CSRMatrix,
-                       out_turns: UI32CSRMatrix, in_turns: UI32CSRMatrix, tot_turns, time:SimulationTime):
-    # TODO: testing of this function
+def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix,
+                       in_turns: UI32CSRMatrix, tot_turns, time: SimulationTime, turn_delays,
+                       use_turn_delays=use_turn_delays):
+    #  the turn costs are defined as the cost incurred on the from link + the turn delay
+    # it does NOT include the travel time on the to_link of the turn
+    # the turn delay itself is defined as the time it takes to make the turn on the node
+    # this additional delay is not yet taken account in the propagation and by default 0 for all turns
     """
     calculates turn from link costs assuming no turn delays
     Parameters
@@ -167,25 +171,30 @@ def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix, in_link
     """
     tot_time_steps = link_costs.shape[0]
     turn_costs = np.zeros((tot_time_steps, tot_turns), dtype=np.float32)
-    for t in time.tot_time_steps:
-        for node in prange(out_links.get_nnz_rows().size):
-            # turn and link labelling follows the node labelling
-            # turns with the same via node are labelled consecutively
-            # the same is usually true for the outgoing links of a node (if it's not a connector)
-            for to_link in out_links.get_nnz(node):
-                for turn, from_link in in_turns.get_nnz(to_link), in_turns.get_row(to_link):
-                    turn_costs[t, turn] += link_costs[t, from_link]
-                    interpolation_fraction  =  link_costs[t, from_link]/time.step_size
-                    try:
-                        if interpolation_fraction<1:
-                            turn_costs[t,turn]+= np.interp(interpolation_fraction,[0,1],link_costs[t:t+1, to_link])
+    if use_turn_delays:
+        for t in range(time.tot_time_steps):
+            for node in prange(out_links.get_nnz_rows().size):
+                # turn and link labelling follows the node labelling
+                # turns with the same via node are labelled consecutively
+                # the same is usually true for the outgoing links of a node (if it's not a connector)
+                for to_link in out_links.get_nnz(node):
+                    for turn, from_link in zip(in_turns.get_nnz(to_link), in_turns.get_row(to_link)):
+                        turn_costs[t, turn] += link_costs[t, from_link]
+                        interpolation_fraction = link_costs[t, from_link] / time.step_size
+                        if t + 2 + np.floor(interpolation_fraction) > time.tot_time_steps:
+                            turn_costs[t, turn] += turn_delays[-1, turn]
+                        elif interpolation_fraction < 1:
+                            turn_costs[t, turn] += np.interp(interpolation_fraction, [0, 1], turn_delays[t:t + 2, turn])
                         else:
-                            arrival_period= np.floor(interpolation_fraction)
-                            interpolation_fraction = interpolation_fraction-arrival_period
+                            arrival_period = np.int32(np.floor(interpolation_fraction))
+                            interpolation_fraction = interpolation_fraction - arrival_period
                             turn_costs[t, turn] += np.interp(interpolation_fraction, [0, 1],
-                                                             link_costs[arrival_period:arrival_period + 1, to_link])
-                    except IndexError:
-                        # arrival after simulation ends
-                        turn_costs += link_costs[-1,to_link]
-    return turn_costs
+                                                             turn_delays[arrival_period:arrival_period + 2, turn])
+    else:
+        # no interpolation needed
+        for node in prange(out_links.get_nnz_rows().size):
+            for to_link in out_links.get_nnz(node):
+                for turn, from_link in zip(in_turns.get_nnz(to_link), in_turns.get_row(to_link)):
+                    turn_costs[:, turn] += link_costs[:, from_link]
 
+    return turn_costs

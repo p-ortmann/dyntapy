@@ -43,15 +43,18 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                     interpolation_fraction = turn_costs[t, turn] / time.step_size
                     if t + interpolation_fraction >= time.tot_time_steps-1:
                         arrival = arrival_map[d, time.tot_time_steps-1, out_link] + \
-                                  interpolation_fraction * time.step_size
+                                  turn_costs[t,turn]
                     elif interpolation_fraction < 1:
-                        arrival = arrival_map[d, t + 1, out_link] * (1 - interpolation_fraction) + \
-                                  interpolation_fraction * arrival_map[d, t, out_link]
+                        arrival = arrival_map[d, t, out_link] * (1 - interpolation_fraction) + \
+                                  interpolation_fraction * arrival_map[d, t+1, out_link]
                     else:
-                        t2 = t + 1 + np.floor(interpolation_fraction)
+                        t2 = np.int32(t + 1 + np.floor(interpolation_fraction))
                         interpolation_fraction = interpolation_fraction - np.floor(interpolation_fraction)
-                        arrival = arrival_map[d, t2, out_link] * (1 - interpolation_fraction) + \
-                                  interpolation_fraction * arrival_map[d, t2 + 1, out_link]
+                        try:
+                            arrival = arrival_map[d, t2+1, out_link] * (1 - interpolation_fraction) + \
+                                  interpolation_fraction * arrival_map[d, t2 , out_link]
+                        except IndexError:
+                            print('g')
                     local_costs[turn_id] = arrival
                     if arrival <= min_cost+np.finfo(np.float32).resolution:
                         # turn part of current shortest path tree
@@ -87,7 +90,7 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                     else:
                         ptr = 0
                         try:
-                            for local_turn_id, turn in network.links.out_turns.get_row(link):
+                            for local_turn_id, turn in enumerate(network.links.out_turns.get_row(link)):
                                 if local_short_turns[ptr] == local_turn_id:
                                     shift[t, turn] = shift[t, turn] + np.abs(sum_shift / local_short_turns.size)
                                     # the previously applied reductions on turns that are not on the shortest path tree
