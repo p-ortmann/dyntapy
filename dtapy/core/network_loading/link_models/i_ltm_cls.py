@@ -69,7 +69,7 @@ class ILTMLinks(UncompiledLinks):
     __init__Links = UncompiledLinks.__init__
 
     def __init__(self, links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam, k_crit):
-        self.__init__Links(links.length, links.from_node, links.to_node, links.capacity, links.v_wave, links.costs,
+        self.__init__Links(links.length, links.from_node, links.to_node, links.capacity, links.v_wave,
                            links.v0, links.out_turns, links.in_turns, links.lanes, links.link_type)
         self.vf_index = vf_index
         self.vw_index = vw_index

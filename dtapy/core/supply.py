@@ -30,7 +30,6 @@ spec_link = [('capacity', float32[:]),
              ('to_node', uint32[:]),
              ('length', float32[:]),
              ('flow', float32[:, :]),
-             ('costs', float32[:, :]),
              ('out_turns', ui32csr_type),
              ('in_turns', ui32csr_type),
              ('v_wave', float32[:]),
@@ -47,14 +46,13 @@ class Links(object):
     A simple class that carries various arrays and CSR Matrices that have link ids as their index
     """
 
-    def __init__(self, length, from_node, to_node, capacity, v_wave, costs, v0,
+    def __init__(self, length, from_node, to_node, capacity, v_wave, v0,
                  out_turns, in_turns, lanes, link_type):
         self.capacity = capacity
         self.length = length
         self.to_node = to_node
         self.from_node = from_node
         self.v_wave = v_wave
-        self.costs = costs
         self.v0 = v0
         self.out_turns = out_turns  # csr link x turns row is outgoing links
         self.in_turns = in_turns  # csr incoming turns
@@ -67,7 +65,7 @@ class UncompiledLinks(object):
    See Links class for docs
     """
 
-    def __init__(self, length, from_node, to_node, capacity, v_wave, costs, v0,
+    def __init__(self, length, from_node, to_node, capacity, v_wave, v0,
                  out_turns, in_turns, lanes, link_type):
         """
         See Links class for docs
@@ -77,7 +75,6 @@ class UncompiledLinks(object):
         self.to_node = to_node
         self.from_node = from_node
         self.v_wave = v_wave
-        self.costs = costs
         self.v0 = v0
         self.out_turns = out_turns  # csr linkxlink row is outgoing turns
         self.in_turns = in_turns  # csr incoming turns
