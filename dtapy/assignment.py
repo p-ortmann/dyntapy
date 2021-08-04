@@ -74,7 +74,7 @@ class Assignment:
         else:
             raise NotImplementedError(f'{method=} is not defined ')
         return flows, costs
-
+    @staticmethod
     def __build_network(self):
         edge_data = [(_, _, data) for _, _, data in self.g.edges.data()]
         sorted_edges = sorted(edge_data, key=lambda t: t[2]['link_id'])
