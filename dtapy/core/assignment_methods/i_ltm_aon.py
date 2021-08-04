@@ -61,18 +61,17 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         _log('updating arrival in iteration ' + str(k), to_console=True)
         update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs,
                             turn_costs)
-        if k > 1:
-            converged, current_gap = is_cost_converged(link_costs, new_flows, aon_state.arrival_maps, dynamic_demand,
-                                                       route_choice_time.step_size, network.nodes.out_links)
-            convergence.append(current_gap)
-            _log('new flows, gap is  : ' + str(current_gap), to_console=True)
-        k = k + 1
-
         if debugging:
             _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
                            title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
-        update_route_choice(aon_state, turn_costs, iltm_state.cvn_down,  network, dynamic_demand, route_choice_time, k)
+        gec = update_route_choice(aon_state, turn_costs, iltm_state.cvn_down,  network, dynamic_demand, route_choice_time, k)
+        if k > 1:
+            convergence.append(np.sum(gec))
+            _log('new flows, gap is  : ' + str(gec), to_console=True)
+            if np.all(gec<0.001):
+                converged=True
+        k = k + 1
         sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
                                  network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     flows = cvn_to_flows(iltm_state.cvn_down)

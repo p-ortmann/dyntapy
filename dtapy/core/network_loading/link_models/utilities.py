@@ -187,7 +187,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
         ff_tt = np.float32((network.links.length[link] / network.links.v0[link]))
         never_congested=False
         if network.links.link_type[link] == -1 or network.links.link_type[link] == 1:
-            print(f'{link=} is connector {network.links.link_type[link]=}')
+            #print(f'{link=} is connector {network.links.link_type[link]=}')
             # no consideration of connector costs
             never_congested =True
         else:
@@ -201,7 +201,6 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                 # time when the vehicle that was registered downstream entered the link
                 experienced_travel_times=List()
                 # experienced travel time of the vehicle that was registered downstream
-                print('in congestion')
                 for t in time_steps:
                     if t == congested_periods[pointer]:
                         k=np.where(np.logical_and(cvn_up[1:,link] >= cvn_down[t,link], cvn_up[:-1,link] < cvn_down[t,link]))[0]

@@ -12,7 +12,7 @@ from dtapy.core.time import SimulationTime
 from numba import prange
 
 HISTORICAL_SHIFT_FACTOR = 0.1
-TRANSLATION_FACTOR = 1
+TRANSLATION_FACTOR = 10
 
 
 def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turning_fractions,
@@ -86,7 +86,7 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                     if not local_short_turns.size > 0:
                         # if the min_cost stems from an arrival map
                         # that wasn't brought into consistency with the current cost
-                        raise AssertionError('where does this happen')
+                        raise AssertionError
                     else:
                         ptr = 0
                         for local_turn_id, turn in enumerate(network.links.out_turns.get_nnz(link)):
@@ -98,8 +98,6 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                                     # the turning fractions is still 1.
                                     ptr += 1
                             turning_fractions[d,t,turn] = turning_fractions[d,t,turn] + shift[t,turn]
-
-
                 gec[t]= gec[t]+gec_local
                 if gec_local>np.finfo(np.float32).resolution:
                     links_to_update[d,link,t]=True
