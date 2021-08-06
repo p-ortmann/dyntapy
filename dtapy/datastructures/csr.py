@@ -132,12 +132,12 @@ def csr_prep(index_array, values, shape, unsorted=True):
         raise ValueError('dimensions are smaller than respective cols and rows in index array')
     if unsorted:
         index_array, values = csr_sort(index_array, values, shape[1])
-    col, row = __csr_format(index_array, shape[0])
+    col, row = _csr_format(index_array, shape[0])
     return values, col, row
 
 
 @nb.njit(cache=True)
-def __csr_format(index_array, number_of_rows):
+def _csr_format(index_array, number_of_rows):
     """
 
     Parameters
@@ -150,7 +150,7 @@ def __csr_format(index_array, number_of_rows):
     """
     # index_array with the position of the elements (i,j), i being the row and j the column
     # sorted by rows with ties settled by column. Values sorted accordingly, see csr_sort
-    col, row = nb.typed.List(), nb.typed.List()
+    col, row = nb.typed.List.empty_list(item_type=uint32), nb.typed.List.empty_list(item_type=uint32)
     row.append(np.uint32(0))
     row_value_counter = np.uint32(0)
     processed_edges = np.uint32(0)

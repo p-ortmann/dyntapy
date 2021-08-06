@@ -48,7 +48,7 @@ node_size = parameters.visualization.node_size
 
 def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), highlight_links=np.array([]),
                  highlight_nodes=np.array([]), toy_network=False,
-                 title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False):
+                 title=None, plot_size=default_plot_size, osm_tap_tool=True, notebook=False, show_nodes=True):
     # adding different coordinate attribute names to use osmnx functions
     for _, _, data in g.edges.data():
         if 'x_coord' in data:
@@ -82,26 +82,30 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
     c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()), time_step=1,
                                      highlight_links=highlight_links, patch_ratio=3)
     edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y, **link_kwargs)
-    node_source = _node_cds(tmp, highlight_nodes, **node_kwargs)
     edge_renderer = plot.add_glyph(edge_source,
                                    glyph=Patches(xs='x', ys='y', fill_color='color', line_color="black",
                                                  line_alpha=0.8))
     edge_tooltips = [(item, f'@{item}') for item in parameters.visualization.link_keys + list(link_kwargs.keys()) if
                      item != 'flow']
-    node_renderer = plot.add_glyph(node_source,
+    edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
+    if show_nodes:
+        node_source = _node_cds(tmp, highlight_nodes, **node_kwargs)
+        node_renderer = plot.add_glyph(node_source,
                                    glyph=Circle(x='x', y='y', size=node_size,
                                                 line_color="black", fill_color='color', line_alpha=0.4, fill_alpha=0.7,
                                                 line_width=node_size / 10))
-    node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys())]
+        node_tooltips = [(item, f'@{item}') for item in parameters.visualization.node_keys + list(node_kwargs.keys())]
+        node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
+        plot.add_tools(node_hover)
 
-    edge_hover = HoverTool(show_arrow=False, tooltips=edge_tooltips, renderers=[edge_renderer])
-    node_hover = HoverTool(show_arrow=False, tooltips=node_tooltips, renderers=[node_renderer])
 
-    if osm_tap_tool:
+
+    if osm_tap_tool and show_nodes:
         url = "https://www.openstreetmap.org/node/@ext_id/"
         nodetaptool = TapTool(renderers=[node_renderer])
         nodetaptool.callback = OpenURL(url=url)
-    plot.add_tools(node_hover, edge_hover, nodetaptool)
+        plot.add_tools( nodetaptool)
+    plot.add_tools( edge_hover)
     show(plot)
 
 
