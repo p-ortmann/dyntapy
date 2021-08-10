@@ -10,9 +10,10 @@ from dtapy.core.network_loading.link_models.i_ltm_cls import ILTMNetwork
 from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from numba import prange
-
+from dtapy.settings import parameters
 HISTORICAL_SHIFT_FACTOR = 0.1
 TRANSLATION_FACTOR = 10
+epsilon= parameters.network_loading.epsilon
 
 
 def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turning_fractions,
@@ -78,27 +79,35 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                             # the aptly named historical shift factor determines how much more we shift based on
                             # how much has been shifted in previous time slices
                             sum_shift = sum_shift + shift[t, turn]
-                            gec_local = gec_local + (arrival - min_cost) * (
-                                    cvn_down[t + 1, link, d] - cvn_down[t, link, d]) * turning_fractions[d, t, turn]
+                            if t>0:
+                                gec_local = gec_local + (arrival - min_cost) * (
+                                        cvn_down[t , link, d] - cvn_down[t-1, link, d]) * turning_fractions[d, t, turn]
+                            else:
+                                gec_local = gec_local + (arrival - min_cost) * (
+                                        cvn_down[t, link, d]  * turning_fractions[d, t, turn])
                 if np.abs(sum_shift) > 0:
                     # changes in route choice registered for current link
                     local_short_turns = np.nonzero(shortest_turns)[0]
                     if not local_short_turns.size > 0:
                         # if the min_cost stems from an arrival map
-                        # that wasn't brought into consistency with the current cost
-                        raise AssertionError
-                    else:
-                        ptr = 0
-                        for local_turn_id, turn in enumerate(network.links.out_turns.get_nnz(link)):
-                            if ptr < local_short_turns.size:
-                                if local_short_turns[ptr] == local_turn_id:
-                                    shift[t, turn] = shift[t, turn] + np.abs(sum_shift / local_short_turns.size)
-                                    # the previously applied reductions on turns that are not on the shortest path tree
-                                    # are now evenly spread among the turns that are part of it, such that the sum of
-                                    # the turning fractions is still 1.
-                                    ptr += 1
-                            turning_fractions[d, t, turn] = turning_fractions[d, t, turn] + shift[t, turn]
+                        # that wasn't brought into consistency with the current cost,
+                        # or there are very small differences .
+                        min_found_cost=np.min(local_costs)
+                        local_short_turns=np.argwhere(local_costs==min_found_cost).flatten()
+                    ptr = 0
+                    for local_turn_id, turn in enumerate(network.links.out_turns.get_nnz(link)):
+                        if local_short_turns.size>0 and ptr < local_short_turns.size:
+                            if local_short_turns[ptr] == local_turn_id:
+                                shift[t, turn] = shift[t, turn] + np.abs(sum_shift / local_short_turns.size)
+                                # the previously applied reductions on turns that are not on the shortest path tree
+                                # are now evenly spread among the turns that are part of it, such that the sum of
+                                # the turning fractions is still 1.
+                                ptr += 1
+                        turning_fractions[d, t, turn] = turning_fractions[d, t, turn] + shift[t, turn]
                 gec[t] = gec[t] + gec_local
                 if gec_local > np.finfo(np.float32).resolution:
                     links_to_update[d, link, t] = True
     return turning_fractions, gec, links_to_update
+
+
+

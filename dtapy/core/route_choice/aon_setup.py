@@ -45,8 +45,7 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
         costs[t, :] = free_flow_costs
     turn_costs \
         = link_to_turn_costs(costs,network.nodes.out_links,
-                             network.links.in_turns, network.tot_turns, time, turn_delays=np.zeros(1),
-                             use_turn_delays=False)
+                             network.links.in_turns, network.tot_turns, time,np.zeros(1))
     arrival_maps = init_arrival_maps(turn_costs, network.links.in_turns,
                                      dynamic_demand.all_active_destination_links, time.step_size, time.tot_time_steps,
                                      network.tot_links, List.empty_list(uint32)) # since there are no u-turns centroid routing is

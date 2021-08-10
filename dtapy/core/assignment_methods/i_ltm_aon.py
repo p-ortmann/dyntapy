@@ -15,7 +15,7 @@ from dtapy.core.network_loading.link_models.i_ltm_setup import i_ltm_aon_setup
 from dtapy.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot, cvn_to_travel_times
 from dtapy.core.route_choice.deterministic import update_route_choice
 from dtapy.core.route_choice.aon_setup import setup_aon
-from dtapy.core.route_choice.aon import link_to_turn_costs
+from dtapy.core.route_choice.aon import link_to_turn_costs_deterministic
 from dtapy.core.supply import Network
 from dtapy.core.time import SimulationTime
 from dtapy.settings import parameters
@@ -55,9 +55,9 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                          cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                          time=network_loading_time,
                                          network=network, con_down=iltm_state.con_down)
-        turn_costs = link_to_turn_costs(link_costs, network.nodes.out_links, network.links.in_turns, network.tot_turns,
-                                        route_choice_time, turn_delays, use_turn_delays=False)
-        new_flows = cvn_to_flows(iltm_state.cvn_down)
+        turn_costs = link_to_turn_costs_deterministic(link_costs, network.nodes.out_links, network.links.in_turns, network.tot_turns,
+                                        route_choice_time,network.links.link_type,aon_state.turning_fractions,
+                                        network.links.length/network.links.v0,iltm_state.cvn_up)
         _log('updating arrival in iteration ' + str(k), to_console=True)
         update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs,
                             turn_costs)

@@ -186,14 +186,13 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
     for link in prange(network.tot_links):
         ff_tt = np.float32((network.links.length[link] / network.links.v0[link]))
         never_congested=False
-        if network.links.link_type[link] == -1 or network.links.link_type[link] == 1:
-            #print(f'{link=} is connector {network.links.link_type[link]=}')
-            # no consideration of connector costs
+        if network.links.link_type[link] == -1:
+            # no consideration of exiting connector costs
             never_congested =True
         else:
             congested_periods = np.nonzero(con_down[:, link])[0]
             if congested_periods.size==0: # all time periods for this link uncongested
-                never_congested=True
+                never_congested = True
             else:
                 # adding free flow travel time for t==0
                 pointer = 0
@@ -203,9 +202,9 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                 # experienced travel time of the vehicle that was registered downstream
                 for t in time_steps:
                     if t == congested_periods[pointer]:
-                        k=np.where(np.logical_and(cvn_up[1:,link] >= cvn_down[t,link], cvn_up[:-1,link] < cvn_down[t,link]))[0]
+                        k = np.where(np.logical_and(cvn_up[1:,link] >= cvn_down[t,link], cvn_up[:-1,link] < cvn_down[t,link]))[0]
                         try:
-                            k=k[0]
+                            k = k[0]
                             arrival_times.append(np.interp(cvn_down[t, link], cvn_up[k:k+2,link],np.array([k+1,k+2]) ))
                         except IndexError:
                             if cvn_down[t,link]>cvn_up[0,link]:
@@ -215,7 +214,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                         if pointer<congested_periods.size-1:
                             pointer += 1
                     else:
-                        arrival_times.append((t + 1) * time.step_size - ff_tt)
+                        arrival_times.append((t + 1) - ff_tt)
                         experienced_travel_times.append(ff_tt)
 
                 if len(set(arrival_times)) < len(arrival_times): # arrival times are not unique,

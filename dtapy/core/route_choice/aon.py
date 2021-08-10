@@ -17,7 +17,7 @@ from dtapy.datastructures.csr import F32CSRMatrix, UI32CSRMatrix
 
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
-use_turn_delays=parameters.network_loading.use_turn_delays
+use_turn_delays = parameters.network_loading.use_turn_delays
 
 
 # TODO: test function for arrival map topological order
@@ -151,7 +151,8 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
 
 # @njit(parallel=True)
 def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix,
-                       in_turns: UI32CSRMatrix, tot_turns, time: SimulationTime, turn_delays,
+                       in_turns: UI32CSRMatrix, tot_turns, time: SimulationTime,
+                       turn_delays,
                        use_turn_delays=use_turn_delays):
     #  the turn costs are defined as the cost incurred on the from link + the turn delay
     # it does NOT include the travel time on the to_link of the turn
@@ -195,6 +196,26 @@ def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix,
         for node in prange(out_links.get_nnz_rows().size):
             for to_link in out_links.get_nnz(node):
                 for turn, from_link in zip(in_turns.get_nnz(to_link), in_turns.get_row(to_link)):
-                    turn_costs[:, turn] += link_costs[:, from_link]
+                    turn_costs[:, turn] = link_costs[:, from_link]
 
+    return turn_costs
+
+
+def link_to_turn_costs_deterministic(link_costs: np.ndarray, out_links: UI32CSRMatrix,
+                                     in_turns: UI32CSRMatrix, tot_turns, time: SimulationTime, link_types,
+                                     turning_fractions, ff_tt, cvn_up):
+    tot_time_steps = link_costs.shape[0]
+    turn_costs = np.zeros((tot_time_steps, tot_turns), dtype=np.float32)
+    for t in range(time.tot_time_steps):
+        for node in prange(out_links.get_nnz_rows().size):
+            for to_link in out_links.get_nnz(node):
+                for turn, from_link in zip(in_turns.get_nnz(to_link), in_turns.get_row(to_link)):
+                    if link_types[from_link] != 1:
+                        turn_costs[t, turn] = link_costs[t, from_link]
+                    else:
+                        congestion_cost = link_costs[t, from_link] - ff_tt[from_link]
+                        if np.sum(turning_fractions[:, t,turn ] * cvn_up[t, from_link, :]) > 0:
+                            turn_costs[t, turn] = congestion_cost + ff_tt[from_link]
+                        else:
+                            turn_costs[t,turn] = ff_tt[from_link]
     return turn_costs

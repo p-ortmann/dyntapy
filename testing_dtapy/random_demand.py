@@ -6,6 +6,9 @@
 #
 #
 #
+
+from numba import config
+config.DISABLE_JIT=1
 from dtapy.demand import parse_demand, generate_od_xy, DynamicDemand
 from dtapy.network_data import load_pickle
 from dtapy.assignment import Assignment
@@ -16,7 +19,6 @@ from dtapy.settings import default_city as city
 from dtapy.visualization import show_demand, show_dynamic_network
 
 
-#@profile
 def init_assignment():
     step_size = parameters.network_loading.step_size
     # loading from data folder, assumes road_network_and_centroids was run previously
@@ -32,12 +34,12 @@ def init_assignment():
     # convert everything to internal representations and parse
     assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size))
     # TODO: add tests for multi-edge parsing
-    # flows, costs = assignment.run(method='i_ltm_aon')
-    # show_dynamic_network(g, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size),
-    #                     link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
+    flows, costs = assignment.run(method='i_ltm_aon')
+    show_dynamic_network(g, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size),
+                         link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
 
 
-
-init_assignment()
+if __name__=='__main__':
+    init_assignment()
 
 
