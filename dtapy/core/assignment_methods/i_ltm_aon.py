@@ -110,11 +110,9 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
         for origin in demand.to_destinations.get_nnz_rows():
             for flow, destination in zip(demand.to_destinations.get_row(origin),
                                          demand.to_destinations.get_nnz(origin)):
-                shortest_path_travel_times += flow * (arrival_map[
-                                                          np.flatnonzero(
-                                                              dynamic_demand.all_active_destinations == destination)[
-                                                              0], t + 1, out_links.get_nnz(origin)[0]] - (
-                                                                  t + 1) * step_size)
+                shortest_path_travel_times += flow * (arrival_map[np.flatnonzero(
+                dynamic_demand.all_active_destinations == destination)[0],
+                                                                  t + 1, out_links.get_nnz(origin)[0]] - (t + 1) * step_size)
     gap_value = np.divide(experienced_travel_times, shortest_path_travel_times) - 1
     return gap_value < target_gap, gap_value
 
