@@ -11,6 +11,8 @@ import networkx as nx
 import numpy as np
 from osmnx.distance import euclidean_dist_vec
 from dtapy.network_data import relabel_graph
+import pandas as pd
+import os
 
 default_capacity = 2000
 default_free_speed = 80
@@ -21,7 +23,7 @@ bottleneck_free_speed = 120
 default_node_ctrl_type = 'none'
 
 
-def get_toy_network(name='cascetta', relabel=False):
+def get_toy_network(name, relabel=False):
     """
     creates toy network based and returns the corresponding GMNS conform MultiDiGraph
     Parameters
@@ -45,7 +47,7 @@ def get_toy_network(name='cascetta', relabel=False):
             (1, 2), (1, 3), (2, 3), (2, 4),
             (3, 4), (4, 3), (4, 2), (3, 2),
             (3, 1), (2, 1)]
-        bottle_neck_edges = [(2, 3), (3, 2), (3,4),(4,3)]
+        bottle_neck_edges = [(2, 3), (3, 2), (3, 4), (4, 3)]
         g.add_edges_from(ebunch_of_edges)
         set_toy_network_attributes(g, bottle_neck_edges)
 
@@ -87,6 +89,43 @@ def get_toy_network(name='cascetta', relabel=False):
         g.add_edges_from(ebunch_of_edges)
         bottleneck_edges = [(2, 3), (3, 2)]
         set_toy_network_attributes(g, bottleneck_edges)
+    elif name in ['chicagosketch', 'chicagoregional', 'philadelphia', 'siouxfalls',
+                  'sydney', 'birmingham']:
+        # The source of these networks is Ben Stabler et al.,
+        # see here: https://github.com/bstabler/TransportationNetworks
+        # don't forget to cite as shown in the repository
+
+        edge_file = '{0}{1}network_files{2}{3}_net.tntp'.format(os.path.dirname(os.path.realpath(__file__)),
+                                                                os.path.sep, os.path.sep, name)
+        node_file = '{0}{1}network_files{2}{3}_node.tntp'.format(os.path.dirname(os.path.realpath(__file__)),
+                                                                 os.path.sep, os.path.sep, name)
+        edge_df = pd.read_csv(edge_file, skiprows=8, sep='\t')
+        if name == 'philadelphia':
+            sep = ' '
+        elif name == 'birmingham':
+            sep = '       '
+        else:
+            sep = '\t'
+        node_df = pd.read_csv(node_file, sep=sep)
+        Graphtype = nx.MultiDiGraph()
+        edge_df['init_node'] = edge_df['init_node'] - 1
+        edge_df['term_node'] = edge_df['term_node'] - 1
+        edge_df['free_speed'] = edge_df['length'] / edge_df['free_flow_time']
+        edge_df['lanes'] = 1
+        g = nx.from_pandas_edgelist(edge_df, source='init_node', target='term_node',
+                                    edge_attr=['length', 'capacity', 'free_speed', 'lanes'],
+                                    create_using=Graphtype)
+        node_df = node_df.rename(columns={col: col.lower() for col in node_df.columns})
+        node_df['node'] = node_df['node'] - 1
+        for node, x, y in zip(node_df['node'], node_df['x'], node_df['y']):
+            try:
+                g.nodes[node]['x_coord'] = x
+                g.nodes[node]['y_coord'] = y
+            except KeyError:
+                #   no edge with this node was added..
+                continue
+        return g
+
     else:
         raise ValueError('no toy network provided under that name')
     if not relabel:
@@ -110,3 +149,11 @@ def set_toy_network_attributes(g, bottleneck_edges):
         if (u, v) in bottleneck_edges:
             data['capacity'] = bottleneck_capacity
             data['free_speed'] = bottleneck_free_speed
+
+
+if __name__ == '__main__':
+    get_toy_network('cascetta')
+    for name in ['chicagosketch', 'chicagoregional', 'philadelphia', 'siouxfalls',
+                 'sydney', 'birmingham']:
+        g = get_toy_network(name)
+        print(f'got {name}')

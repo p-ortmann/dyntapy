@@ -73,9 +73,12 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
                       aspect_ratio=1, toolbar_location='below')
         tmp = g
     plot.title.text = title
-    if None in [val for _, _, val in g.edges.data('link_id')]:
+    linkids=sorted([val for _, _, val in g.edges.data('link_id')])
+    if None in linkids or linkids[0]!=0 or not all(i == j-1 for i, j in zip(linkids, linkids[1:])):
         tmp = relabel_graph(tmp)
-        warn('graph was relabelled during plotting, link_ids were not fully provided')
+        warn('graph was relabelled during plotting, link_ids were not valid')
+        # they have got to be
+        # starting at 0 & consecutively labelled integers
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
 

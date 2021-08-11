@@ -46,7 +46,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
                              network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     turn_delays = np.full((route_choice_time.tot_time_steps,network.tot_turns),network.turns.t0)
-    while k < 1001 and not converged:
+    while k < 100 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
         verify_assignment_state(network, aon_state.turning_fractions, iltm_state.cvn_up, iltm_state.cvn_down,
@@ -65,6 +65,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
             _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
                            title=f'RC state in iteration {k}')
         _log('updating route choice in iteration ' + str(k), to_console=True)
+
         gec = update_route_choice(aon_state, turn_costs, iltm_state.cvn_down,  network, dynamic_demand, route_choice_time, k)
         if k > 1:
             convergence.append(np.sum(gec))

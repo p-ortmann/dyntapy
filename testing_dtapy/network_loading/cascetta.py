@@ -8,7 +8,9 @@
 #
 #
 #
-from tutorials.toy_networks import get_toy_network
+from numba import config
+config.DISABLE_JIT=1
+from dtapy.networks.get_networks import get_toy_network
 from dtapy.demand import add_centroids_to_graph
 import numpy as np
 from dtapy.visualization import show_network, show_dynamic_network, show_demand

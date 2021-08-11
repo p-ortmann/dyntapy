@@ -68,7 +68,7 @@ def update_route_choice(state, turn_costs: np.ndarray,cvn_down, network: Network
         # deterministic approach of updating the turning fractions, see willem's thesis chapter 4 for background
         # should lead to smooth convergence
         update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
-        _,gec,_=qr_projection(cvn_down,state.arrival_maps, turn_costs, network, state.turning_fractions,dynamic_demand, time  )
+        _,gec,_=qr_projection(cvn_down,state.arrival_maps, turn_costs, network, state.turning_fractions,dynamic_demand, time,k )
         state.turn_costs=turn_costs
         return gec
 

@@ -217,5 +217,5 @@ def link_to_turn_costs_deterministic(link_costs: np.ndarray, out_links: UI32CSRM
                         if np.sum(turning_fractions[:, t,turn ] * cvn_up[t, from_link, :]) > 0:
                             turn_costs[t, turn] = congestion_cost + ff_tt[from_link]
                         else:
-                            turn_costs[t,turn] = ff_tt[from_link]
+                            turn_costs[t,turn] = congestion_cost + ff_tt[from_link]
     return turn_costs
