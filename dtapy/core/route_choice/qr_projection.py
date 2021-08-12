@@ -46,7 +46,7 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                     interpolation_fraction = turn_costs[t, turn] / time.step_size
                     if t + interpolation_fraction >= time.tot_time_steps - 1:
                         arrival = arrival_map[d, time.tot_time_steps - 1, out_link] + \
-                                  turn_costs[t, turn]
+                                  turn_costs[t, turn] - (time.tot_time_steps - 1 - t) * time.step_size
                     elif interpolation_fraction < 1:
                         arrival = arrival_map[d, t, out_link] * (1 - interpolation_fraction) + \
                                   interpolation_fraction * arrival_map[d, t + 1, out_link]

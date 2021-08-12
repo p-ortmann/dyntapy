@@ -27,7 +27,6 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                         old_costs, new_costs):
     tot_time_steps = time.tot_time_steps
     from_link = network.turns.from_link
-    to_node = network.links.to_node
     out_turns = network.links.out_turns
     in_turns = network.links.in_turns
     all_destinations = dynamic_demand.all_active_destinations
@@ -55,8 +54,8 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
                 if delta > route_choice_delta:
-                    turn = from_link[turn]
-                    links_2_update[turn] = True
+                    link = from_link[turn]
+                    links_2_update[link] = True
             while np.any(links_2_update == True):
                 # _log('currently active nodes: ' + str(np.argwhere(nodes_2_update == True)))
                 # going through all the nodes that need updating for the current time step

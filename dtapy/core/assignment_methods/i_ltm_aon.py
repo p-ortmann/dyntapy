@@ -58,9 +58,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
         turn_costs = link_to_turn_costs_deterministic(link_costs, network.nodes.out_links, network.links.in_turns, network.tot_turns,
                                         route_choice_time,network.links.link_type,aon_state.turning_fractions,
                                         network.links.length/network.links.v0,iltm_state.cvn_up)
-        _log('updating arrival in iteration ' + str(k), to_console=True)
-        update_arrival_maps(network, network_loading_time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs,
-                            turn_costs)
+
         if debugging:
             _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
                            title=f'RC state in iteration {k}')

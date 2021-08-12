@@ -60,16 +60,15 @@ def update_route_choice(state, turn_costs: np.ndarray, cvn_down, network: Networ
 
 
     """
+    update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
     if method == 'msa':
         # deterministic case non convergent, saw tooth pattern settles in ..
-        update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
         turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, turn_costs)
         state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)
         state.turn_costs = turn_costs
     elif method == 'quasi-reduced-projection':
         # deterministic approach of updating the turning fractions, see willem's thesis chapter 4 for background
         # should lead to smooth convergence
-        update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
         _, gec, _ = qr_projection(cvn_down, state.arrival_maps, turn_costs, network, state.turning_fractions,
                                   dynamic_demand, time, k)
         state.turn_costs = turn_costs
