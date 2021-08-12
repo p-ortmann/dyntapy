@@ -21,7 +21,7 @@ from dtapy.core.route_choice.qr_projection import qr_projection
 
 smoothing_method = parameters.assignment.smooth_costs
 spec_rc_state = [('link_costs', float32[:, :]),
-                 ('turn_costs', float32[:,:]),
+                 ('turn_costs', float32[:, :]),
                  ('arrival_maps', float32[:, :, :]),
                  ('turning_fractions', float32[:, :, :]),
                  ('connector_choice', ListType(f32csr_type))]
@@ -37,12 +37,14 @@ class RouteChoiceState(object):
         arrival_maps : float32 array, destinations x time_steps x nodes
         """
         self.link_costs = link_costs
-        self.turn_costs= turn_costs
+        self.turn_costs = turn_costs
         self.arrival_maps = arrival_maps
         self.turning_fractions = turning_fractions
 
+
 # @njit
-def update_route_choice(state, turn_costs: np.ndarray,cvn_down, network: Network, dynamic_demand: InternalDynamicDemand,
+def update_route_choice(state, turn_costs: np.ndarray, cvn_down, network: Network,
+                        dynamic_demand: InternalDynamicDemand,
                         time: SimulationTime, k: int, method='quasi-reduced-projection'):
     """
 
@@ -68,8 +70,9 @@ def update_route_choice(state, turn_costs: np.ndarray,cvn_down, network: Network
         # deterministic approach of updating the turning fractions, see willem's thesis chapter 4 for background
         # should lead to smooth convergence
         update_arrival_maps(network, time, dynamic_demand, state.arrival_maps, state.turn_costs, turn_costs)
-        _,gec,_=qr_projection(cvn_down,state.arrival_maps, turn_costs, network, state.turning_fractions,dynamic_demand, time,k )
-        state.turn_costs=turn_costs
+        _, gec, _ = qr_projection(cvn_down, state.arrival_maps, turn_costs, network, state.turning_fractions,
+                                  dynamic_demand, time, k)
+        state.turn_costs = turn_costs
         return gec
 
     else:

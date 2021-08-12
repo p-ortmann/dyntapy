@@ -58,7 +58,7 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
         if 'x_coord' in data:
             data['x'] = data['x_coord']
             data['y'] = data['y_coord']
-    title = _check_title(title, g, 'assignment ')
+    title = _check_title(title, g, 'network')
 
     if not toy_network:
         plot = figure(plot_height=plot_size,

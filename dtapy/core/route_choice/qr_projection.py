@@ -54,8 +54,8 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                         t2 = np.int32(t + 1 + np.floor(interpolation_fraction))
                         interpolation_fraction = interpolation_fraction - np.floor(interpolation_fraction)
                         try:
-                            arrival = arrival_map[d, t2 + 1, out_link] * (1 - interpolation_fraction) + \
-                                      interpolation_fraction * arrival_map[d, t2, out_link]
+                            arrival = arrival_map[d, t2, out_link] * (interpolation_fraction) + \
+                                      (1-interpolation_fraction) * arrival_map[d, t2-1, out_link]
                         except IndexError:
                             print('g')
                     local_costs[turn_id] = arrival
@@ -64,9 +64,6 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                         shortest_turns[turn_id] = True
                         if turning_fractions[d, t, turn] == 1:
                             break
-
-
-
                     else:
                         # only updating used turns
                         if turning_fractions[d, t, turn] > 0:
@@ -93,9 +90,8 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                     if not local_short_turns.size > 0:
                         # if the min_cost stems from an arrival map
                         # that wasn't brought into consistency with the current cost,
-                        # or there are very small differences .
-                        min_found_cost=np.min(local_costs)
-                        local_short_turns=np.argwhere(local_costs==min_found_cost).flatten()
+                        # or there are very small differences. (?)
+                        raise ValueError
                     ptr = 0
                     for local_turn_id, turn in enumerate(network.links.out_turns.get_nnz(link)):
                         if local_short_turns.size>0 and ptr < local_short_turns.size:

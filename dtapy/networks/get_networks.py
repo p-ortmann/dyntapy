@@ -124,10 +124,12 @@ def get_toy_network(name, relabel=False):
             except KeyError:
                 #   no edge with this node was added..
                 continue
-        return g
+        g.graph = {'name': name}
+        return relabel_graph(g)
 
     else:
         raise ValueError('no toy network provided under that name')
+    g.graph = {'name': name}
     if not relabel:
         return g
     else:
