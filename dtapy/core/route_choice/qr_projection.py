@@ -19,7 +19,7 @@ TRANSLATION_FACTOR = 10
 def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turning_fractions,
                   dynamic_demand: InternalDynamicDemand, time: SimulationTime, k):
 
-    cur_translation_factor = TRANSLATION_FACTOR/k
+    cur_translation_factor = min(TRANSLATION_FACTOR/k,1)
     max_local_out_turns = 0
     gec = np.full(time.tot_time_steps, np.finfo(np.float32).resolution, dtype=np.float32)
     links_to_update = np.full((dynamic_demand.tot_active_destinations, network.tot_links, time.tot_time_steps), False)
@@ -72,16 +72,23 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                             # the dampening factor basically translates from the units of costs to a change in
                             # turning fractions, it's supposed to be updated as you progress through the simulation
                             # dynamic reduction of change based on convergence of earlier time steps
-                            shift[t, turn] = max(-turning_fractions[d, t, turn],
+                            shift[t, turn] = max(-turning_fractions[d, t, turn]+np.finfo(np.float32).eps,
                                                  min(0, shift[t, turn] -
                                                      HISTORICAL_SHIFT_FACTOR * np.sum(shift[:t, turn])))
                             # the aptly named historical shift factor determines how much more we shift based on
                             # how much has been shifted in previous time slices
                             sum_shift = sum_shift + shift[t, turn]
                             if t>0:
+                                val=(arrival - min_cost) * (
+                                        cvn_down[t , link, d] - cvn_down[t-1, link, d]) * turning_fractions[d, t, turn]
+                                print(f'{link=} contributed {val} for {t=} for loading {turn=} ')
                                 gec_local = gec_local + (arrival - min_cost) * (
                                         cvn_down[t , link, d] - cvn_down[t-1, link, d]) * turning_fractions[d, t, turn]
+
                             else:
+                                val = (arrival - min_cost) * (
+                                        cvn_down[t, link, d] * turning_fractions[d, t, turn])
+                                print(f'{link=} contributed {val} for {t=} for loading {turn=} ')
                                 gec_local = gec_local + (arrival - min_cost) * (
                                         cvn_down[t, link, d]  * turning_fractions[d, t, turn])
                 if np.abs(sum_shift) > 0:
@@ -90,7 +97,8 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                     if not local_short_turns.size > 0:
                         # if the min_cost stems from an arrival map
                         # that wasn't brought into consistency with the current cost,
-                        # or there are very small differences. (?)
+                        # or there are very small differences.
+                        # it shouldn't happen since we measure the difference to the previously computed arrival map
                         raise ValueError
                     ptr = 0
                     for local_turn_id, turn in enumerate(network.links.out_turns.get_nnz(link)):
