@@ -29,7 +29,7 @@ spec_rc_state = [('link_costs', float32[:, :]),
 
 @jitclass(spec_rc_state)
 class RouteChoiceState(object):
-    def __init__(self, link_costs, turn_costs, arrival_maps, turning_fractions):
+    def __init__(self, link_costs, turn_costs, arrival_maps, turning_fractions, turn_restrictions):
         """
         Parameters
         ----------
@@ -40,8 +40,7 @@ class RouteChoiceState(object):
         self.turn_costs = turn_costs
         self.arrival_maps = arrival_maps
         self.turning_fractions = turning_fractions
-
-
+        self.turn_restrictions=turn_restrictions
 # @njit
 def update_route_choice(state, turn_costs: np.ndarray, cvn_down, network: Network,
                         dynamic_demand: InternalDynamicDemand,

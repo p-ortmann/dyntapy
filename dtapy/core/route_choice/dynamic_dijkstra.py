@@ -22,7 +22,6 @@ def dijkstra(costs, in_links: UI32CSRMatrix, target, tot_nodes, is_centroid):
     costs : float32 vector
     out_links : CSR matrix, fromNode x Link
     target: integer ID of target node
-
     Returns
     -------
     distances: array 1D, dim tot_nodes. Distances from all nodes to the target node

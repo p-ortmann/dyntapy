@@ -53,6 +53,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
             for turn, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all links with changed travel times and add their tail nodes
                 # to the list of nodes to be updated
+                # u turn costs are set to infinity and do not change.
                 if delta > route_choice_delta:
                     link = from_link[turn]
                     links_2_update[link] = True
@@ -202,16 +203,19 @@ def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix,
 
 def link_to_turn_costs_deterministic(link_costs: np.ndarray, out_links: UI32CSRMatrix,
                                      in_turns: UI32CSRMatrix, tot_turns, time: SimulationTime, link_types,
-                                     turning_fractions, ff_tt, cvn_up):
+                                     turning_fractions, ff_tt, cvn_up, turn_restrictions):
     tot_time_steps = link_costs.shape[0]
     turn_costs = np.zeros((tot_time_steps, tot_turns), dtype=np.float32)
     for t in range(time.tot_time_steps):
         for node in prange(out_links.get_nnz_rows().size):
             for to_link in out_links.get_nnz(node):
                 for turn, from_link in zip(in_turns.get_nnz(to_link), in_turns.get_row(to_link)):
-                    if link_types[from_link] != 1:
+                    if turn_restrictions[turn]:
+                        turn_costs[turn]=np.finfo(np.float32).max
+                    elif link_types[from_link] != 1:
                         turn_costs[t, turn] = link_costs[t, from_link]
                     else:
+                        # currently not used ..
                         congestion_cost = link_costs[t, from_link] - ff_tt[from_link]
                         if np.sum(turning_fractions[:, t,turn ] * cvn_up[t, from_link, :]) > 0:
                             turn_costs[t, turn] = congestion_cost + ff_tt[from_link]

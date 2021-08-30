@@ -22,15 +22,14 @@ from numba import njit, uint32
 
 
 #@njit(cache=True)
-def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids):
+def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids,turn_restrictions):
     # works for node link and link turn graph representation
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
         is_centroid[centroid] = True
     arrival_map = np.empty((len(destinations), tot_time_steps, tot_nodes), dtype=np.float32)
-
     for _id, destination in enumerate(destinations):
-        arrival_map[_id, 0, :] = dijkstra(costs[0, :], in_links, destination, tot_nodes, is_centroid)
+        arrival_map[_id, 0, :] = dijkstra(copy_costs[0, :], in_links, destination, tot_nodes, is_centroid)
         for t in range(1, tot_time_steps):
             arrival_map[_id, t, :] = arrival_map[_id, 0,
                                      :] + t * step_size  # init of all time steps with free flow vals
@@ -46,11 +45,18 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     turn_costs \
         = link_to_turn_costs(costs,network.nodes.out_links,
                              network.links.in_turns, network.tot_turns, time,np.zeros(1))
+    turn_restrictions = np.full(network.tot_turns, False,np.bool_)
+    for turn, (from_node,to_node) in enumerate(zip(network.turns.from_node,network.turns.to_node)):
+        if from_node==to_node:
+            turn_restrictions[turn]=True
+
+    for turn in enumerate(turn_restrictions.size):
+        if turn_restrictions[turn]:
+            costs[turn]= np.finfo(np.float32).max
     arrival_maps = init_arrival_maps(turn_costs, network.links.in_turns,
                                      dynamic_demand.all_active_destination_links, time.step_size, time.tot_time_steps,
-                                     network.tot_links, List.empty_list(uint32)) # since there are no u-turns centroid routing is
+                                     network.tot_links, List.empty_list(uint32), turn_restrictions) # since there are no u-turns centroid routing is
     # prevented by default.
-
     # source_connector_choice = List()
     # last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
     # for t in dynamic_demand.loading_time_steps:
@@ -74,4 +80,4 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     # _log('Calculating initial turning fractions', to_console=True)
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, turn_costs)
     # connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
-    return RouteChoiceState(costs,turn_costs, arrival_maps, turning_fractions)
+    return RouteChoiceState(costs,turn_costs, arrival_maps, turning_fractions, turn_restrictions)

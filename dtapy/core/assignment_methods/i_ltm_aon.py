@@ -55,9 +55,9 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                          cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                          time=network_loading_time,
                                          network=network, con_down=iltm_state.con_down)
-        turn_costs = link_to_turn_costs_deterministic(link_costs, network.nodes.out_links, network.links.in_turns, network.tot_turns,
-                                        route_choice_time,network.links.link_type,aon_state.turning_fractions,
-                                        network.links.length/network.links.v0,iltm_state.cvn_up)
+        turn_costs = link_to_turn_costs_deterministic(link_costs,  network.nodes.out_links, network.links.in_turns, network.tot_turns,
+                                        route_choice_time, network.links.link_type, aon_state.turning_fractions,
+                                        network.links.length/network.links.v0, iltm_state.cvn_up, aon_state.turn_restrictions)
 
         if debugging:
             _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,

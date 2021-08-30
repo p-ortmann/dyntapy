@@ -39,7 +39,7 @@ default_plot_size = parameters.visualization.plot_size
 default_notebook_plot_size = parameters.visualization.notebook_plot_size
 default_max_links = parameters.visualization.max_links
 default_edge_width_scaling = parameters.visualization.link_width_scaling
-link_highlight_color = parameters.visualization.link_highlight_color
+link_highlight_colors = parameters.visualization.link_highlight_colors
 node_highlight_color = parameters.visualization.node_highlight_color
 node_color = parameters.visualization.node_color
 centroid_color = parameters.visualization.centroid_color
@@ -82,6 +82,8 @@ def show_network(g: nx.MultiDiGraph, link_kwargs=dict(), node_kwargs=dict(), hig
     max_width_bokeh, max_width_coords = get_max_edge_width(tmp, default_edge_width_scaling, plot_size)
     _output(notebook, title, plot_size)
 
+    if type(highlight_links) not in (np.ndarray, list):
+        raise ValueError
     c, x, y = _get_colors_and_coords(tmp, max_width_coords, 1, np.zeros(g.number_of_edges()), time_step=1,
                                      highlight_links=highlight_links, patch_ratio=3)
     edge_source = _edge_cds(tmp, c, np.zeros(g.number_of_edges()), x, y, **link_kwargs)
@@ -463,7 +465,7 @@ def _edge_cds(g, color, flow, x, y,step_size=1.0, **kwargs):
     return ColumnDataSource(data=edge_dict)
 
 
-def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, highlight_links=np.array([]),
+def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, highlight_links: object = np.array([]),
                            patch_ratio=8):
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords / patch_ratio
@@ -475,22 +477,27 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, high
 
     for u, v, data in sorted(g.edges(data=True), key=lambda t: t[2]['link_id']):
         try:
-            try:
-                flow = flows[data['link_id']]
-                color = traffic_cm[
-                    np.int(np.ceil(np.abs(flows[data['link_id']]) / (data['capacity'] * time_step) * nr_of_colors))]
-            except IndexError:
-                color = traffic_cm[-1]  # flow larger then capacity!
-            except KeyError:  # capacity or flow not defined
-                color = traffic_cm[0]
-            colors.append(color)
-            loaded = 0
+            flow = flows[data['link_id']]
+            color = traffic_cm[
+                np.int(np.ceil(np.abs(flows[data['link_id']]) / (data['capacity'] * time_step) * nr_of_colors))]
+        except IndexError:
+            color = traffic_cm[-1]  # flow larger then capacity!
+            flow = 0
+        except KeyError:  # capacity or flow not defined
+            color = traffic_cm[0]
+            flow=0
+        colors.append(color)
+        loaded = 0
+        try:
             if flow > 0:
                 loaded = 1
-            width_coords = min_width_coords + min_width_coords * loaded + (max_width_coords - 2 * min_width_coords) * (
-                    np.abs(flows[data['link_id']]) / max_flow)
+                width_coords = min_width_coords + min_width_coords * loaded + (
+                            max_width_coords - 2 * min_width_coords) * (
+                                       np.abs(flows[data['link_id']]) / max_flow)
+            else:
+                width_coords = min_width_coords
             # width_bokeh = min_width_bokeh + (max_width_bokeh - min_width_bokeh) * (data['flow'] / max_flow)
-        except KeyError:  # flow not defined.., no width scaling possible
+        except KeyError or UnboundLocalError or IndexError:  # flow not defined.., no width scaling possible
             width_coords = min_width_coords
             # width_bokeh = min_width_bokeh
         # edge_dict['width'].append(width_bokeh)
@@ -522,8 +529,24 @@ def _get_colors_and_coords(g, max_width_coords, max_flow, flows, time_step, high
         x_list.append(list(x))
         y_list.append(list(y))
 
-    for link in highlight_links:
-        colors[link] = link_highlight_color
+    if type(highlight_links)==np.ndarray or (type(highlight_links)==list and
+                                             all(isinstance(x, np.integer) or isinstance(x, int) for x in highlight_links)):
+        # single list or array containing integers
+        for link in highlight_links:
+            colors[link] = link_highlight_colors[0]
+    elif type(highlight_links)==list:
+        # list of lists, list of arrays for multiple colors
+        if not all(isinstance(x,np.ndarray) or isinstance(x,list) for x in highlight_links):
+            raise TypeError
+        elif len(highlight_links)>len(link_highlight_colors):
+            raise ValueError(f'only {len(link_highlight_colors)} different colors are supported.')
+        else:
+            for links, color in zip(highlight_links, link_highlight_colors):
+                for link in links:
+                    colors[link]=color
+
+
+
     return colors, x_list, y_list
 
 

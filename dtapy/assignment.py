@@ -217,7 +217,8 @@ def build_turns(tot_nodes, nodes: Nodes, link_types):
         _to_links = nodes.out_links.get_nnz(via_node)
         for from_node, from_link in zip(_from_nodes, _from_links):
             for to_node, to_link in zip(_to_nodes, _to_links):
-                if from_node != to_node and not (link_types[from_link] == -1 and link_types[to_link] == 1):
+                if not (link_types[from_link] == -1 and link_types[to_link] == 1):
+                    # u turns are allowed
                     # excluding turns that go from sink to source connectors and vice versa
                     via_nodes.append(via_node)
                     to_nodes.append(to_node)
@@ -244,11 +245,10 @@ def build_turns(tot_nodes, nodes: Nodes, link_types):
     to_nodes = sort(to_nodes, turn_order)
     from_links = sort(from_links, turn_order)
     to_links = sort(to_links, turn_order)
-
     number_of_turns = turn_counter
+    t0 = np.full(number_of_turns, turn_t0_default, dtype=np.float32)
     capacity = np.full(number_of_turns, turn_capacity_default, dtype=np.float32)
     turn_type = np.full(number_of_turns, turn_type_default, dtype=np.int8)
-    t0 = np.full(number_of_turns, turn_t0_default, dtype=np.float32)
     return Turns(t0, capacity, np.array(from_nodes, dtype=np.uint32),
                  np.array(via_nodes, dtype=np.uint32),
                  np.array(to_nodes, dtype=np.uint32), np.array(from_links, dtype=np.uint32),
