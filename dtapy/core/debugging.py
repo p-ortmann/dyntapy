@@ -74,7 +74,7 @@ def sum_of_turning_fractions(turning_fractions: np.ndarray, out_turns: UI32CSRMa
                         if np.abs(tf_sum - 1.0) > precision and len(out_turns.get_nnz(link)) != 0 and any_network_turns:
                             print("turning fraction sum violation for link " + str(link) +
 
-                                  " at time " + str(t) + " for destination id " + str(dest_id))
+                                  " at time " + str(t) + " for destination id " + str(dest_id)+ " violation: " + str(np.abs(tf_sum-1)))
                             raise ValueError
         except Exception:
             warn('sum_of_turning_fractions test failed')

@@ -18,6 +18,8 @@ from numba.typed import List
 from dtapy.utilities import _log
 from dtapy.core.route_choice.aon import update_arrival_maps, get_turning_fractions, link_to_turn_costs
 from numba import njit, uint32
+from dtapy.settings import parameters
+restricted_turn_cost= parameters.route_choice.restricted_turn_cost
 
 
 
@@ -29,7 +31,7 @@ def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, 
         is_centroid[centroid] = True
     arrival_map = np.empty((len(destinations), tot_time_steps, tot_nodes), dtype=np.float32)
     for _id, destination in enumerate(destinations):
-        arrival_map[_id, 0, :] = dijkstra(copy_costs[0, :], in_links, destination, tot_nodes, is_centroid)
+        arrival_map[_id, 0, :] = dijkstra(costs[0, :], in_links, destination, tot_nodes, is_centroid)
         for t in range(1, tot_time_steps):
             arrival_map[_id, t, :] = arrival_map[_id, 0,
                                      :] + t * step_size  # init of all time steps with free flow vals
@@ -50,9 +52,9 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
         if from_node==to_node:
             turn_restrictions[turn]=True
 
-    for turn in enumerate(turn_restrictions.size):
+    for turn in range(network.tot_turns):
         if turn_restrictions[turn]:
-            costs[turn]= np.finfo(np.float32).max
+            turn_costs[:,turn]=restricted_turn_cost
     arrival_maps = init_arrival_maps(turn_costs, network.links.in_turns,
                                      dynamic_demand.all_active_destination_links, time.step_size, time.tot_time_steps,
                                      network.tot_links, List.empty_list(uint32), turn_restrictions) # since there are no u-turns centroid routing is

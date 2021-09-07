@@ -92,7 +92,7 @@ class _Visualization:
     link_keys = ['link_id', 'from_node_id', 'to_node_id', 'length', 'capacity', 'free_speed', 'ext_id',
                  'name', 'facility_type', 'flow', 'connector']
     node_keys = ['node_id', 'x_coord', 'y_coord', 'ext_id', 'node_type', 'ctrl_type', 'centroid']
-    link_width_scaling = 0.006
+    link_width_scaling = 0.0035
     node_size = 6
     link_highlight_colors = ['#ff6ec7','#6effef','#7fff6e', '#6e7fff','#ffa66e', '#999999']  # neon pink, cyan, lime green
     # light blue, orange, gray
@@ -112,7 +112,7 @@ class _RouteChoice:
     step_size: np.float32 = 0.25  # time discretization
     delta_cost: np.float32 = 0.000001  # in hours
     precision: np.float32 = 0.000001
-
+    restricted_turn_cost = 24
 
 class _Assignment:
     """
