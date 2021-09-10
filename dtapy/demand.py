@@ -177,7 +177,7 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     points = gpd.geoseries.GeoSeries(points, crs=4326)
     centroids = points[points.within(my_gdf.loc[0, 'geometry'])]
     x, y = np.array(centroids.x), np.array(centroids.y)
-    log(f'found {x.size} centroids at {default_centroid_spacing=} meter', to_console=True)
+    log(f'found {x.size} centroids at {spacing=} meter', to_console=True)
     return x, y
 
 

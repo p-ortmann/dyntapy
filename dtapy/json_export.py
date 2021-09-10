@@ -18,7 +18,7 @@ visualization_keys_nodes = parameters.visualization.node_keys
 visualization_keys_edges = parameters.visualization.link_keys
 
 
-def nx_to_geojson(g: nx.DiGraph, meta_data=None, to_file=False, city_name=None):
+def nx_to_geojson(g: nx.DiGraph, meta_data=None, to_file=False, city_name=None, indent = 0):
     '''
     g: networkx Digraph with geographic information as line strings (WGS84, 4326 unprojected) osm ids ..
     '''
@@ -48,12 +48,12 @@ def nx_to_geojson(g: nx.DiGraph, meta_data=None, to_file=False, city_name=None):
         node_file_name = f'nodes_{city_name}.json'
         for filename, features in zip([link_file_name, node_file_name], [my_link_features, my_node_features]):
             text_file = open(os.path.join(os.getcwd(), os.path.join(results_folder, filename)), "w", )
-            dump(FeatureCollection(features, meta_data), fp=text_file, cls=NpEncoder, indent=4)
+            dump(FeatureCollection(features, meta_data), fp=text_file, cls=NpEncoder, indent=indent)
             text_file.close()
             print(f'json dumped to file at {os.getcwd() + os.path.sep + os.path.join(results_folder, filename)}')
     else:
-        return dumps(FeatureCollection(my_link_features, meta_data), cls=NpEncoder), \
-               dumps(FeatureCollection(my_node_features, meta_data), cls=NpEncoder)
+        return dumps(FeatureCollection(my_link_features, meta_data), cls=NpEncoder, indent=indent), \
+               dumps(FeatureCollection(my_node_features, meta_data), cls=NpEncoder, indent=indent)
     
 
 

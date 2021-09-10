@@ -8,7 +8,7 @@ from dtapy.settings import parameters
 precision = parameters.network_loading.precision
 
 
-#@njit(cache=True)
+@njit(cache=True)
 def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiving_flow,
                     turn_capacity, in_link_capacity, tot_in_links, tot_out_links, debugging=True):
     """
@@ -88,13 +88,15 @@ def orca_node_model(node, sending_flow, turning_fractions, turning_flows, receiv
         raise ValueError('unexpected error in node model calculation')
     if debugging:
         if not np.all(np.sum(q, axis=0)-precision<=receiving_flow):
-            raise ValueError('node ' + str(node) + ' receiving flow violation')
+            print('node ' + str(node) + ' receiving flow violation')
+            raise ValueError
         if not np.all(np.sum(q,axis=1)-precision<=sending_flow):
-            raise ValueError('node ' + str(node) + ' sending flow violation')
+            print('node ' + str(node) + ' sending flow violation')
+            raise ValueError
     return q
 
 
-#@njit(cache=True)
+@njit(cache=True)
 def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket):
     # loosely corresponds to step 4, pg 301
     all_in_links_supply_constrained = True
@@ -150,7 +152,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
         J.remove(j)
 
 
-#@njit(cache=True)
+@njit(cache=True)
 def __find_most_restrictive_constraint(J, R, U, C, a):
     # loosely corresponds to step 3, pg 301
     _j = J[0]
@@ -175,7 +177,7 @@ def __find_most_restrictive_constraint(J, R, U, C, a):
     return a, a[_j], _j,  # determine most restrictive out_link j
 
 
-#@njit(cache=True)
+@njit(cache=True)
 def _calc_oriented_capacities(turning_fractions, in_link_capacity, turn_capacity, tot_in_links, tot_out_links,
                               use_turn_cap=False):
     """

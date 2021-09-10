@@ -15,7 +15,7 @@ from dtapy.core.demand import InternalDynamicDemand
 from dtapy.core.time import SimulationTime
 from numba import njit
 
-#@njit(cache=True)
+@njit(cache=True)
 def i_ltm_aon_setup(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     """
     Adding additional structures (arrays, sparse matrices) to the network for i_ltm and deterministic routing to work.
@@ -65,7 +65,7 @@ def i_ltm_aon_setup(network: Network, time: SimulationTime, dynamic_demand: Inte
         for turn in node_turns:
             from_link = network.turns.from_link[turn]
             to_link = network.turns.to_link[turn]
-            index_array_node_turns[turn_counter] = np.uint32(node), turn
+            index_array_node_turns[turn_counter] = np.uint32(node), np.uint32(turn)
             val_in_links[turn_counter] = np.uint8(np.where(node_in_links == from_link)[0][0])
             val_out_links[turn_counter] = np.uint8(np.where(node_out_links == to_link)[0][0])
             turn_counter += 1

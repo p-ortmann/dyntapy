@@ -22,7 +22,7 @@ log_level = 20
 
 # debugging
 log_numba = False  # this will affect performance dramatically, and should only be set to true for debugging
-debugging = True # whether to run various consistency checks during the computation
+debugging = False # whether to run various consistency checks during the computation
 
 default_city = 'Zinnowitz'
 
@@ -74,7 +74,7 @@ class _NetworkLoading:
     gap: np.float32 = np.float32(0.001)
     epsilon: np.float = np.float32(0.001)
     max_iterations: np.uint32 = np.uint32(1000)
-    step_size: np.float32 = np.float32(0.25)
+    step_size: np.float32 = np.float32(0.05)
     node_model: str = 'orca'  # 'only 'orca' for now
     precision: np.float32 = np.float32(0.001)
     use_turn_delays: np.bool =  False # whether or not to take into account turn delays in the route choice

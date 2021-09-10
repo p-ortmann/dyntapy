@@ -157,6 +157,7 @@ def cvn_to_travel_times_old(cvn_up: np.ndarray, cvn_down: np.ndarray, time: Simu
     return travel_times
 
 
+@njit(cache=True, parallel=True)
 def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.ndarray, time: SimulationTime,
                         network: Network):
     """
@@ -182,42 +183,47 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
     # if there was congestion downstream we trace the arrival time of the last departing vehicle of a given time period
     # what we get are travel times for each of these arrival times that are not aligned with the time steps
     # to get the actual travel times on the time steps themselves we need to interpolate again
-    time_steps = np.arange(time.tot_time_steps)
+    time_steps = np.arange(np.int64(time.tot_time_steps))
     for link in prange(network.tot_links):
         ff_tt = np.float32((network.links.length[link] / network.links.v0[link]))
-        never_congested=False
+        never_congested = False
         if network.links.link_type[link] == -1:
             # no consideration of exiting connector costs
-            never_congested =True
+            never_congested = True
         else:
             congested_periods = np.nonzero(con_down[:, link])[0]
-            if congested_periods.size==0: # all time periods for this link uncongested
+            if congested_periods.size == 0:  # all time periods for this link uncongested
                 never_congested = True
             else:
                 # adding free flow travel time for t==0
                 pointer = 0
                 arrival_times = List()
                 # time when the vehicle that was registered downstream entered the link
-                experienced_travel_times=List()
+                experienced_travel_times = List()
+                k = -1
                 # experienced travel time of the vehicle that was registered downstream
-                for t in time_steps:
+                for t in range(time.tot_time_steps):
                     if t == congested_periods[pointer]:
-                        k = np.where(np.logical_and(cvn_up[1:,link] >= cvn_down[t,link], cvn_up[:-1,link] < cvn_down[t,link]))[0]
-                        try:
-                            k = k[0]
-                            arrival_times.append(np.interp(cvn_down[t, link], cvn_up[k:k+2,link],np.array([k+1,k+2]) ))
-                        except IndexError:
-                            if cvn_down[t,link]>cvn_up[0,link]:
+                        for is_k, k_ind in enumerate(np.logical_and(cvn_up[1:, link] >= cvn_down[t, link],
+                                                                    cvn_up[:-1, link] < cvn_down[t, link])):
+                            if is_k:
+                                k = k_ind
+                        if k == -1:
+                            # vehicle entered during very first time slice
+                            if cvn_down[t, link] > cvn_up[0, link]:
                                 raise AssertionError
-                            arrival_times.append(cvn_down[t,link]/cvn_up[0,link])
-                        experienced_travel_times.append(max((t + 1 - arrival_times[-1])*time.step_size, ff_tt))
-                        if pointer<congested_periods.size-1:
+                            arrival_times.append(np.float32(cvn_down[t, link] / cvn_up[0, link]))
+                        else:
+                            arrival_times.append(np.float32(
+                                np.interp(cvn_down[t, link], cvn_up[k:k + 2, link], np.array([k + 1, k + 2]))))
+                        experienced_travel_times.append(max((t + 1 - arrival_times[-1]) * time.step_size, ff_tt))
+                        if pointer < congested_periods.size - 1:
                             pointer += 1
                     else:
-                        arrival_times.append((t + 1) - ff_tt)
+                        arrival_times.append(np.float32((t + 1) - ff_tt))
                         experienced_travel_times.append(ff_tt)
 
-                if len(set(arrival_times)) < len(arrival_times): # arrival times are not unique,
+                if len(set(arrival_times)) < len(arrival_times):  # arrival times are not unique,
                     # conflicting travel times ..
                     # ugly sorting code, but gets the job done - shouldn't be called frequently
                     sorted_arr_times = sorted(arrival_times)
@@ -225,7 +231,10 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                     for _id, val in enumerate(sorted_arr_times):
                         if val == sorted_arr_times[_id + 1]:
                             # duplicate found
-                            indices = np.where(arrival_times == val)[0]
+                            indices = List()
+                            for ind,arrival in enumerate(arrival_times):
+                                if arrival==val:
+                                    indices.append(ind)
                             congested_indices = List()
                             free_flow_indices = List()
                             for index in indices:
@@ -241,10 +250,14 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                         # flattening the travel times for arrivals in the last interval
                         experienced_travel_times[-1] = experienced_travel_times[-2]
         if never_congested:
-            travel_times[:, link]=ff_tt
+            travel_times[:, link] = ff_tt
         else:
-            travel_times[:, link] = np.interp(time_steps,arrival_times, experienced_travel_times)
-
+            arrival_times_array =  np.empty(len(arrival_times), dtype=np.float32)
+            experienced_travel_times_array = np.empty_like(arrival_times_array)
+            for _id, (val1,val2) in enumerate(zip(arrival_times, experienced_travel_times)):
+                arrival_times_array[_id]=val1
+                experienced_travel_times_array[_id]=val2
+            travel_times[:, link] = np.interp(time_steps, arrival_times_array, experienced_travel_times_array)
     return travel_times
 
 

@@ -7,7 +7,7 @@
 #
 #
 import numpy as np
-from numba import float32
+from numba import float32, bool_, njit
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
 from dtapy.core.assignment_methods.smoothing import smooth_sparse, smooth_arrays
@@ -24,7 +24,8 @@ spec_rc_state = [('link_costs', float32[:, :]),
                  ('turn_costs', float32[:, :]),
                  ('arrival_maps', float32[:, :, :]),
                  ('turning_fractions', float32[:, :, :]),
-                 ('connector_choice', ListType(f32csr_type))]
+                 ('connector_choice', ListType(f32csr_type)),
+                 ('turn_restrictions', bool_[:])]
 
 
 @jitclass(spec_rc_state)
@@ -40,8 +41,10 @@ class RouteChoiceState(object):
         self.turn_costs = turn_costs
         self.arrival_maps = arrival_maps
         self.turning_fractions = turning_fractions
-        self.turn_restrictions=turn_restrictions
-# @njit
+        self.turn_restrictions = turn_restrictions
+
+
+@njit(cache=True)
 def update_route_choice(state, turn_costs: np.ndarray, cvn_down, network: Network,
                         dynamic_demand: InternalDynamicDemand,
                         time: SimulationTime, k: int, method='quasi-reduced-projection'):

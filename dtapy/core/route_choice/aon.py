@@ -14,7 +14,8 @@ import numpy as np
 from numba import prange
 from dtapy.utilities import _log
 from dtapy.datastructures.csr import F32CSRMatrix, UI32CSRMatrix
-restricted_turn_cost =  parameters.route_choice.restricted_turn_cost
+
+restricted_turn_cost = parameters.route_choice.restricted_turn_cost
 route_choice_delta = parameters.route_choice.delta_cost
 route_choice_agg = parameters.route_choice.aggregation
 use_turn_delays = parameters.network_loading.use_turn_delays
@@ -22,7 +23,7 @@ use_turn_delays = parameters.network_loading.use_turn_delays
 
 # TODO: test function for arrival map topological order
 
-# @njit(cache=True, parallel=True)
+@njit(cache=True, parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, arrival_maps,
                         old_costs, new_costs):
     tot_time_steps = time.tot_time_steps
@@ -96,7 +97,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
 
 # TODO: test the @njit(parallel=True) option here
-# @njit(cache=True)
+@njit(cache=True)
 def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Network, time: SimulationTime, arrival_maps,
                           new_costs, departure_time_offset=route_choice_agg):
     """
@@ -149,7 +150,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
     return turning_fractions
 
 
-# @njit(parallel=True)
+@njit(parallel=True, cache=True)
 def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix,
                        in_turns: UI32CSRMatrix, tot_turns, time: SimulationTime,
                        turn_delays,
@@ -201,6 +202,7 @@ def link_to_turn_costs(link_costs: np.ndarray, out_links: UI32CSRMatrix,
     return turn_costs
 
 
+@njit(cache=True)
 def link_to_turn_costs_deterministic(link_costs: np.ndarray, out_links: UI32CSRMatrix,
                                      in_turns: UI32CSRMatrix, tot_turns, time: SimulationTime, link_types,
                                      turning_fractions, ff_tt, cvn_up, turn_restrictions):
@@ -211,14 +213,14 @@ def link_to_turn_costs_deterministic(link_costs: np.ndarray, out_links: UI32CSRM
             for to_link in out_links.get_nnz(node):
                 for turn, from_link in zip(in_turns.get_nnz(to_link), in_turns.get_row(to_link)):
                     if turn_restrictions[turn]:
-                        turn_costs[t,turn]= restricted_turn_cost
+                        turn_costs[t, turn] = restricted_turn_cost
                     elif link_types[from_link] != 1:
                         turn_costs[t, turn] = link_costs[t, from_link]
                     else:
                         # currently not used ..
                         congestion_cost = link_costs[t, from_link] - ff_tt[from_link]
-                        if np.sum(turning_fractions[:, t,turn ] * cvn_up[t, from_link, :]) > 0:
+                        if np.sum(turning_fractions[:, t, turn] * cvn_up[t, from_link, :]) > 0:
                             turn_costs[t, turn] = congestion_cost + ff_tt[from_link]
                         else:
-                            turn_costs[t,turn] = congestion_cost + ff_tt[from_link]
+                            turn_costs[t, turn] = congestion_cost + ff_tt[from_link]
     return turn_costs

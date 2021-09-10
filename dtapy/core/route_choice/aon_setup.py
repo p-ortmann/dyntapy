@@ -19,12 +19,13 @@ from dtapy.utilities import _log
 from dtapy.core.route_choice.aon import update_arrival_maps, get_turning_fractions, link_to_turn_costs
 from numba import njit, uint32
 from dtapy.settings import parameters
-restricted_turn_cost= parameters.route_choice.restricted_turn_cost
+
+restricted_turn_cost = parameters.route_choice.restricted_turn_cost
 
 
-
-#@njit(cache=True)
-def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids,turn_restrictions):
+@njit(cache=True)
+def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids,
+                      turn_restrictions):
     # works for node link and link turn graph representation
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
@@ -38,26 +39,28 @@ def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, 
     return arrival_map
 
 
-# @njit(cache=True)
+@njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
     free_flow_costs = network.links.length / network.links.v0
     costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
         costs[t, :] = free_flow_costs
     turn_costs \
-        = link_to_turn_costs(costs,network.nodes.out_links,
-                             network.links.in_turns, network.tot_turns, time,np.zeros(1))
-    turn_restrictions = np.full(network.tot_turns, False,np.bool_)
-    for turn, (from_node,to_node) in enumerate(zip(network.turns.from_node,network.turns.to_node)):
-        if from_node==to_node:
-            turn_restrictions[turn]=True
+        = link_to_turn_costs(costs, network.nodes.out_links,
+                             network.links.in_turns, network.tot_turns, time,
+                             np.empty((time.tot_time_steps, network.tot_turns)), use_turn_delays=False)
+    turn_restrictions = np.full(network.tot_turns, False, np.bool_)
+    for turn, (from_node, to_node) in enumerate(zip(network.turns.from_node, network.turns.to_node)):
+        if from_node == to_node:
+            turn_restrictions[turn] = True
 
     for turn in range(network.tot_turns):
         if turn_restrictions[turn]:
-            turn_costs[:,turn]=restricted_turn_cost
+            turn_costs[:, turn] = restricted_turn_cost
     arrival_maps = init_arrival_maps(turn_costs, network.links.in_turns,
                                      dynamic_demand.all_active_destination_links, time.step_size, time.tot_time_steps,
-                                     network.tot_links, List.empty_list(uint32), turn_restrictions) # since there are no u-turns centroid routing is
+                                     network.tot_links, List.empty_list(uint32),
+                                     turn_restrictions)  # since there are no u-turns centroid routing is
     # prevented by default.
     # source_connector_choice = List()
     # last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
@@ -82,4 +85,4 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
     # _log('Calculating initial turning fractions', to_console=True)
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, turn_costs)
     # connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
-    return RouteChoiceState(costs,turn_costs, arrival_maps, turning_fractions, turn_restrictions)
+    return RouteChoiceState(costs, turn_costs, arrival_maps, turning_fractions, turn_restrictions)
