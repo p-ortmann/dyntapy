@@ -84,9 +84,9 @@ class Assignment:
             route_choice_time = time
             consistent_time = np.bool_(True)
         else:
-            route_choice_time = SimulationTime(time.start, time.end, parameters.route_choice.step_size)
-            consistent_time = np.bool_(False)
-
+            #route_choice_time = SimulationTime(time.start, time.end, parameters.route_choice.step_size)
+            #consistent_time = np.bool_(False)
+            raise NotImplementedError
         @dataclass
         class DTATime:
             network_loading = time

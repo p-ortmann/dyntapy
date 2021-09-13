@@ -229,26 +229,27 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                     sorted_arr_times = sorted(arrival_times)
                     # sorting to identify duplicates
                     for _id, val in enumerate(sorted_arr_times):
-                        if val == sorted_arr_times[_id + 1]:
-                            # duplicate found
-                            indices = List()
-                            for ind,arrival in enumerate(arrival_times):
-                                if arrival==val:
-                                    indices.append(ind)
-                            congested_indices = List()
-                            free_flow_indices = List()
-                            for index in indices:
-                                # identifying congested and free flow indices among equal arrival times
-                                if con_down[index, link]:
-                                    congested_indices.append(index)
-                                else:
-                                    free_flow_indices.append(index)
-                            for index in congested_indices:
-                                # overwriting congested travel times with free flow values, higher accuracy
-                                experienced_travel_times[index, link] = ff_tt
+                        if _id <len(sorted_arr_times)-1:
+                            if val == sorted_arr_times[_id + 1]:
+                                # duplicate found
+                                indices = List()
+                                for ind,arrival in enumerate(arrival_times):
+                                    if arrival==val:
+                                        indices.append(ind)
+                                congested_indices = List()
+                                free_flow_indices = List()
+                                for index in indices:
+                                    # identifying congested and free flow indices among equal arrival times
+                                    if con_down[index, link]:
+                                        congested_indices.append(index)
+                                    else:
+                                        free_flow_indices.append(index)
+                                for index in congested_indices:
+                                    # overwriting congested travel times with free flow values, higher accuracy
+                                    experienced_travel_times[index] = ff_tt
 
-                        # flattening the travel times for arrivals in the last interval
-                        experienced_travel_times[-1] = experienced_travel_times[-2]
+                            # flattening the travel times for arrivals in the last interval
+                    experienced_travel_times[-1] = experienced_travel_times[-2]
         if never_congested:
             travel_times[:, link] = ff_tt
         else:
