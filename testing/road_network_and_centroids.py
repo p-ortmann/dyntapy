@@ -10,8 +10,7 @@
 #
 from dyntapy.network_data import get_from_ox_and_save, relabel_graph, save_pickle, load_pickle
 from dyntapy.demand import add_centroids_to_graph, get_centroid_grid_coords
-from dyntapy.settings import dynamic_parameters
-from dyntapy.settings import default_dynamic_city as city
+from dyntapy.settings import default_static_city as city
 from dyntapy.visualization import show_network
 
 

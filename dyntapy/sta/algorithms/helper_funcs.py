@@ -50,7 +50,7 @@ def __bpr_derivative(flows, capacities, ff_tts):
 
 
 @njit
-def __bpr_derivate_single(flow, capacity, ff_tt):
+def __bpr_derivative_single(flow, capacity, ff_tt):
     return ff_tt * bpr_a * bpr_b * (1 / capacity) * pow(flow / capacity, bpr_b - 1)
 
     # derivatives = np.apply_along_axis(bpr_derivative, 0, link_flows, capacities=link_capacities,

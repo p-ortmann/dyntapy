@@ -181,7 +181,7 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     return x, y
 
 
-def add_centroids_to_graph(g, X, Y, k=1, method='turn_connectors', euclidean=False):
+def add_centroids_to_graph(g, X, Y, k=1, method='turn', euclidean=False):
     """
     Adds centroids to g.
     Each centroids data dict contains 'x_coord','y_coord' and 'centroid' with x and y coords as given in X,Y

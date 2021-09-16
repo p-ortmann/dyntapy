@@ -7,7 +7,7 @@
 #
 
 import numpy as np
-from dyntapy.sta.algorithms.helper_funcs import __bpr_cost_single, __bpr_derivate_single
+from dyntapy.sta.algorithms.helper_funcs import __bpr_cost_single, __bpr_derivative_single
 from numba.typed import Dict
 from dyntapy.settings import static_parameters
 from numba import njit
@@ -85,9 +85,9 @@ def __update_path_flow(delta_f, start_node, end_node, predecessor_dict, bush_flo
         costs[edge_map[(i, j)]] = __bpr_cost_single(capacity=capacities[edge_map[(i, j)]],
                                                     ff_tt=ff_tts[edge_map[(i, j)]],
                                                     flow=flows[edge_map[(i, j)]])
-        derivatives[edge_map[(i, j)]] = __bpr_derivate_single(capacity=capacities[edge_map[(i, j)]],
-                                                              ff_tt=ff_tts[edge_map[(i, j)]],
-                                                              flow=flows[edge_map[(i, j)]])
+        derivatives[edge_map[(i, j)]] = __bpr_derivative_single(capacity=capacities[edge_map[(i, j)]],
+                                                                ff_tt=ff_tts[edge_map[(i, j)]],
+                                                                flow=flows[edge_map[(i, j)]])
         new_path_cost += costs[edge_map[(i, j)]]
         new_path_derivative += derivatives[edge_map[(i, j)]]
     return new_path_flow, new_path_cost, new_path_derivative

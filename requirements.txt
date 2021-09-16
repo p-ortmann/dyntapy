@@ -11,4 +11,5 @@ pyproj
 geopandas
 Shapely
 matplotlib
+notebook
 setuptools
