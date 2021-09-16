@@ -8,10 +8,7 @@
 #
 
 
-import os
-
 from setuptools import setup
-
 
 # PyPI classifiers here
 CLASSIFIERS = [
@@ -31,17 +28,16 @@ CLASSIFIERS = [
 ]
 
 DESC = (
-    "Macroscopic Dynamic Traffic Assignment in Python "
+    "Macroscopic Static and Dynamic Traffic Assignment in Python "
 )
-
 
 with open("requirements.txt") as f:
     INSTALL_REQUIRES = [line.strip() for line in f.readlines()]
 
 # now call setup
 setup(
-    name="dtapy",
-    version="0.1",
+    name="dyntapy",
+    version="0.2",
     description=DESC,
     classifiers=CLASSIFIERS,
     url="https://gitlab.kuleuven.be/ITSCreaLab/mobilitytools",
