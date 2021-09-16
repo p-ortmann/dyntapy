@@ -1,9 +1,9 @@
-# some local folders related to DTApy itself
-/data
-/results
-/cache
-/logs
-/numba_cache
+# some local folders related to dyntapy itself
+**/data
+**/results
+**/cache
+**/logs
+**/numba_cache
 private.py
 /calibration tools/
 # Byte-compiled / optimized / DLL files
