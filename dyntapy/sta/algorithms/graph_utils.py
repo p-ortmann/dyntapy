@@ -17,7 +17,7 @@ def make_out_links(adj_list, number_of_nodes):
     star_sizes = np.zeros(number_of_nodes, dtype=np.int64)
     nodes = np.arange(number_of_nodes, dtype=np.int64)
     for i in nodes:
-        forward_star[i] = np.empty(10, dtype=np.int64)  # In traffic networks nodes will never have more than 10 outgoing edges..
+        forward_star[i] = np.empty(20, dtype=np.int64)  # In traffic networks nodes will never have more than 10 outgoing edges..
     for edge in adj_list:
         i = edge[0]
         j = edge[1]
@@ -34,7 +34,7 @@ def make_in_links(adj_list, number_of_nodes):
     star_sizes = np.zeros(number_of_nodes, dtype=np.int64) #, dtype=int_dtype
     nodes = np.arange(number_of_nodes, dtype=np.int64)
     for i in nodes:
-        backward_star[i] = np.empty(10, dtype=np.int64)  # nodes in traffic networks have less than 10 outgoing edges..
+        backward_star[i] = np.empty(20, dtype=np.int64)  # nodes in traffic networks have less than 10 outgoing edges..
     for edge in adj_list:
         i = edge[0]
         j = edge[1]

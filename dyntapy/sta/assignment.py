@@ -76,8 +76,10 @@ class StaticAssignment:
         capacities = np.array([d['capacity'] for (_, _, d) in sorted_edges], dtype=np.float32)
         free_speed = np.array([d['free_speed'] for (_, _, d) in sorted_edges], dtype=np.float32)
         lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
+        if min(lanes)<1:
+            warn('some roads have zero lanes, minimum of one lane assumed')
         length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)
-        self.link_capacities = lanes * capacities
+        self.link_capacities = np.maximum(capacities,lanes * capacities)
         self.link_ff_times = length / free_speed
         max_length = np.max(length)
         if np.max(length) > 100:

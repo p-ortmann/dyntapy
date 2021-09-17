@@ -196,7 +196,7 @@ def __clean_up_data(g: nx.DiGraph):
                     lanes = 1
             else:
                 lanes = 1
-        data['lanes'] = lanes
+        data['lanes'] = max(lanes,1)
         data['capacity'] = __capacity(data['highway'], lanes)
 
 
