@@ -7,7 +7,7 @@
 #
 #
 import numpy as np
-from numba import float32, bool_, njit
+from numba import float32, bool_, njit, float64
 from numba.core.types.containers import ListType
 from numba.experimental import jitclass
 from dyntapy.dta.core.assignment_methods.smoothing import smooth_sparse, smooth_arrays
@@ -23,8 +23,7 @@ smoothing_method = dynamic_parameters.assignment.smooth_costs
 spec_rc_state = [('link_costs', float32[:, :]),
                  ('turn_costs', float32[:, :]),
                  ('arrival_maps', float32[:, :, :]),
-                 ('turning_fractions', float32[:, :, :]),
-                 ('connector_choice', ListType(f32csr_type)),
+                 ('turning_fractions', float64[:, :, :]),
                  ('turn_restrictions', bool_[:])]
 
 

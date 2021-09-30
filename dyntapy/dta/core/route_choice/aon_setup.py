@@ -19,6 +19,7 @@ from dyntapy.utilities import _log
 from dyntapy.dta.core.route_choice.aon import update_arrival_maps, get_turning_fractions, link_to_turn_costs
 from numba import njit, uint32
 from dyntapy.settings import dynamic_parameters
+from dyntapy.dta.core.network_loading.link_models import i_ltm
 
 restricted_turn_cost = dynamic_parameters.route_choice.restricted_turn_cost
 
@@ -41,6 +42,7 @@ def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, 
 
 @njit(cache=True)
 def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
+    # in order to prevent excessive spillback and the connected, rather weird, equilibria we load in increments
     free_flow_costs = network.links.length / network.links.v0
     costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
@@ -62,27 +64,6 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                                      network.tot_links, List.empty_list(uint32),
                                      turn_restrictions)  # since there are no u-turns centroid routing is
     # prevented by default.
-    # source_connector_choice = List()
-    # last_source_connector = np.max(np.argwhere(network.links.link_type == 1))  # highest link_id of source connectors
-    # for t in dynamic_demand.loading_time_steps:
-    #     _id = 0
-    #     index_array = np.empty((network.tot_connectors * dynamic_demand.tot_active_destinations,
-    #                             np.uint32(2)), dtype=np.uint32)
-    #     val = np.zeros(network.tot_connectors * dynamic_demand.tot_active_destinations, dtype=np.float32)
-    #     demand = dynamic_demand.get_demand(t)
-    #     for origin in demand.origins:
-    #         for destination in demand.to_destinations.get_nnz(origin):
-    #             destination_id = np.argwhere(dynamic_demand.all_active_destinations == destination)[0, 0]
-    #             for connector in network.nodes.out_links.get_nnz(origin):
-    #                 index_array[_id] = [connector, destination_id]
-    #                 _id += 1
-    #     index_array = index_array[:_id].copy()
-    #     val = np.copy(val[:_id])
-    #     val, col, row = csr_prep(index_array, val,
-    #                              shape=(last_source_connector + 1, dynamic_demand.tot_active_destinations + 1))
-    #     source_connector_choice.append(
-    #         F32CSRMatrix(val, col, row))
-    # _log('Calculating initial turning fractions', to_console=True)
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, turn_costs)
-    # connector_choice = get_source_connector_choice(network, source_connector_choice, arrival_maps, dynamic_demand)
+    i_ltm(network, dynamic_demand, iltm_state, time, turning_fractions, k)
     return RouteChoiceState(costs, turn_costs, arrival_maps, turning_fractions, turn_restrictions)

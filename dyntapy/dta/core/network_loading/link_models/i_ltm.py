@@ -104,7 +104,6 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 cvn_up[t, connector, :] = np.maximum(cvn_up[t - 1, connector, :], cvn_up[t, connector, :])
                 cvn_down[t, connector, :] = np.maximum(cvn_down[t - 1, connector, :], cvn_down[t,connector,:])
 
-        # njit tests pass until here without failure
         first_intersection = dynamic_demand.all_centroids.size  # the first C nodes are centroids
         node_processing_order = np.arange(first_intersection, tot_nodes, dtype=np.int64)
 
@@ -303,7 +302,7 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
             if t+vind[link]<0:
                 sending_flow[link, :] = 0
             else:
-                sending_flow[link, :] = cvn_up[t + vind[link], link, :] * (1 - vrt[link])    - cvn_down[t - 1,
+                sending_flow[link, :] = cvn_up[t + vind[link], link, :] * (1 - vrt[link])- cvn_down[t - 1,
                                                                                                 link, :]
                 if vind[link] <-1:
                     sending_flow[link, :] =sending_flow[link, :] +vrt[link] * cvn_up[t + vind[link] + 1,
@@ -315,7 +314,12 @@ def calc_sending_flows(local_in_links, cvn_up, t, cvn_down, vind, vrt, cap, send
             local_sending_flow[_id, :] = local_sending_flow[_id, :] + vrt[link] * cvn_up[t, link, :]
             # if link can be traversed during a single dt we consider part of the current inflow
         local_sending_flow[_id, :][local_sending_flow[_id, :] < 0] = 0  # setting negative sending flows to 0
-        tot_local_sending_flow[_id] = min(cap[link] * step_size, np.sum(local_sending_flow[_id, :]))
+        over_capacity_ratio = np.sum(local_sending_flow[_id, :]) / (cap[link] * step_size)
+        if over_capacity_ratio>1:
+            tot_local_sending_flow[_id] =cap[link] * step_size
+            local_sending_flow[_id,:] = local_sending_flow[_id,:]/over_capacity_ratio
+        else:
+            tot_local_sending_flow[_id] = np.sum(local_sending_flow[_id, :])
 
 
 @njit

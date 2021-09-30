@@ -76,7 +76,6 @@ class _NetworkLoading:
     gap: np.float32 = np.float32(0.001)
     epsilon: np.float = np.float32(0.001)
     max_iterations: np.uint32 = np.uint32(1000)
-    step_size: np.float32 = np.float32(0.05)
     node_model: str = 'orca'  # 'only 'orca' for now
     precision: np.float32 = np.float32(0.001)
     use_turn_delays: np.bool = False  # whether or not to take into account turn delays in the route choice
@@ -112,7 +111,6 @@ class _RouteChoice:
     Note: Changes to these values may only take affect after the numba_cache directory has been deleted
     """
     aggregation: np.float32 = 1
-    step_size: np.float32 = np.float32(0.05)  # time discretization
     delta_cost: np.float32 = 0.000001  # in hours
     precision: np.float32 = 0.000001
     restricted_turn_cost = 24

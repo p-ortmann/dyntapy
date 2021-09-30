@@ -28,12 +28,12 @@ costs = np.random.rand(time.tot_time_steps * g.number_of_edges()).reshape(
     (time.tot_time_steps, g.number_of_edges())) * 200
 convergence = np.arange(1, 0, -0.01)
 # names with spaces in them do not work!
-link_kwargs = { 'other_flows': flows * 0.7, 'custom_length': np.arange(g.number_of_edges())}
+link_kwargs = {'other_flows': flows * 0.7, 'custom_length': np.arange(g.number_of_edges())}
 node_kwargs = {
-    'random_node_property': np.random.rand(g.number_of_nodes() * time.tot_time_steps * 3).reshape(time.tot_time_steps,
-                                                                                                  g.number_of_nodes(),
-                                                                                                  3)}
-
+    'random_node_property': np.random.rand(
+        g.number_of_nodes() * time.tot_time_steps * 3).reshape(
+        time.tot_time_steps,
+        g.number_of_nodes(), 3)}
 show_dynamic_network(g, time, flows, link_kwargs=link_kwargs, node_kwargs=node_kwargs, convergence=convergence,
                      highlight_links=[1, 7, 26], highlight_nodes=[1, 34, 3])
 show_network(g, highlight_nodes=np.arange(10), highlight_links=np.arange(10),

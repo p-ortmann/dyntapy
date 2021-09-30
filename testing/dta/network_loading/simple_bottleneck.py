@@ -8,6 +8,8 @@
 #
 #
 #
+from numba import config
+config.DISABLE_JIT = 1
 from dyntapy.networks.get_networks import get_toy_network
 from dyntapy.demand import add_centroids_to_graph
 import numpy as np
@@ -25,14 +27,15 @@ g = relabel_graph(g)  # adding link and node ids, connectors and centroids
 # are the first elements
 show_network(g, toy_network=True, title=toy_network)
 od_matrix = np.zeros(4).reshape((2, 2))
-od_matrix[0, 1] = 400
+# value to trigger bottleneck : 131.98
+#
+od_matrix[0, 1] = 134
 od_graph = od_graph_from_matrix(od_matrix, centroid_x, centroid_y)
 show_demand(od_graph, toy_network=True)
 dynamic_demand = DynamicDemand([od_graph], insertion_times=[0])
 # convert everything to internal representations and parse
 simulation_time=SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.25)
 assignment = Assignment(g, dynamic_demand, simulation_time)
-methods = assignment.get_methods()
-flows, costs = assignment.run(methods.i_ltm_aon)
+flows, costs = assignment.run()
 show_dynamic_network(g, simulation_time, toy_network=True, link_kwargs={'flows': flows, 'costs': costs},
                      title='assignment on '+ toy_network)

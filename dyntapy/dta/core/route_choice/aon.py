@@ -123,7 +123,7 @@ def get_turning_fractions(dynamic_demand: InternalDynamicDemand, network: Networ
 
     step_size = time.step_size
     turning_fractions = np.zeros((dynamic_demand.tot_active_destinations, time.tot_time_steps, network.tot_turns),
-                                 dtype=np.float32)
+                                 dtype=np.float64)
     for dest_idx in range(dynamic_demand.all_active_destinations.size):
         # print(f'destination {dynamic_demand.all_active_destinations[dest_idx]}')
         for t in range(time.tot_time_steps):

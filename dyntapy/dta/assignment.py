@@ -81,19 +81,11 @@ class Assignment:
 
     @staticmethod
     def __init_time_obj(time: SimulationTime):
-        if time.step_size == dynamic_parameters.route_choice.step_size:
-            route_choice_time = time
-            consistent_time = np.bool_(True)
-        else:
-            #route_choice_time = SimulationTime(time.start, time.end, parameters.route_choice.step_size)
-            #consistent_time = np.bool_(False)
-            raise NotImplementedError
+        route_choice_time = time # for now network loading and route choice time are always equal
         @dataclass
         class DTATime:
             network_loading = time
             route_choice = route_choice_time
-            consistent: np.bool = consistent_time
-
         return DTATime()
 
     @staticmethod

@@ -47,7 +47,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     if debugging:
         sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
                                  network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
-    while k < 100 and not converged:
+    while k < 1000 and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
         verify_assignment_state(network, aon_state.turning_fractions, iltm_state.cvn_up, iltm_state.cvn_down,
@@ -62,11 +62,13 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                                       aon_state.turning_fractions,
                                                       network.links.length / network.links.v0, iltm_state.cvn_up,
                                                       aon_state.turn_restrictions)
-
         _log('updating route choice in iteration ' + str(k), to_console=True)
 
         gec = update_route_choice(aon_state, turn_costs, iltm_state.cvn_down, network, dynamic_demand,
                                   route_choice_time, k)
+        _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs, title=f'state in {k=}', highlight_nodes=[],
+                              toy_network=True)
+
         if k > 1:
             convergence.append(np.sum(gec))
             _log('new flows, gap is  : ' + str(gec), to_console=True)

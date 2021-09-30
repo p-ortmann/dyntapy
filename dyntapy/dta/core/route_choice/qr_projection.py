@@ -14,12 +14,12 @@ from dyntapy.settings import dynamic_parameters
 epsilon = dynamic_parameters.network_loading.epsilon
 HISTORICAL_SHIFT_FACTOR = 0.1
 TRANSLATION_FACTOR = 10
-
+restricted_turn_cost=dynamic_parameters.route_choice.restricted_turn_cost
 
 def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turning_fractions,
                   dynamic_demand: InternalDynamicDemand, time: SimulationTime, k):
 
-    cur_translation_factor = min(TRANSLATION_FACTOR/k,1)
+    cur_translation_factor = TRANSLATION_FACTOR/k
     max_local_out_turns = 0
     gec = np.full(time.tot_time_steps, np.finfo(np.float32).resolution, dtype=np.float32)
     links_to_update = np.full((dynamic_demand.tot_active_destinations, network.tot_links, time.tot_time_steps), False)
@@ -41,6 +41,9 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                 gec_local = 0
                 min_cost = arrival_map[d, t, link]
                 sum_shift = 0
+                if min_cost>= restricted_turn_cost:
+                    # links that cannot reach the destination don't need to be evaluated
+                    continue
                 for turn_id, (turn, out_link) in enumerate(zip(network.links.out_turns.get_nnz(link),
                                                                network.links.out_turns.get_row(link))):
                     interpolation_fraction = turn_costs[t, turn] / time.step_size
@@ -59,7 +62,7 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                         except IndexError:
                             print('g')
                     local_costs[turn_id] = arrival
-                    if arrival <= min_cost + np.finfo(np.float32).resolution:
+                    if arrival <= min_cost + 10*np.finfo(np.float32).resolution:
                         # turn part of current shortest path tree
                         shortest_turns[turn_id] = True
                         if turning_fractions[d, t, turn] == 1:
@@ -68,6 +71,7 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                         # only updating used turns
                         if turning_fractions[d, t, turn] > 0:
                             shift[t, turn] = (min_cost - arrival) * cur_translation_factor
+                            print(f'shifting away from {turn=} by {shift[t,turn]}')
                             # shift always < 0  because the turn is not on the epsilon-shortest-path-tree
                             # the dampening factor basically translates from the units of costs to a change in
                             # turning fractions, it's supposed to be updated as you progress through the simulation

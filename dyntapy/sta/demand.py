@@ -130,10 +130,20 @@ def build_static_demand(od_graph: nx.DiGraph):
 
 @jitclass(spec_demand)
 class Demand(object):
-    def __init__(self, to_origins, to_destinations, origins, destinations,
+    def __init__(self, to_origins: F32CSRMatrix, to_destinations: F32CSRMatrix, origins, destinations,
                  time_step):
         self.to_destinations = to_destinations  # csr matrix origins x destinations
         self.to_origins = to_origins  # csr destinations x origins
         self.origins = origins  # array of active origin id's
         self.destinations = destinations  # array of active destination id's
         self.time_step = time_step  # time at which this demand is added to the network
+
+
+def get_demand_fraction(demand: Demand, fraction=np.float):
+    # returns new demand object with fraction x cell for all cells.
+    assert fraction > 0.0
+    values = np.copy(demand.to_destinations.values)
+    values = values * fraction
+    to_origins = F32CSRMatrix(values, demand.to_origins.col_index, demand.to_origins.row_index)
+    to_destinations = F32CSRMatrix(values, demand.to_destinations.col_index, demand.to_destinations.row_index)
+    return Demand(to_origins, to_destinations, demand.origins, demand.destinations, demand.time_step)
