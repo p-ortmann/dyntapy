@@ -19,8 +19,12 @@ from dyntapy.utilities import _log
 from dyntapy.dta.core.route_choice.aon import update_arrival_maps, get_turning_fractions, link_to_turn_costs
 from numba import njit, uint32
 from dyntapy.settings import dynamic_parameters
-from dyntapy.dta.core.network_loading.link_models import i_ltm
-
+from dyntapy.dta.core.network_loading.link_models.i_ltm import i_ltm
+from dyntapy.dta.core.network_loading.link_models.i_ltm_cls import ILTMState
+from dyntapy.dta.core.assignment_methods.smoothing import  smooth_arrays
+from dyntapy.dta.core.network_loading.link_models.utilities import cvn_to_travel_times
+from dyntapy.dta.core.route_choice.deterministic import update_route_choice
+from dyntapy.dta.core.route_choice.aon import link_to_turn_costs_deterministic
 restricted_turn_cost = dynamic_parameters.route_choice.restricted_turn_cost
 
 
@@ -41,8 +45,21 @@ def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, 
 
 
 @njit(cache=True)
-def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand):
-    # in order to prevent excessive spillback and the connected, rather weird, equilibria we load in increments
+def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, K, iltm_state: ILTMState):
+    """
+    in order to prevent excessive spillback and the connected, rather weird, equilibria we load in increments
+    Parameters
+    ----------
+    network :
+    time :
+    dynamic_demand :
+    k : number of increments
+
+    Returns
+    -------
+    object of type RouteChoiceState
+    with turning fractions as acquired through the incremental loading.
+    """
     free_flow_costs = network.links.length / network.links.v0
     costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
@@ -65,5 +82,30 @@ def setup_aon(network: Network, time: SimulationTime, dynamic_demand: InternalDy
                                      turn_restrictions)  # since there are no u-turns centroid routing is
     # prevented by default.
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, turn_costs)
-    i_ltm(network, dynamic_demand, iltm_state, time, turning_fractions, k)
-    return RouteChoiceState(costs, turn_costs, arrival_maps, turning_fractions, turn_restrictions)
+    aon_state = RouteChoiceState(costs, turn_costs, arrival_maps, turning_fractions, turn_restrictions)
+    for k in range(1,K+1):
+        # update demand such that the current slice of demand is added.
+        if k ==1 :
+            demand_factor = 1/K
+        else:
+            demand_factor =  k/(k-1)
+        for demand in dynamic_demand.demands:
+            demand.to_destinations.values =  demand.to_destinations.values*demand_factor
+            demand.to_origins.values = demand.to_origins.values * demand_factor
+        # network loading and route choice are calculated
+        i_ltm(network, dynamic_demand, iltm_state, time, aon_state.turning_fractions, K)
+        link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
+                                         cvn_down=np.sum(iltm_state.cvn_down, axis=2),
+                                         time=time,
+                                         network=network, con_down=iltm_state.con_down)
+        turn_costs = link_to_turn_costs_deterministic(link_costs, network.nodes.out_links, network.links.in_turns,
+                                                      network.tot_turns,
+                                                      time, network.links.link_type,
+                                                      aon_state.turning_fractions,
+                                                      network.links.length / network.links.v0, iltm_state.cvn_up,
+                                                      turn_restrictions)
+        update_arrival_maps(network, time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs, turn_costs)
+        turning_fractions = get_turning_fractions(dynamic_demand, network, time, aon_state.arrival_maps, turn_costs)
+        # smoothing turning fractions like you would in MSA
+        aon_state.turning_fractions = smooth_arrays(turning_fractions, aon_state.turning_fractions, k, 'msa')
+    return aon_state

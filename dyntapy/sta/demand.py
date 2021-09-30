@@ -144,6 +144,8 @@ def get_demand_fraction(demand: Demand, fraction=np.float):
     assert fraction > 0.0
     values = np.copy(demand.to_destinations.values)
     values = values * fraction
-    to_origins = F32CSRMatrix(values, demand.to_origins.col_index, demand.to_origins.row_index)
     to_destinations = F32CSRMatrix(values, demand.to_destinations.col_index, demand.to_destinations.row_index)
+    values = np.copy(demand.to_origins.values)
+    values = values * fraction
+    to_origins = F32CSRMatrix(values, demand.to_origins.col_index, demand.to_origins.row_index)
     return Demand(to_origins, to_destinations, demand.origins, demand.destinations, demand.time_step)

@@ -118,5 +118,3 @@ def get_destination_links(destinations: np.ndarray, in_links:UI32CSRMatrix):
         for link in in_links.get_nnz(destination):
             destinations_link[d_id]=link
     return destinations_link
-def get_fractional_demand(demand:InternalDynamicDemand):
-
