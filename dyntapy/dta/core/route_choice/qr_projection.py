@@ -70,7 +70,7 @@ def qr_projection(cvn_down, arrival_map, turn_costs, network: ILTMNetwork, turni
                     else:
                         # only updating used turns
                         if turning_fractions[d, t, turn] > 0:
-                            shift[t, turn] = (min_cost - arrival) * cur_translation_factor
+                            shift[t, turn] = max((min_cost - arrival) * cur_translation_factor,-0.1)
                             print(f'shifting away from {turn=} by {shift[t,turn]}')
                             # shift always < 0  because the turn is not on the epsilon-shortest-path-tree
                             # the dampening factor basically translates from the units of costs to a change in

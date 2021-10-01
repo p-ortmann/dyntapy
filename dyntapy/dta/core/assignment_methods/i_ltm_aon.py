@@ -41,7 +41,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
     _log('setting up data structures for i_ltm', to_console=True)
     iltm_state, network = i_ltm_aon_setup(network, network_loading_time, dynamic_demand)
     _log('initializing AON', to_console=True)
-    aon_state = incremental_loading(network, route_choice_time, dynamic_demand, 6, iltm_state)
+    aon_state = incremental_loading(network, route_choice_time, dynamic_demand, 20, iltm_state)
     link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                      cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                      time=network_loading_time,
@@ -71,13 +71,11 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                                       network.links.length / network.links.v0, iltm_state.cvn_up,
                                                       aon_state.turn_restrictions)
         _log('updating route choice in iteration ' + str(k), to_console=True)
-
         gec = update_route_choice(aon_state, turn_costs, iltm_state.cvn_down, network, dynamic_demand,
                                   route_choice_time, k)
         _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs, title=f'state in {k=}',
                        highlight_nodes=[],
                        toy_network=True)
-
         if k > 1:
             convergence.append(np.sum(gec))
             _log('new flows, gap is  : ' + str(gec), to_console=True)

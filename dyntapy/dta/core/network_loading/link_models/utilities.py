@@ -68,48 +68,50 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
     time_steps = np.arange(np.int64(time.tot_time_steps))
     for link in prange(network.tot_links):
         ff_tt = np.float32((network.links.length[link] / network.links.v0[link]))
-        never_congested = False
+        travel_times[:, link] = ff_tt
         if network.links.link_type[link] == -1:
             # no consideration of exiting connector costs
-            never_congested = True
+            continue
         else:
-            congested_periods = np.nonzero(con_down[:, link])[0]
-            if congested_periods.size == 0:  # all time periods for this link uncongested
-                never_congested = True
-            else:
-                # adding free flow travel time for t==0
-                pointer = 0
-                entry_times = List()
-                # time when the vehicle that was registered downstream entered the link
-                experienced_travel_times = List()
-                # experienced travel time of the vehicle that was registered downstream
-                for t in range(time.tot_time_steps):
-                    if t == congested_periods[pointer]:
-                        # tracing the last vehicle that entered during this time period that is not subjected to chopping
-                        # of i-ltm
-                        cvn =cvn_up[t,link]
-                        exit_time= find_exit_time(cvn,cvn_down[:,link],t, time.tot_time_steps)
-                        entry_times.append(t + cvn/cvn_up[t,link])
-                        experienced_travel_times.append(max((exit_time-entry_times[-1])*time.step_size, ff_tt))
-                        if pointer < congested_periods.size - 1:
-                            pointer += 1
+            for t in range(time.tot_time_steps):
+                if not con_down[t, link]:
+                    continue
+                else:
+                    last_vehicle_to_enter = cvn_up[t, link]
+                    if t == 0:
+                        first_vehicle_to_enter = 0
                     else:
-                        entry_times.append(np.float32((t + 1)))
-                        experienced_travel_times.append(ff_tt)
-
-                if len(set(entry_times)) < len(entry_times):  # arrival times are not unique,
-                    # assuming strictly monotonously increasing cvns
-                    raise AssertionError
-        if never_congested:
-            travel_times[:, link] = ff_tt
-        else:
-            arrival_times_array = np.empty(len(entry_times), dtype=np.float32)
-            experienced_travel_times_array = np.empty_like(arrival_times_array)
-            for _id, (val1, val2) in enumerate(zip(entry_times, experienced_travel_times)):
-                arrival_times_array[_id] = val1
-                experienced_travel_times_array[_id] = val2
-            travel_times[:, link] = np.interp(time_steps + representative_vehicle, arrival_times_array,
-                                              experienced_travel_times_array)
+                        first_vehicle_to_enter = cvn_up[t - 1, link]
+                    delta_cvn = last_vehicle_to_enter - first_vehicle_to_enter
+                    last_exit_time = find_exit_time(last_vehicle_to_enter, cvn_down[:, link], t,
+                                                    time.tot_time_steps)
+                    if np.uint32(last_exit_time) < last_exit_time:
+                        after_last_exit_interval = np.uint32(last_exit_time) + 1
+                    else:
+                        after_last_exit_interval = np.uint32(last_exit_time)
+                    travel_time_average = 0.0
+                    # if the exiting vehicle left during a free flow interval travel time is overestimated.
+                    # CVNs get 'stretched' by interpolation. In that case we consider the last vehicle
+                    # that left during a congested period and add free flow travel time of the link to more
+                    # accurately represent the real travel time
+                    previous_interval_vehicle_travel_time = ff_tt
+                    first_vehicle_to_enter_in_k = first_vehicle_to_enter
+                    for k in range(t, after_last_exit_interval):
+                        if cvn_down[k, link] > first_vehicle_to_enter_in_k:
+                            if cvn_down[k, link] > last_vehicle_to_enter:
+                                vehicles_in_flow_packet = last_vehicle_to_enter - first_vehicle_to_enter_in_k
+                            else:
+                                vehicles_in_flow_packet = cvn_down[k, link] - first_vehicle_to_enter_in_k
+                            vehicle_entry = find_entry_time(cvn_down[k, link], cvn_up[:, link], k)
+                            current_interval_vehicle_travel_time = max((k + 1 - vehicle_entry) * time.step_size,
+                                                                       ff_tt)
+                            travel_time_average += vehicles_in_flow_packet / delta_cvn * \
+                                                   (current_interval_vehicle_travel_time
+                                                    + previous_interval_vehicle_travel_time) / 2
+                            first_vehicle_to_enter_in_k = cvn_down[k, link]  # first vehicle of the next period
+                            previous_interval_vehicle_travel_time = current_interval_vehicle_travel_time
+                            # is the last of the previous period.
+                    travel_times[t,link]=travel_time_average
     return travel_times
 
 
@@ -144,8 +146,8 @@ def find_exit_time(cvn: np.float, cvn_down: np.ndarray, k: np.int, T: np.int):
     if exit_interval == T + 1:
         return exit_interval
     else:
-        exit_time = exit_interval + (cvn - cvn_down[exit_interval-1]) / (cvn_down[exit_interval] -
-                                                                                     cvn_down[exit_interval-1])
+        exit_time = exit_interval + (cvn - cvn_down[exit_interval - 1]) / (cvn_down[exit_interval] -
+                                                                           cvn_down[exit_interval - 1])
         return exit_time
 
 
