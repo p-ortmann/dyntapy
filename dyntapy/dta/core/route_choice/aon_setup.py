@@ -107,5 +107,5 @@ def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: 
         update_arrival_maps(network, time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs, turn_costs)
         turning_fractions = get_turning_fractions(dynamic_demand, network, time, aon_state.arrival_maps, turn_costs)
         # smoothing turning fractions like you would in MSA
-        aon_state.turning_fractions = smooth_arrays(turning_fractions, aon_state.turning_fractions, k, 'msa')
+        aon_state.turning_fractions = smooth_arrays(turning_fractions, aon_state.turning_fractions, k+1, 'msa')
     return aon_state
