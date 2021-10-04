@@ -67,13 +67,14 @@ def update_route_choice(state, turn_costs: np.ndarray, cvn_down, network: Networ
         turning_fractions = get_turning_fractions(dynamic_demand, network, time, state.arrival_maps, turn_costs)
         state.turning_fractions = smooth_arrays(turning_fractions, state.turning_fractions, k, method)
         state.turn_costs = turn_costs
+        gec = np.full(time.tot_time_steps, np.finfo(np.float32).resolution, dtype=np.float32)
     elif method == 'quasi-reduced-projection':
         # deterministic approach of updating the turning fractions, see willem's thesis chapter 4 for background
         # should lead to smooth convergence
         _, gec, _ = qr_projection(cvn_down, state.arrival_maps, turn_costs, network, state.turning_fractions,
                                   dynamic_demand, time, k)
         state.turn_costs = turn_costs
-        return gec
-
     else:
         raise NotImplementedError
+    return gec
+

@@ -129,7 +129,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                     travel_times[t, link] = travel_time_average
     return travel_times
 
-
+@njit(cache=True)
 def find_entry_time(cvn: np.float, cvn_up: np.ndarray, k: np.int):
     # find the time of entry of the cumulative cvn that left the link during interval k, e.g. in [k,k+1]
     # returns entry time in interval units
@@ -148,6 +148,7 @@ def find_entry_time(cvn: np.float, cvn_up: np.ndarray, k: np.int):
     return entry_time
 
 
+@njit(cache=True)
 def find_exit_time(cvn: np.float, cvn_down: np.ndarray, k: np.int, T: np.int):
     # find the time of exit of the cumulative cvn that entered the link during interval k, e.g. in [k,k+1]
     # returns exit time in interval units

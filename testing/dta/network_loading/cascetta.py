@@ -8,8 +8,8 @@
 #
 #
 #
-from numba import config
-config.DISABLE_JIT=1
+# from numba import config
+# config.DISABLE_JIT=1
 from dyntapy.networks.get_networks import get_toy_network
 from dyntapy.demand import add_centroids_to_graph
 import numpy as np

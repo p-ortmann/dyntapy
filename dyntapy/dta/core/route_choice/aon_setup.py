@@ -86,9 +86,9 @@ def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: 
     for k in range(1,K+1):
         # update demand such that the current slice of demand is added.
         if k ==1 :
-            demand_factor = 1/K
+            demand_factor = np.float32(1/K)
         else:
-            demand_factor =  k/(k-1)
+            demand_factor =  np.float32(k/(k-1))
         for demand in dynamic_demand.demands:
             demand.to_destinations.values =  demand.to_destinations.values*demand_factor
             demand.to_origins.values = demand.to_origins.values * demand_factor
