@@ -46,10 +46,10 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
                                      cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                      time=network_loading_time,
                                      network=network, con_down=iltm_state.con_down)
-    # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
-    #                title=f'state in incremental loading',
-    #                highlight_nodes=[],
-    #                toy_network=True)
+    _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
+                   title=f'state in incremental loading',
+                   highlight_nodes=[],
+                   toy_network=True)
     k = 1
     converged = False
     if debugging:

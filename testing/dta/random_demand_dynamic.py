@@ -8,12 +8,10 @@
 #
 
 from numba import config
-
 config.DISABLE_JIT = 1
 from dyntapy.demand import parse_demand, generate_od_xy, DynamicDemand
 from dyntapy.network_data import load_pickle
 from dyntapy.dta.assignment import Assignment
-from dyntapy.settings import dynamic_parameters
 from dyntapy.dta.core.time import SimulationTime
 import numpy as np
 from dyntapy.settings import default_dynamic_city as city
@@ -22,7 +20,6 @@ from testing.road_network_and_centroids import get_graph
 
 
 def init_assignment():
-    step_size = dynamic_parameters.network_loading.step_size
     # loading from data folder, assumes road_network_and_centroids was run previously
     try:
         g = load_pickle(city + '_grid_centroids')
@@ -37,10 +34,10 @@ def init_assignment():
     # time unit is assumed to be hours, see parse demand
     dynamic_demand = DynamicDemand(trip_graphs, times)
     # convert everything to internal representations and parse
-    assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size))
+    assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(2.0),np.float32(0.25)))
     # TODO: add tests for multi-edge parsing
     flows, costs = assignment.run(method='i_ltm_aon')
-    show_dynamic_network(g, SimulationTime(np.float32(0.0), np.float32(2.0), step_size=step_size),
+    show_dynamic_network(g, SimulationTime(np.float32(0.0), np.float32(2.0), np.float32(0.25)),
                          link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
 
 
