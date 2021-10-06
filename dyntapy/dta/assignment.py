@@ -19,6 +19,8 @@ from dyntapy.sta.demand import Demand
 from dyntapy.dta.core.time import SimulationTime
 from dyntapy.demand import _check_centroid_connectivity
 from dyntapy.dta.core.assignment_methods.i_ltm_aon import i_ltm_aon
+from dyntapy.dta.core.assignment_methods.aon import aon
+from dyntapy.dta.core.assignment_methods.incremental_assignment import incremental
 from dyntapy.settings import dynamic_parameters
 from dataclasses import dataclass
 from dyntapy.demand import DynamicDemand
@@ -68,7 +70,9 @@ class Assignment:
 
     def run(self, method: str = 'i_ltm_aon'):
         # TODO: generic way for adding keyword args
-        methods = {'i_ltm_aon': i_ltm_aon}
+        methods = {'i_ltm_aon': i_ltm_aon,
+                   'incremental_assignment':incremental,
+                   'aon': aon}
         if method in methods:
             flows, costs = methods[method](self.internal_network, self.internal_dynamic_demand, self.time)
         else:
