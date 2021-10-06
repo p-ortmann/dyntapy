@@ -24,6 +24,7 @@ max_iterations = dynamic_parameters.network_loading.max_iterations
 @njit(cache=True)
 def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime,
           turning_fractions, k):
+    _log('starting i-ltm run', to_console=True)
     turning_fractions = turning_fractions.transpose(1, 2, 0).copy()  # turning fractions in route choice typically get
     # (destinations, time, turn)
     tot_time_steps = time.tot_time_steps
@@ -178,7 +179,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
         unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links,
                                  tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down,
                                  tot_time_steps)
-    _log('iltm finished')
+    _log('iltm finished',to_console=True)
     results.marg_comp=True
 
 

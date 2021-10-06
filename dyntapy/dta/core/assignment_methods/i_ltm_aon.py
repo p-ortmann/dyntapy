@@ -38,24 +38,22 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_cho
               network_loading_time: SimulationTime):
     convergence = List()
     convergence.append(np.inf)
-    _log('setting up data structures for i_ltm', to_console=True)
     iltm_state, network = i_ltm_aon_setup(network, network_loading_time, dynamic_demand)
-    _log('initializing AON', to_console=True)
     aon_state = incremental_loading(network, route_choice_time, dynamic_demand, 20, iltm_state)
     link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                      cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                      time=network_loading_time,
                                      network=network, con_down=iltm_state.con_down)
-    _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
-                   title=f'state in incremental loading',
-                   highlight_nodes=[],
-                   toy_network=True)
+    # _rc_debug_plot(iltm_state, network, network_loading_time, aon_state, link_costs,
+    #                title=f'state in incremental loading',
+    #                highlight_nodes=[],
+    #                toy_network=True)
     k = 1
     converged = False
     if debugging:
         sum_of_turning_fractions(aon_state.turning_fractions, network.links.out_turns, network.links.link_type,
                                  network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
-    while k < 100 and not converged:
+    while k < max_iterations and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
         i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
         verify_assignment_state(network, aon_state.turning_fractions, iltm_state.cvn_up, iltm_state.cvn_down,

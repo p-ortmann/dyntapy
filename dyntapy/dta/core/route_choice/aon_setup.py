@@ -31,6 +31,7 @@ restricted_turn_cost = dynamic_parameters.route_choice.restricted_turn_cost
 @njit(cache=True)
 def init_arrival_maps(costs, in_links, destinations, step_size, tot_time_steps, tot_nodes, centroids,
                       turn_restrictions):
+    _log('initializing arrival maps', to_console=True)
     # works for node link and link turn graph representation
     is_centroid = np.full(tot_nodes, False)
     for centroid in centroids:
@@ -60,6 +61,7 @@ def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: 
     object of type RouteChoiceState
     with turning fractions as acquired through the incremental loading.
     """
+    _log('setting up incremental loading',to_console=True)
     free_flow_costs = network.links.length / network.links.v0
     costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):
@@ -84,6 +86,7 @@ def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: 
     turning_fractions = get_turning_fractions(dynamic_demand, network, time, arrival_maps, turn_costs)
     aon_state = RouteChoiceState(costs, turn_costs, arrival_maps, turning_fractions, turn_restrictions)
     for k in range(1,K+1):
+        _log('incremental loading k = ' +str(k),to_console=True)
         # update demand such that the current slice of demand is added.
         if k ==1 :
             demand_factor = np.float32(1/K)

@@ -18,7 +18,6 @@ from dyntapy.settings import default_dynamic_city as city
 from dyntapy.visualization import show_demand, show_dynamic_network
 from testing.road_network_and_centroids import get_graph
 
-
 def init_assignment():
     # loading from data folder, assumes road_network_and_centroids was run previously
     try:
@@ -39,7 +38,6 @@ def init_assignment():
     flows, costs = assignment.run(method='i_ltm_aon')
     show_dynamic_network(g, SimulationTime(np.float32(0.0), np.float32(2.0), np.float32(0.25)),
                          link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
-
 
 if __name__ == '__main__':
     init_assignment()

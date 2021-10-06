@@ -51,6 +51,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
     Transportation Research Part B: Methodological
     45, no. 1(January 1, 2011): 232–54.
     https: // doi.org / 10.1016 / j.trb.2010.05.002.
+    See DUE issues ticket #17 in gitlab for design decisions taken here
     Parameters
     ----------
     cvn_up :2D array, tot_time_steps x tot_links
@@ -70,6 +71,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
             # costs on sink connectors are always free flow
             continue
         else:
+            previous_interval_vehicle_travel_time = ff_tt  # keeps track of last travel time across timesteps
             for t in range(time.tot_time_steps):
                 if not con_down[t, link]:
                     continue
@@ -87,34 +89,28 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                     else:
                         after_last_exit_interval = np.uint32(last_exit_time)
                     travel_time_average = 0.0
-                    previous_interval_vehicle_travel_time = ff_tt
                     first_vehicle_to_enter_in_k = first_vehicle_to_enter
+                    if not con_down[t - 1, link]:
+                        previous_interval_vehicle_travel_time = ff_tt
                     for k in range(t, after_last_exit_interval):
                         # k is the running index for intervals in which vehicles from k left the link
                         if cvn_down[k, link] > first_vehicle_to_enter_in_k:
                             if cvn_down[k, link] > last_vehicle_to_enter:
                                 vehicles_in_flow_packet = last_vehicle_to_enter - first_vehicle_to_enter_in_k
                                 vehicle_entry = t + 1
-                                # we assume departure as an estimate based on capacity
-                                # see MLI type travel time estimates in Long, Jiancheng, Ziyou Gao, and W.Y.Szeto.
-                                # “Discretised Link Travel Time Models Based on Cumulative
-                                # Flows: Formulations and Properties.”
-                                # Transportation Research Part B: Methodological
-                                # 45, no. 1(January 1, 2011): 232–54.
-                                # https: // doi.org / 10.1016 / j.trb.2010.05.002.
-                                # for detailed reasoning
-                                current_interval_vehicle_travel_time = max(
-                                    (k + vehicles_in_flow_packet / network.links.capacity[
-                                        link] - vehicle_entry) * time.step_size,
-                                    ff_tt)
-                                # TLDR: If we do this by using the downstream cumulative in that last period
-                                # we introduce a dependency on departures that left
-                                # in time periods after the time period t
-                                # This violates causality beyond the time step and makes equilibration more cumbersome
-                                # (since changes in later time steps affects the impedance of earlier ones)
-                                # longer time steps in iltm make this effect even worse,
-                                # especially if upstream CVNs fall flat after
-                                # the interval under consideration.
+                                if not con_down[k, link]:
+                                    # if there is no congestion downstream travel times get overestimated dramatically due to
+                                    # interpolation, we apply capacity discharge
+                                    current_interval_vehicle_travel_time = max(
+                                        (k + vehicles_in_flow_packet / network.links.capacity[
+                                            link] - vehicle_entry) * time.step_size,
+                                        ff_tt)
+                                else:
+                                    current_interval_vehicle_travel_time = max(
+                                        (k + vehicles_in_flow_packet / (cvn_down[k, link] - cvn_down[k - 1, link])
+                                         - vehicle_entry) * time.step_size,
+                                        ff_tt)
+
                             else:
                                 vehicles_in_flow_packet = cvn_down[k, link] - first_vehicle_to_enter_in_k
                                 vehicle_entry = find_entry_time(cvn_down[k, link], cvn_up[:, link], k)
@@ -128,6 +124,7 @@ def cvn_to_travel_times(cvn_up: np.ndarray, cvn_down: np.ndarray, con_down: np.n
                             # is the last of the previous period.
                     travel_times[t, link] = travel_time_average
     return travel_times
+
 
 @njit(cache=True)
 def find_entry_time(cvn: np.float, cvn_up: np.ndarray, k: np.int):
@@ -152,15 +149,16 @@ def find_entry_time(cvn: np.float, cvn_up: np.ndarray, k: np.int):
 def find_exit_time(cvn: np.float, cvn_down: np.ndarray, k: np.int, T: np.int):
     # find the time of exit of the cumulative cvn that entered the link during interval k, e.g. in [k,k+1]
     # returns exit time in interval units
-    exit_interval = T + 1
-    for t in range(k, T + 1):
+    exit_interval = T
+    for t in range(k, T):  # range ends at T-1
         if cvn_down[t] >= cvn:
             exit_interval = t
             break
     # if the condition was triggered during none of the intervals the vehicle must've exited after the
     # simulation ended
-    if exit_interval == T + 1:
-        return exit_interval
+    exit_interval = np.uint32(exit_interval)
+    if exit_interval == T:
+        return np.float32(T)  # needs to be float, consistent return type with below
     else:
         exit_time = exit_interval + (cvn - cvn_down[exit_interval - 1]) / (cvn_down[exit_interval] -
                                                                            cvn_down[exit_interval - 1])

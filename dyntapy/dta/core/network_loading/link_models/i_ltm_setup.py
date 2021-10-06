@@ -13,6 +13,7 @@ from dyntapy.datastructures.csr import UI8CSRMatrix, csr_prep, F32CSRMatrix
 from dyntapy.dta.core.supply import Network
 from dyntapy.dta.core.demand import InternalDynamicDemand
 from dyntapy.dta.core.time import SimulationTime
+from dyntapy.utilities import _log
 from numba import njit
 
 @njit(cache=True)
@@ -20,6 +21,7 @@ def i_ltm_aon_setup(network: Network, time: SimulationTime, dynamic_demand: Inte
     """
     Adding additional structures (arrays, sparse matrices) to the network for i_ltm and deterministic routing to work.
     """
+    _log('setting up data structures for i_ltm', to_console=True)
     # link properties
     length = network.links.length
     v0 = network.links.v0
