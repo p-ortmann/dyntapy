@@ -34,8 +34,10 @@ max_iterations = dynamic_parameters.assignment.max_iterations
 
 
 @njit(cache=True)
-def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, route_choice_time: SimulationTime,
-              network_loading_time: SimulationTime):
+def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, time:SimulationTime):
+    # network loading time and route choice time may differ in the future
+    network_loading_time = time
+    route_choice_time = time
     convergence = List()
     convergence.append(np.inf)
     iltm_state, network = i_ltm_aon_setup(network, network_loading_time, dynamic_demand)

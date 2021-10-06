@@ -55,7 +55,7 @@ class Assignment:
         self.g = g
         dyntapy.__init__.current_network = g  # enables you to import the current network from anywhere to plot
         self.dynamic_demand = dynamic_demand
-        self.time = self.__init_time_obj(simulation_time)
+        self.time = simulation_time
         # get adjacency from nx, and
         # self.demand = self.build_demand()
         self.internal_network = build_network(g)
@@ -70,8 +70,7 @@ class Assignment:
         # TODO: generic way for adding keyword args
         methods = {'i_ltm_aon': i_ltm_aon}
         if method in methods:
-            flows, costs = methods[method](self.internal_network, self.internal_dynamic_demand, self.time.route_choice,
-                                           self.time.network_loading)
+            flows, costs = methods[method](self.internal_network, self.internal_dynamic_demand, self.time)
         else:
             raise NotImplementedError(f'{method=} is not defined ')
         return flows, costs

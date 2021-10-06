@@ -124,7 +124,7 @@ class _Dynamic_Assignment:
         Note: Changes to these values may only take affect after the numba_cache directory has been deleted
         """
     gap: np.float32 = 0.001
-    max_iterations: np.uint = 30
+    max_iterations: np.uint = 5
     smooth_turning_fractions: str = 'MSA'  # valid entry only 'MSA' for now
     smooth_costs: bool = False
 
