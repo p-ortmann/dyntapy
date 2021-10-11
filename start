@@ -1,4 +1,0 @@
-###!/bin/bash
-# set environment variable for dyntapy
-export PYTHONPATH="${PYTHONPATH}:/home/jovyan/"
-exec "$@"
