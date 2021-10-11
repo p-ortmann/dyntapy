@@ -31,9 +31,23 @@ DESC = (
     "Macroscopic Static and Dynamic Traffic Assignment in Python "
 )
 
-with open("requirements.txt") as f:
-    INSTALL_REQUIRES = [line.strip() for line in f.readlines()]
-
+INSTALL_REQUIRES = [
+    'numba',
+    'bokeh',
+    'osmnx',
+    'pandas',
+    'scipy',
+    'numpy',
+    'geojson',
+    'pyyaml',
+    'networkx',
+    'pyproj',
+    'geopandas',
+    'Shapely',
+    'matplotlib',
+    'notebook',
+    'setuptools',
+]
 # now call setup
 setup(
     name="dyntapy",
