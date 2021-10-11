@@ -61,5 +61,5 @@ setup(
     platforms="any",
     python_requires=">=3.6",
     install_requires=INSTALL_REQUIRES,
-    py_modules =['dyntapy']
+    py_modules=['dyntapy']
 )
