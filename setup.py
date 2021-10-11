@@ -59,7 +59,7 @@ setup(
     author_email="itscrealab@kuleuven.be",
     license="GPLv3",
     platforms="any",
-    python_requires=">=3.9",
+    python_requires=">=3.7",
     install_requires=INSTALL_REQUIRES,
     packages=['dyntapy']
 )
