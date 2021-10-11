@@ -274,7 +274,7 @@ def show_dynamic_network(g: nx.DiGraph, time: SimulationTime, flows=None, link_k
 
     text_input = TextInput(title="Add new graph title", value='')
     text_input.js_link('value', plot.title, 'text')
-    time_slider = Slider(start=0, end=time.end, value=0, step=time.step_size, title="time")
+    time_slider = Slider(start=0, end=time.end - time.step_size, value=0, step=time.step_size, title="time")
 
     # layout with multiple convergence plots
     # layout = row(

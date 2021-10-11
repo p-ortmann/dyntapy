@@ -22,7 +22,7 @@ from numba import njit
 def aon(network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime):
     iltm_state, network = i_ltm_aon_setup(network, time, dynamic_demand)
     aon_state = get_aon_route_choice(network, time, dynamic_demand)
-    i_ltm(network, dynamic_demand, iltm_state, time, aon_state.turning_fractions, 0)
+    i_ltm(network, dynamic_demand, iltm_state, time, aon_state.turning_fractions)
     link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                      cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                      time=time,

@@ -57,7 +57,7 @@ def i_ltm_aon(network: Network, dynamic_demand: InternalDynamicDemand, time:Simu
                                  network.turns.to_node, tot_centroids=dynamic_demand.tot_centroids)
     while k < max_iterations and not converged:
         _log('calculating network state in iteration ' + str(k), to_console=True)
-        i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions, k)
+        i_ltm(network, dynamic_demand, iltm_state, network_loading_time, aon_state.turning_fractions)
         verify_assignment_state(network, aon_state.turning_fractions, iltm_state.cvn_up, iltm_state.cvn_down,
                                 dynamic_demand.tot_centroids)
         link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),

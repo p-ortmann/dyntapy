@@ -76,7 +76,7 @@ def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: 
             demand.to_destinations.values = demand.to_destinations.values * demand_factor
             demand.to_origins.values = demand.to_origins.values * demand_factor
         # network loading and route choice are calculated
-        i_ltm(network, dynamic_demand, iltm_state, time, aon_state.turning_fractions, K)
+        i_ltm(network, dynamic_demand, iltm_state, time, aon_state.turning_fractions)
         link_costs = cvn_to_travel_times(cvn_up=np.sum(iltm_state.cvn_up, axis=2),
                                          cvn_down=np.sum(iltm_state.cvn_down, axis=2),
                                          time=time,
