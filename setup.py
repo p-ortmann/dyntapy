@@ -8,7 +8,7 @@
 #
 
 
-from setuptools import setup
+from setuptools import setup,find_packages
 
 # PyPI classifiers here
 CLASSIFIERS = [
@@ -61,5 +61,4 @@ setup(
     platforms="any",
     python_requires=">=3.9",
     install_requires=INSTALL_REQUIRES,
-    packages=['dyntapy']
-)
+    packages=find_packages(exclude=('testing',)))
