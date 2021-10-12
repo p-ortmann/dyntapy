@@ -1,4 +1,3 @@
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD)
 ## How to install
 
 we assume that you already have a virtual environment set up with conda.
@@ -36,4 +35,5 @@ import dyntapy
 voila!
 Demos of the provided functionality can be found in the notebooks under >>tutorials<<, some more examples can be 
 found under >>testing<<
-
+you can experiment with the notebooks in binder without the need to install anything.
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD)
