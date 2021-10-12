@@ -8,7 +8,15 @@
 #
 
 
-from setuptools import setup,find_packages
+from setuptools import setup, find_packages
+import pathlib
+from setuptools import setup
+
+# The directory containing this file
+HERE = pathlib.Path(__file__).parent
+
+# The text of the README file
+README = (HERE / "readme.md").read_text()
 
 # PyPI classifiers here
 CLASSIFIERS = [
@@ -57,8 +65,11 @@ setup(
     url="https://gitlab.kuleuven.be/ITSCreaLab/mobilitytools",
     author="Paul Ortmann",
     author_email="itscrealab@kuleuven.be",
+    long_description=README,
+    long_description_content_type="text/markdown",
     license="GPLv3",
     platforms="any",
     python_requires=">=3.9",
     install_requires=INSTALL_REQUIRES,
-    packages=find_packages(exclude=('testing',)))
+    packages=find_packages(exclude=('testing',)),
+    include_package_data=True)
