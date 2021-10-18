@@ -216,7 +216,6 @@ def show_dynamic_network(g: nx.DiGraph, time: SimulationTime, flows=None, link_k
                       plot_width=plot_size,
                       aspect_ratio=1, toolbar_location='below')
         tmp = g
-    plot.title.text = title
     title = _check_title(title, g, 'assignment ')
     plot.title.text = title
 

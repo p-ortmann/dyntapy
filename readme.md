@@ -5,7 +5,7 @@ Provided functionalities:
 - Dynamic User Equilibrium using the iterative link transmission model [^1]
 - Visualization of real and toy networks with Static and Dynamic attributes using Bokeh, including bidirectional flow visualization
 
-[^1]: convergence according to the provided excess cost criteria cannot be guaranteed for a reasonable amount of iterations
+[^1]: convergence below $`10^{-2}`$ according to the provided excess cost criteria cannot be guaranteed for a reasonable amount of iterations
 
 There are demo tutorials available that you can run in Binder.
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD)
