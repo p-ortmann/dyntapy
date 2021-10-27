@@ -100,6 +100,9 @@ def dial_b(obj: StaticAssignment, results: DialBResults = None):
         # print(f'number of converged bushes {convergence_counter} out of {len(obj.demand_dict)}')
         if convergence_counter == obj.demand.to_destinations.get_nnz_rows().size:
             break
+        iteration = iteration + 1
+        if iteration == dial_b_max_iterations:
+            print('max iterations reached')
     try:
         state = DialBResults(obj.demand_dict, flows, bush_flows, topological_orders, adjacency, obj.edge_map)
     except TypeError:
