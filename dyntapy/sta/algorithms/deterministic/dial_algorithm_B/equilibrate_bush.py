@@ -164,6 +164,10 @@ def __update_trees(k, n, L, U, min_path_predecessors, max_path_predecessors, top
         max_path_predecessors[j], min_path_predecessors[j] = 0, 0
         L[j], U[j] = 100000.0, -100000.0
         for i in backward_star[j]:
+            if i not in L:
+                print('topological order broken for node i ' +str(i))
+                print('supposed to be BEFORE node j ' +str(j))
+                print(L)
             # assert i in L
             # assert j in L
             # assert i in U

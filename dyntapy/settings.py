@@ -149,6 +149,7 @@ class _Static_Assignment:
     msa_delta = 0.001
     fw_max_iterations = 50
     fw_delta = 0.001
+    dial_b_max_iterations = 10
     dial_b_cost_differences = 0.001
     logit_theta = 0.001
     gap_method = "relative"
