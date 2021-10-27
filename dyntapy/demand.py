@@ -145,7 +145,7 @@ def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
     g = nx.MultiDiGraph()
     nodes = [(u, {'x_coord': p[0], 'y_coord': p[1]}) for u, p in enumerate(zip(X, Y))]
     g.add_nodes_from(nodes)
-    edges = [(u, v, 0, {'flow': od_matrix[u, v]}) for u, v in np.argwhere(od_matrix > 0)]
+    edges = [(u, v, 0, {'flow': od_matrix[u, v]}) for u, v in np.argwhere(od_matrix > 0) if u!= v ]
     g.add_edges_from(edges)
     return g
 

@@ -70,7 +70,7 @@ def dial_b(obj: StaticAssignment, results: DialBResults = None):
 
                 for k in topological_orders[bush]:
                     assert k in L
-                topological_orders[bush] = __topological_order(L)
+                topological_orders[bush] = __topological_order_dial_b(L, bush_flows[bush], obj.edge_map, epsilon, topological_orders[bush])
                 edges_added = __add_edges(L=L, bush_edges=adjacency[bush], costs=costs,
                                           edge_map=obj.edge_map, bush_forward_star=bush_forward_star,
                                           bush_backward_star=bush_backward_star,
@@ -93,8 +93,6 @@ def dial_b(obj: StaticAssignment, results: DialBResults = None):
         print('DialBResults object not fixed for CSR, temporary fix. Everything works expect warm starting ..')
         state = None
     return costs, flows, state
-
-
 
 
 @njit
@@ -122,7 +120,7 @@ def __add_edges(L, bush_edges, costs, edge_map, bush_forward_star, bush_backward
 
 
 @njit
-def __initial_loading(edge_order, link_capacities, link_ff_times, edge_map, forward_star, demand:Demand, node_order):
+def __initial_loading(edge_order, link_capacities, link_ff_times, edge_map, forward_star, demand: Demand, node_order):
     flows = np.zeros(edge_order)
     bush_flows = Dict()
     topological_orders = Dict()
@@ -146,3 +144,62 @@ def __initial_loading(edge_order, link_capacities, link_ff_times, edge_map, forw
                 bush_flows[i][link_id] += path_flow
 
     return flows, bush_flows, topological_orders, edges
+
+
+@njit
+def __topological_order_dial_b(distances, bush_flows, edge_map, epsilon, previous_topological_order):
+    # two nodes that are within epsilon of cost of one another may be reshuffled which yields inconsistent computational states
+    # between the forward/backward stars and the topology
+    #  hence we've got to take into account the loaded edges and consider that part of the equilibration as converged.
+    # until flow is taken away fully in some next step IF the cost difference merits doing so.
+    topological_order = np.empty(len(distances
+                                     ), dtype=np.uint32)
+    for counter, (node, dist) in enumerate(sorted(distances.items(), key=lambda x: x[1])):
+        topological_order[counter] = node
+    fixed_topological_order = topological_order.copy()
+    sequence_length = 0
+    had_to_fix = False
+    for idx1,i in enumerate(topological_order):
+        if had_to_fix and sequence_length >0:
+            sequence_length = sequence_length -1
+            continue
+        else:
+            had_to_fix = False
+        for idx2,j in enumerate(topological_order[idx1+1:]):
+            if distances[j]-distances[i]<epsilon:
+                sequence_length = 1 + idx2
+                # edges may have been swapped although not epsilon relevant ..
+                # hence there may still be flow on edge j,i
+                try:
+                    if bush_flows[edge_map[j,i]]>0:
+                        had_to_fix = True
+                        # reversing the change
+                        fix_sequence(idx1,idx1 + idx2+1, fixed_topological_order, bush_flows, edge_map, (i,j))
+                except KeyError:
+                    continue
+            else:
+                break
+    def fix_sequence(idx1, idx2, toplogical_order,bush_flows, edge_map, swap_pair):
+        # swap i j in topological order without introducing new violations ..
+        current_sequence = toplogical_order[idx1: idx2]
+        # trying simple fix
+        current_sequence[0] = swap_pair[1]
+        current_sequence[-1] = swap_pair[0]
+        # check if this fixed the issue, fail gracefully otherwise
+        # fails if there were more loaded edges within the sequence that are
+        # now not in order with the sequence after the swap
+        # Alternative is always to provide a lower epsilon which triggers
+        # the shifting of flows in the bushes at a lower threshold. Making the occurence
+        # of this less likely, although not impossible.
+        # the real fix is computing a topological order from the graph given by all flow positive edges contained
+        # in the sequence.
+        for idx3,i in enumerate(current_sequence):
+            for j in current_sequence[idx3+1:]:
+                if bush_flows[edge_map[j,i]]>0:
+                    raise RuntimeError('Numerical issues due to too large epsilon values,'
+                                       ' reduce epsilon to produce results')
+
+
+
+
+    return topological_order

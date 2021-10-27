@@ -358,6 +358,7 @@ def show_demand(g, title=None, plot_size=default_plot_size, notebook=False, toy_
     else:
         output_file(results_folder + f'/{title}.html')
     if not toy_network:
+        g.graph["crs"] = 'epsg:4326'
         tmp = ox.project_graph(g, CRS.from_user_input(3857))
         plot = figure(plot_height=plot_size,
                       plot_width=plot_size, x_axis_type="mercator", y_axis_type="mercator",

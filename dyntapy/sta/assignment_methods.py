@@ -66,6 +66,7 @@ def SUN(obj: StaticAssignment, method=None):
 
 
 def SUE(obj: StaticAssignment, method=None):
+    raise NotImplementedError
     methods = ['dial_congested']
     if method is None:
         method = static_parameters.assignment.methods['SUE']
