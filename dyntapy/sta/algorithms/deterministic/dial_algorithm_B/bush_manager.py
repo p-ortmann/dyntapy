@@ -17,7 +17,7 @@ from dyntapy.sta.algorithms.helper_funcs import __bpr_cost, __bpr_derivative, __
 from dyntapy.sta.algorithms.graph_utils import __shortest_path, __pred_to_epath2, make_in_links, make_out_links
 from numba.typed import Dict
 from heapq import heappop, heappush
-from numba import njit, objmode
+from numba import njit
 from dyntapy.settings import static_parameters
 from dyntapy.sta.algorithms.deterministic.dial_algorithm_B.warm_start import DialBResults
 
@@ -123,7 +123,7 @@ def __update_bush(L, bush_edges, costs, edge_map, bush_forward_star, bush_backwa
                     # cannot remove this edge, it's loaded!
                     # adding the opposite would yield a graph
                     # that cannot be topologically sorted
-                    print('it happens')
+                    # this may happen with very short links and comparatively large epsilon values
                     continue
             except Exception:
                 # KeyError, no exception matching in numba
@@ -143,7 +143,7 @@ def __update_bush(L, bush_edges, costs, edge_map, bush_forward_star, bush_backwa
 @njit
 def topological_sort(forward_star, backward_star, tot_nodes, origin):
     # topological sort on a graph assuming that backward and forward stars form
-    # a DAG, (Directed Acyclic Graph), and there's a path from the origin to all other nodes
+    # a connected DAG, (Directed Acyclic Graph)
     order = np.zeros(tot_nodes, dtype=np.uint32)
     order[0] = origin
     my_heap = []
