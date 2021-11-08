@@ -166,10 +166,3 @@ def find_exit_time(cvn: np.float, cvn_down: np.ndarray, k: np.int, T: np.int):
         return exit_time
 
 
-def _debug_plot(results, network: ILTMNetwork, time, title='None', toy_network=True):
-    from dyntapy.__init__ import current_network
-    flows = cvn_to_flows(results.cvn_down)
-    cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
-    show_dynamic_network(current_network, time, toy_network=toy_network, title=title, link_kwargs=
-    {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues})

@@ -75,7 +75,8 @@ class _NetworkLoading:
     link_model: str = 'i_ltm'  # only 'i_ltm' for now
     gap: np.float32 = np.float32(0.001)
     epsilon: np.float = np.float32(0.001)
-    cong_flow_delta_trigger = np.float(0.001) # how much a constraint at the outflow side has to be violated
+    trigger_node_update_threshold  = np.float32(0.01)
+    cong_flow_delta_trigger = np.float(0.01) # how much a constraint at the outflow side has to be violated
     # before it's considered congested
     max_iterations: np.uint32 = np.uint32(1000)
     node_model: str = 'orca'  # 'only 'orca' for now

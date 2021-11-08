@@ -35,7 +35,8 @@ def init_assignment():
     # convert everything to internal representations and parse
     assignment = Assignment(g, dynamic_demand, SimulationTime(np.float32(0.0), np.float32(2.0),np.float32(0.25)))
     # TODO: add tests for multi-edge parsing
-    flows, costs = assignment.run(method='i_ltm_aon')
+    flows, costs = assignment.run(method='incremental_assignment'
+                                         )
     show_dynamic_network(g, SimulationTime(np.float32(0.0), np.float32(2.0), np.float32(0.25)),
                          link_kwargs={'flows': flows, 'costs': costs}, show_nodes=False)
 

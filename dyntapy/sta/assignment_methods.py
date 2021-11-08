@@ -5,6 +5,7 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 #
+import dyntapy.assignment_context
 from dyntapy.sta.assignment import StaticAssignment
 from dyntapy.sta.algorithms.deterministic.frank_wolfe import frank_wolfe
 from dyntapy.sta.algorithms.deterministic.msa import msa_flow_averaging
@@ -21,6 +22,7 @@ def DUN(obj:StaticAssignment):
     -------
 
     """
+    dyntapy.assignment_context.running_assignment = obj
     raise NotImplementedError
     # TODO: implement this for further exercises ..
 
@@ -38,6 +40,7 @@ def DUE(obj: StaticAssignment, method=None):
     -------
 
     """
+    dyntapy.assignment_context.running_assignment = obj
     methods = ['bpr,flow_avg', 'frank_wolfe', 'dial_b']
     if method is None:
         method = static_parameters.assignment.methods['DUE']
@@ -53,6 +56,7 @@ def DUE(obj: StaticAssignment, method=None):
 
 
 def SUN(obj: StaticAssignment, method=None):
+    dyntapy.assignment_context.running_assignment = obj
     methods = ['dial_uncongested']
     if method is None:
         method = static_parameters.assignment.methods['SUN']
@@ -66,6 +70,7 @@ def SUN(obj: StaticAssignment, method=None):
 
 
 def SUE(obj: StaticAssignment, method=None):
+    dyntapy.assignment_context.running_assignment = obj
     raise NotImplementedError
     methods = ['dial_congested']
     if method is None:

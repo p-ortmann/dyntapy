@@ -25,7 +25,7 @@ from shapely.geometry import LineString
 from dyntapy.utilities import __create_green_to_red_cm
 import osmnx as ox
 from pyproj import CRS
-from dyntapy.__init__ import results_folder, current_network
+from dyntapy.__init__ import results_folder
 from dyntapy.settings import dynamic_parameters
 from dyntapy.dta.core.time import SimulationTime
 from dyntapy.network_data import relabel_graph

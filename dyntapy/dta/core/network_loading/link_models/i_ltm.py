@@ -16,7 +16,6 @@ from numba import njit
 from dyntapy.dta.core.network_loading.node_models.orca_nodel_model import orca_node_model as orca
 from dyntapy.utilities import _log
 
-gap = dynamic_parameters.network_loading.epsilon
 node_model_str = dynamic_parameters.network_loading.node_model
 max_iterations = dynamic_parameters.network_loading.max_iterations
 congestion_flow_delta_trigger = dynamic_parameters.network_loading.cong_flow_delta_trigger
@@ -175,7 +174,7 @@ def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: 
                 for centroid in dynamic_demand.all_centroids:
                     delta_change[centroid] = 0
             node_processing_order = np.ascontiguousarray(np.argsort(delta_change)[::-1])
-            cur_nodes_2_update = np.uint32(np.sum(delta_change > gap))
+            cur_nodes_2_update = np.uint32(np.sum(delta_change > trigger_node_update_threshold))
             _log('remaining nodes 2 update in this t are:  ' + str(cur_nodes_2_update))
         unload_destination_flows(nodes_2_update, dynamic_demand.all_active_destinations, network.nodes.in_links,
                                  tot_receiving_flow, t, temp_local_sending_flow, vrt, cvn_up, vind, cvn_down,
@@ -194,7 +193,7 @@ def unload_destination_flows(nodes_2_update, destinations, in_links,
                 tot_receiving_flow[connector] = np.inf
                 tmp_sending_flow[0, :] = (1 - vrt[connector]) * cvn_up[max(0, t + vind[connector]), connector, :] + vrt[
                     connector] * cvn_up[max(0, t + vind[connector] + 1), connector, :]
-                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_down[t, connector, :])) > gap:
+                if np.sum(np.abs(tmp_sending_flow[0, :] - cvn_down[t, connector, :])) >trigger_node_update_threshold:
                     cvn_down[t, connector, :] = tmp_sending_flow[0, :]
                     nodes_2_update[np.uint32(min(t + 1, tot_time_steps - 1)), destination] = True
 
@@ -241,7 +240,7 @@ def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,cvn_down
                         never_flow = False
                     tmp_sending_flow[0, destination_id] += flow
 
-                if np.sum(np.abs(tmp_sending_flow[0, :] - (cvn_up[t , connector, :])-cvn_down[t,connector,:])) > gap:
+                if np.sum(np.abs(tmp_sending_flow[0, :] - (cvn_up[t , connector, :])-cvn_down[t,connector,:])) > trigger_node_update_threshold:
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), origin] = True
                     cvn_up[t, connector, :] = tmp_sending_flow[0, :]+cvn_up[t-1,connector,:]
                     if np.sum(tmp_sending_flow[0,:]) < cap[connector] * step_size:
@@ -453,10 +452,10 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                 temp_sending_flow[in_id, :] = sending_flow[in_id, :]
             if t==0:
                 update_in_link = np.sum(np.abs(
-                    cvn_down[t, in_link, :] - temp_sending_flow[in_id, :])) > gap
+                    cvn_down[t, in_link, :] - temp_sending_flow[in_id, :])) > trigger_node_update_threshold
             else:
                 update_in_link = np.sum(np.abs(
-                    cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]))) > gap
+                    cvn_down[t, in_link, :] - (cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]))) > trigger_node_update_threshold
 
             update_node = update_in_link or update_node
             if update_in_link:

@@ -8,12 +8,11 @@
 #
 
 import numpy as np
-
 from dyntapy.dta.core.demand import InternalDynamicDemand
 from dyntapy.sta.demand import Demand
 from dyntapy.dta.core.network_loading.link_models.i_ltm import i_ltm
 from dyntapy.dta.core.network_loading.link_models.i_ltm_setup import i_ltm_aon_setup
-from dyntapy.dta.core.network_loading.link_models.utilities import cvn_to_flows, _debug_plot, cvn_to_travel_times
+from dyntapy.dta.core.network_loading.link_models.utilities import cvn_to_flows, cvn_to_travel_times
 from dyntapy.dta.core.route_choice.deterministic import update_route_choice
 from dyntapy.dta.core.route_choice.aon_setup import incremental_loading
 from dyntapy.dta.core.route_choice.aon import link_to_turn_costs_deterministic
@@ -127,13 +126,3 @@ def is_cost_converged(costs, flows, arrival_map, dynamic_demand: InternalDynamic
     return gap_value < target_gap, gap_value
 
 
-def _rc_debug_plot(results, network, time, rc_state, link_costs, title='None', highlight_nodes=[], toy_network=True):
-    from dyntapy.visualization import show_dynamic_network
-    from dyntapy.__init__ import current_network
-    flows = cvn_to_flows(results.cvn_down)
-    toy_network = True
-    cur_queues = np.sum(results.cvn_up, axis=2) - np.sum(results.cvn_down, axis=2)  # current queues
-    show_dynamic_network(current_network, time, toy_network=toy_network, title=title, link_kwargs=
-    {'cvn_up': results.cvn_up, 'cvn_down': results.cvn_down, 'vind': network.links.vf_index,
-     'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues, 'costs': link_costs},
-                         highlight_nodes=highlight_nodes)

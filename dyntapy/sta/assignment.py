@@ -12,11 +12,9 @@ from dyntapy.sta.demand import build_static_demand
 import numpy as np
 from numba.typed import List, Dict
 from warnings import warn
-import dyntapy.__init__
-class StaticAssignment:
-    """This class has no value when instantiated on it's own,
-     it merely sets up the state variables/interfaces to networkx"""
 
+
+class StaticAssignment:
     def __init__(self, g: nx.DiGraph, od_graph: nx.DiGraph):
         """
 
@@ -26,7 +24,6 @@ class StaticAssignment:
         od_matrix : array like object
             Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment object
         """
-        dyntapy.__init__.current_network = g
         self.adj_edge_list, self.link_flows, \
         self.link_ff_times, self.link_travel_times, self.link_capacities, self.destinations, \
         self.demand_dict, self.edge_map, self.od_flow_vector, self.inverse_edge_map = None, None, None, None, None, None, \
@@ -76,10 +73,10 @@ class StaticAssignment:
         capacities = np.array([d['capacity'] for (_, _, d) in sorted_edges], dtype=np.float32)
         free_speed = np.array([d['free_speed'] for (_, _, d) in sorted_edges], dtype=np.float32)
         lanes = np.array([d['lanes'] for (_, _, d) in sorted_edges], dtype=np.uint8)
-        if min(lanes)<1:
+        if min(lanes) < 1:
             warn('some roads have zero lanes, minimum of one lane assumed')
         length = np.array([d['length'] for (_, _, d) in sorted_edges], dtype=np.float32)
-        self.link_capacities = np.maximum(capacities,lanes * capacities)
+        self.link_capacities = np.maximum(capacities, lanes * capacities)
         self.link_ff_times = length / free_speed
         max_length = np.max(length)
         if np.max(length) > 100:

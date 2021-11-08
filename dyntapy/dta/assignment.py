@@ -12,6 +12,8 @@
 import numpy as np
 import networkx as nx
 from numba.typed import List
+
+import dyntapy.assignment_context
 from dyntapy.datastructures.csr import csr_prep, UI32CSRMatrix, F32CSRMatrix, csr_sort
 from dyntapy.dta.core.supply import Links, Nodes, Network, Turns
 from dyntapy.dta.core.demand import InternalDynamicDemand
@@ -26,7 +28,6 @@ from dataclasses import dataclass
 from dyntapy.demand import DynamicDemand
 from dyntapy.utilities import log
 from warnings import warn
-import dyntapy.__init__
 
 v_wave_default = dynamic_parameters.supply.v_wave_default
 turn_capacity_default = dynamic_parameters.supply.turn_capacity_default
@@ -55,7 +56,6 @@ class Assignment:
         # you have to be familiar with numba
         _check_centroid_connectivity(g)
         self.g = g
-        dyntapy.__init__.current_network = g  # enables you to import the current network from anywhere to plot
         self.dynamic_demand = dynamic_demand
         self.time = simulation_time
         # get adjacency from nx, and
@@ -69,9 +69,9 @@ class Assignment:
         log('demand simulation build')
 
     def run(self, method: str = 'i_ltm_aon'):
-        # TODO: generic way for adding keyword args
+        dyntapy.assignment_context.running_assignment = self  # making the current assignment available as global var
         methods = {'i_ltm_aon': i_ltm_aon,
-                   'incremental_assignment':incremental,
+                   'incremental_assignment': incremental,
                    'aon': aon}
         if method in methods:
             flows, costs = methods[method](self.internal_network, self.internal_dynamic_demand, self.time)
@@ -79,16 +79,15 @@ class Assignment:
             raise NotImplementedError(f'{method=} is not defined ')
         return flows, costs
 
-
-
-
     @staticmethod
     def __init_time_obj(time: SimulationTime):
-        route_choice_time = time # for now network loading and route choice time are always equal
+        route_choice_time = time  # for now network loading and route choice time are always equal
+
         @dataclass
         class DTATime:
             network_loading = time
             route_choice = route_choice_time
+
         return DTATime()
 
     @staticmethod
@@ -135,6 +134,8 @@ class Assignment:
                                          np.uint32(internal_time)))
         return InternalDynamicDemand(static_demands, simulation_time.tot_time_steps, tot_centroids,
                                      network.nodes.in_links)
+
+
 def build_network(g):
     edge_data = [(_, _, data) for _, _, data in g.edges.data()]
     sorted_edges = sorted(edge_data, key=lambda t: t[2]['link_id'])
@@ -178,6 +179,8 @@ def build_network(g):
     return Network(links, nodes, turns, g.number_of_edges(),
                    g.number_of_nodes(), turns.capacity.size,
                    tot_connectors)
+
+
 def build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids):
     values, col, row = csr_prep(np.column_stack((from_nodes, link_ids)), to_nodes,
                                 (tot_nodes, tot_links))
@@ -195,6 +198,7 @@ def build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids):
     number_of_out_links = np.array(number_of_out_links, dtype=np.uint32)
     number_of_in_links = np.array(number_of_in_links, dtype=np.uint32)
     return Nodes(out_links, in_links, number_of_out_links, number_of_in_links, control_type, capacity)
+
 
 def build_turns(tot_nodes, nodes: Nodes, link_types):
     to_nodes = List()
@@ -249,6 +253,7 @@ def build_turns(tot_nodes, nodes: Nodes, link_types):
                  np.array(via_nodes, dtype=np.uint32),
                  np.array(to_nodes, dtype=np.uint32), np.array(from_links, dtype=np.uint32),
                  np.array(to_links, dtype=np.uint32), turn_type)
+
 
 def build_links(turns, tot_links, from_nodes, to_nodes, capacity, free_speed, lanes, length,
                 link_type):

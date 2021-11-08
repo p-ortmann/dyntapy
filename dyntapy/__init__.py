@@ -18,4 +18,3 @@ data_folder = 'data'
 Path(os.getcwd() + os.path.sep + data_folder).mkdir(parents=True, exist_ok=True)
 Path(os.getcwd() + os.path.sep + results_folder).mkdir(parents=True, exist_ok=True)
 
-current_network = None
