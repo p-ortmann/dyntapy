@@ -19,7 +19,8 @@ from dyntapy.utilities import _log
 gap = dynamic_parameters.network_loading.epsilon
 node_model_str = dynamic_parameters.network_loading.node_model
 max_iterations = dynamic_parameters.network_loading.max_iterations
-
+congestion_flow_delta_trigger = dynamic_parameters.network_loading.cong_flow_delta_trigger
+trigger_node_update_threshold = dynamic_parameters.network_loading.trigger_node_update_threshold
 
 @njit(cache=True)
 def i_ltm(network: ILTMNetwork, dynamic_demand: InternalDynamicDemand, results: ILTMState, time: SimulationTime,
@@ -232,10 +233,7 @@ def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,cvn_down
         if nodes_2_update[t, origin]:
             tot_nodes_updates += 1
             for index, connector in np.ndenumerate(out_links.get_nnz(origin)):
-                if t==0:
-                    tmp_sending_flow[0,:]=0
-                else:
-                    tmp_sending_flow[0, :] = cvn_up[t - 1, connector, :]
+                tmp_sending_flow[0,:]=0
                 for flow, destination in zip(current_demand.to_destinations.get_row(origin),
                                                        current_demand.to_destinations.get_nnz(origin)):
                     destination_id = np.argwhere(all_active_destinations == destination)[0, 0]
@@ -246,11 +244,17 @@ def __load_origin_flows(current_demand, nodes_2_update, t, t_id, cvn_up,cvn_down
                 if np.sum(np.abs(tmp_sending_flow[0, :] - (cvn_up[t , connector, :])-cvn_down[t,connector,:])) > gap:
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), origin] = True
                     cvn_up[t, connector, :] = tmp_sending_flow[0, :]+cvn_up[t-1,connector,:]
-                    if np.sum(cvn_up[t, connector, :] - cvn_up[t - 1, connector, :]) < cap[connector] * step_size:
+                    if np.sum(tmp_sending_flow[0,:]) < cap[connector] * step_size:
                         con_up[t, connector] = False
                     else:
                         con_up[t, connector] = True
-                        raise Exception(' connector congestion, this is not supposed to happen..')
+                        print('connector congestion on link')
+                        print(str(connector))
+                        print('origin:')
+                        print(str(origin))
+                        print('rounded sending flow')
+                        print(str(int(np.sum(tmp_sending_flow[0, :]))))
+                        raise Exception(' connector congestion, overloaded local infrastructure')
 
                 if vind[connector] == -1:
                     nodes_2_update[t, to_node[connector]] = True
@@ -438,7 +442,7 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         # check for all of the in_links if any of their cvns change significantly enough to trigger
         # recomputation of their tail nodes at backward time (spillback).
         if tot_local_sending_flow[in_id] > 0:
-            if result_tot_sending_flow[in_id] < tot_local_sending_flow[in_id]:
+            if result_tot_sending_flow[in_id] < tot_local_sending_flow[in_id]-congestion_flow_delta_trigger:
                 con_down[t, in_link] = True
                 temp_sending_flow[in_id, :] = sending_flow[in_id, :] / np.sum(sending_flow[in_id, :]) * \
                                               result_tot_sending_flow[
@@ -497,10 +501,10 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
     for out_id, out_link in enumerate(local_out_links):
         if t==0:
             update_out_link = np.sum(
-                np.abs(cvn_up[t, out_link, :] - receiving_flow[out_id, :])) > gap
+                np.abs(cvn_up[t, out_link, :] - receiving_flow[out_id, :])) > trigger_node_update_threshold
         else:
             update_out_link = np.sum(
-            np.abs(cvn_up[t, out_link, :] - (cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]))) > gap
+            np.abs(cvn_up[t, out_link, :] - (cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]))) > trigger_node_update_threshold
         update_node = update_out_link or update_node
 
         if np.sum(receiving_flow[out_id, :]) > total_receiving_flow[out_id]:
@@ -524,13 +528,13 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
                 nodes_2_update[np.uint32(min(t - vind[out_link], tot_time_steps - 1)), to_nodes[out_link]] = True
 
         if marg_comp:
-            potential_destinations = receiving_flow[out_id] <= gap
+            potential_destinations = receiving_flow[out_id] <= trigger_node_update_threshold
             if np.any(potential_destinations):
                 threshold = 0
                 for destination in np.argwhere(potential_destinations == True)[0]:
                     threshold += np.abs(cvn_up[t, out_link, destination] - (
                             cvn_up[t - 1, out_link, destination] + receiving_flow[out_id, destination]))
-                if threshold > gap:
+                if threshold > trigger_node_update_threshold:
                     nodes_2_update[t, to_nodes[out_link]] = True
                     nodes_2_update[np.uint32(min(tot_time_steps - 1, t)), to_nodes[out_link]] = True
                     delta_change[to_nodes[out_link]] = delta_change[to_nodes[out_link]] - time_step * 1 / vind[
@@ -540,8 +544,8 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
         nodes_2_update[np.uint32(min(tot_time_steps - 1, t + 1)), node] = True
     for in_id, in_link in enumerate(local_in_links):
         if t!=0:
-            if np.any(temp_sending_flow[in_id,:]<0):
-                print('hi')
+            # if np.any(temp_sending_flow[in_id,:]<0):
+            #     print('hi')
             cvn_down[t, in_link, :] = cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :]
 
         else:
@@ -549,9 +553,9 @@ def update_cvns_and_delta_n(result_turning_flows, turning_fractions, sending_flo
             #    if np.any(cvn_up[t, in_link, :] - temp_sending_flow[in_id, :] < 0):
             #        print('monotonicty violated for link' + str(in_link))
                 cvn_down[t, in_link, :] = temp_sending_flow[in_id, :]
-        if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
-                temp_sending_flow[in_id, :]) > 0:
-            pass
+        # if np.any(cvn_down[t - 1, in_link, :] + temp_sending_flow[in_id, :] - gap > cvn_up[t, in_link, :]) and np.sum(
+        #         temp_sending_flow[in_id, :]) > 0:
+        #     pass
     for out_id, out_link in enumerate(local_out_links):
         if t!=0:
             cvn_up[t, out_link, :] = cvn_up[t - 1, out_link, :] + receiving_flow[out_id, :]

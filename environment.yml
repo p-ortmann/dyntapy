@@ -1,0 +1,23 @@
+name: dyntapy
+channels:
+  - https://conda.anaconda.org/conda-forge/
+  - https://conda.anaconda.org/anaconda
+  - anaconda
+  - numba
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numba
+  - osmnx
+  - numpy
+  - scipy
+  - pip
+  - jupyter
+  - bokeh
+  - geojson
+  - pandas
+  - shapely
+  - networkx
+  - pip:
+      - dyntapy

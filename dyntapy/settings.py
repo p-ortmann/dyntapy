@@ -75,6 +75,8 @@ class _NetworkLoading:
     link_model: str = 'i_ltm'  # only 'i_ltm' for now
     gap: np.float32 = np.float32(0.001)
     epsilon: np.float = np.float32(0.001)
+    cong_flow_delta_trigger = np.float(0.001) # how much a constraint at the outflow side has to be violated
+    # before it's considered congested
     max_iterations: np.uint32 = np.uint32(1000)
     node_model: str = 'orca'  # 'only 'orca' for now
     precision: np.float32 = np.float32(0.001)
@@ -111,8 +113,8 @@ class _RouteChoice:
     Note: Changes to these values may only take affect after the numba_cache directory has been deleted
     """
     aggregation: np.float32 = 1
-    delta_cost: np.float32 = 0.000001  # in hours
-    precision: np.float32 = 0.000001
+    delta_cost: np.float32 = 0.0001  # in hours
+    precision: np.float32 = 0.0001
     restricted_turn_cost = 24
 
 
@@ -149,8 +151,8 @@ class _Static_Assignment:
     msa_delta = 0.001
     fw_max_iterations = 50
     fw_delta = 0.001
-    dial_b_max_iterations = 10
-    dial_b_cost_differences = 0.001
+    dial_b_max_iterations = 30
+    dial_b_cost_differences = 0.01
     logit_theta = 0.001
     gap_method = "relative"
 

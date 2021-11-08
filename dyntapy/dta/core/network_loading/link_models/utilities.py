@@ -14,6 +14,7 @@ from dyntapy.dta.core.time import SimulationTime
 from numba import njit, prange, objmode
 from numba.typed import List
 from dyntapy.settings import dynamic_parameters
+from dyntapy.utilities import _log
 
 epsilon = dynamic_parameters.network_loading.epsilon
 

@@ -97,6 +97,7 @@ def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: 
 @njit(cache=True)
 def get_aon_route_choice(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand,
                          ):
+    _log('calculating aon route choice',to_console=True)
     free_flow_costs = network.links.length / network.links.v0
     costs = np.empty((time.tot_time_steps, network.tot_links), dtype=np.float32)
     for t in range(time.tot_time_steps):

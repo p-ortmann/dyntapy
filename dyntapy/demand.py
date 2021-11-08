@@ -134,7 +134,6 @@ def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
     od_matrix : float array, centroids x centroids
     X : x_coord array of centroids
     Y : y_coord array of centroids
-    time: time at which demand is to enter the network
 
     Returns
     -------

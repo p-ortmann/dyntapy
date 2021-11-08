@@ -26,6 +26,7 @@ use_turn_delays = dynamic_parameters.network_loading.use_turn_delays
 @njit(cache=True, parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, arrival_maps,
                         old_costs, new_costs):
+    _log('updating arrival map', to_console=True)
     tot_time_steps = time.tot_time_steps
     from_link = network.turns.from_link
     out_turns = network.links.out_turns
@@ -46,18 +47,19 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     # refer to page 48, algorithm 6 for details.
     tot_active_nodes = 0  # number of nodes in this time step that still need to be considered
     for destination in prange(all_destinations.size):
-        _log(' processing new destination')
+        _log(' processing new destination', to_console=True)
         next_links_to_update = np.full(network.tot_links, False, dtype=np.bool_)
         for t in range(tot_time_steps - 1, -1, -1):
-            _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t), to_console=False)
+            _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t), to_console=True)
             links_2_update = next_links_to_update.copy()
             for turn, delta in np.ndenumerate(delta_costs[t, :]):
-                # find all links with changed travel times and add their tail nodes
-                # to the list of nodes to be updated
+                # find all turns with changed travel times and add their from_links
+                # to the list of links to be updated
                 # u turn costs are set to infinity and do not change.
                 if delta > route_choice_delta:
                     link = from_link[turn]
                     links_2_update[link] = True
+                    next_links_to_update[link]=True
             while np.any(links_2_update == True):
                 # _log('currently active nodes: ' + str(np.argwhere(nodes_2_update == True)))
                 # going through all the nodes that need updating for the current time step
@@ -96,7 +98,7 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                     arrival_maps[destination, t, min_link] = new_dist
                     for turn in in_turns.get_nnz(min_link):
                         links_2_update[from_link[turn]] = True
-                        next_links_to_update[from_link[turn]] = True
+                        # next_links_to_update[from_link[turn]] = True
 
 
 # TODO: test the @njit(parallel=True) option here
@@ -217,13 +219,6 @@ def link_to_turn_costs_deterministic(link_costs: np.ndarray, out_links: UI32CSRM
                 for turn, from_link in zip(in_turns.get_nnz(to_link), in_turns.get_row(to_link)):
                     if turn_restrictions[turn]:
                         turn_costs[t, turn] = restricted_turn_cost
-                    elif link_types[from_link] != 1:
-                        turn_costs[t, turn] = link_costs[t, from_link]
                     else:
-                        # currently not used ..
-                        congestion_cost = link_costs[t, from_link] - ff_tt[from_link]
-                        if np.sum(turning_fractions[:, t, turn] * cvn_up[t, from_link, :]) > 0:
-                            turn_costs[t, turn] = congestion_cost + ff_tt[from_link]
-                        else:
-                            turn_costs[t, turn] = congestion_cost + ff_tt[from_link]
+                        turn_costs[t, turn] = link_costs[t, from_link]
     return turn_costs

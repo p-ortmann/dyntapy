@@ -78,6 +78,7 @@ def _log(message, level=settings.log_level,to_console=False):
         print(message)
     if log_numba:
         with objmode():
+            print('entered objmode..')
             log(message,level=level)
     else:
         pass

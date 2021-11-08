@@ -11,22 +11,19 @@ There are demo tutorials available that you can run in Binder.
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD)
 
 # How to install
-If you want this to be part of a particular conda environment, activate it first.
+Download the provided environment.yml. We assume you have conda installed. 
+navigate to the folder containing the environment.yml or pass on the full path.
 ```shell
-conda activate your-environment
+conda env create environment.yml 
 ```
-## from PyPi
-dyntapy is available from PyPi 
-```shell
-python -m pip install dyntapy
-```
+This will sort out dyntapy's dependencies using conda and install dyntapy itself via pip.
+
 ## from this repository 
-Download the repository
+Download the repository, follow the steps above to get all of dyntapy's dependencies.
 we now can install the package with
 ```shell
 python -m pip install -e path-to-folder
 ```
-pip automatically pulls all the dependencies that are listed in the setup.py.
 Using -e makes the repo editable.
 If you make changes or add a functionality it will be available in a fresh session
 or if you reload the module.
