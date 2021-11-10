@@ -10,7 +10,7 @@
 import os
 import sys
 from pathlib import Path
-
+__version__ = "0.1.1"
 sys.path.append(os.getcwd() + os.path.sep)
 
 results_folder = 'results'
