@@ -7,8 +7,8 @@
 #
 #
 
-from numba import config
-config.DISABLE_JIT = 1
+# from numba import config
+# config.DISABLE_JIT = 1
 from dyntapy.demand import parse_demand, generate_od_xy, DynamicDemand
 from dyntapy.network_data import load_pickle
 from dyntapy.dta.assignment import Assignment
@@ -24,7 +24,7 @@ def init_assignment():
         g = load_pickle(city + '_grid_centroids')
     except NameError:
         g = get_graph(city)
-    geo_jsons = [generate_od_xy(1, city, seed=seed, max_flow=500) for seed in [1, 2]]
+    geo_jsons = [generate_od_xy(7, city, seed=seed, max_flow=200) for seed in [1, 2]]
     times = np.arange(2)
     trip_graphs = [parse_demand(geo_json, g, time) for geo_json, time in zip(geo_jsons, times)]
     for trip_graph, time in zip(trip_graphs, times):

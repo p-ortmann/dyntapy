@@ -17,7 +17,7 @@ from dyntapy.demand import generate_random_bush
 from dyntapy.visualization import show_network, show_demand
 from dyntapy.sta.assignment import StaticAssignment
 from dyntapy.settings import static_parameters
-(g, deleted) = get_from_ox_and_save('Gent')
+g= get_from_ox_and_save('Gent')
 rand_od = generate_random_bush(g.number_of_nodes(), 3, seed=2)  # initiating bush with 3 random branches
 obj = StaticAssignment(g, rand_od)
 show_demand(obj)

@@ -4,8 +4,8 @@
 #  More information at: https://gitlab.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 #
-from numba import config
-config.FULL_TRACEBACKS = 1
+# from numba import config
+# config.FULL_TRACEBACKS = 1
 #
 # config.DISABLE_JIT = 1
 from dyntapy.demand import parse_demand, generate_od_xy

@@ -36,10 +36,11 @@ def gap(flows, travel_times, demand, sp_costs, method=gap_method):
 
 
 @njit
-def __relative(flows, travel_times, demand, sp_costs):
-    return np.vdot(flows, travel_times) / np.vdot(demand, sp_costs)
+def __relative(flows: np.ndarray, travel_times: np.ndarray, demand: np.ndarray, sp_costs: np.ndarray):
+    return np.vdot(flows.astype(np.float32), travel_times.astype(np.float32)) / np.vdot(demand.astype(np.float32),
+                                                                                        sp_costs.astype(np.float32))
 
 
 @njit
 def __avg_excess_cost(flows, travel_times, demand, sp_costs):
-    return (np.vdot(flows, travel_times) - np.vdot(demand, sp_costs)) / np.sum(demand)
+    return (np.vdot(flows.astype(np.float32), travel_times.astype(np.float32)) - np.vdot(demand.astype(np.float32), sp_costs.astype(np.float32))) / np.sum(demand)

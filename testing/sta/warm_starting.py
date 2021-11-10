@@ -4,12 +4,13 @@
 #  More information at: https://gitlab.mech.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 # this file tests warm-started dial-b
+# TODO: needs to be updated for CSR format in Demand ...
 from dyntapy.sta.algorithms.deterministic.dial_algorithm_B.bush_manager import dial_b
 from dyntapy.sta.assignment import StaticAssignment
 from dyntapy.demand import generate_od_fixed
 from dyntapy.network_data import get_from_ox_and_save
 import numpy as np
-(g, deleted) = get_from_ox_and_save('Gent')
+g= get_from_ox_and_save('Gent')
 rand_od = generate_od_fixed(g.number_of_nodes(), 10)
 obj = StaticAssignment(g, rand_od)  # initialization of the assignment object
 print('static assignment object generated')

@@ -87,9 +87,9 @@ def incremental_loading(network: Network, time: SimulationTime, dynamic_demand: 
                                                       aon_state.turning_fractions,
                                                       network.links.length / network.links.v0, iltm_state.cvn_up,
                                                       aon_state.turn_restrictions)
-        from dyntapy.dta.core.debugging import plot_links_with_cost_changes
-        plot_links_with_cost_changes(aon_state.link_costs, link_costs)
-        update_arrival_maps(network, time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs, turn_costs)
+        # from dyntapy.dta.core.debugging import plot_links_with_cost_changes
+        # plot_links_with_cost_changes(aon_state.link_costs, link_costs, iltm_state)
+        update_arrival_maps(network, time, dynamic_demand, aon_state.arrival_maps, aon_state.turn_costs, turn_costs, link_costs)
         turning_fractions = get_turning_fractions(dynamic_demand, network, time, aon_state.arrival_maps, turn_costs)
         # smoothing turning fractions like you would in MSA
         aon_state.turning_fractions = smooth_arrays(turning_fractions, aon_state.turning_fractions, k + 1, 'msa')

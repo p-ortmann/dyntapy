@@ -4,13 +4,13 @@
 #  More information at: https://gitlab.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 #
-from numba import config
-
-config.DISABLE_JIT = 1
+# from numba import config
+#
+# config.DISABLE_JIT = 1
 from dyntapy.demand import parse_demand, generate_od_xy
 from dyntapy.network_data import load_pickle
 from dyntapy.sta.assignment import StaticAssignment
-from dyntapy.settings import default_dynamic_city as city
+from dyntapy.settings import default_static_city as city
 from dyntapy.visualization import show_demand, show_network
 from dyntapy.sta.assignment_methods import DUN, DUE, SUN, SUE
 from testing.road_network_and_centroids import get_graph

@@ -220,25 +220,30 @@ def get_ltm_link_kwargs(i_ltm_state):
     network = running_assignment.internal_network
     flows = cvn_to_flows(i_ltm_state.cvn_down)
     cur_queues = np.sum(i_ltm_state.cvn_up, axis=2) - np.sum(i_ltm_state.cvn_down, axis=2)  # current queues
-    plot = {'cvn_up': i_ltm_state.cvn_up, 'cvn_down': i_ltm_state.cvn_down, 'vind': network.links.vf_index,
-            'wind': network.links.vw_index, 'flows': flows, 'current_queues': cur_queues},
+    plot = {'cvn_up': i_ltm_state.cvn_up, 'cvn_down': i_ltm_state.cvn_down,
+             'flows': flows, 'current_queues': cur_queues}
     return plot
 
 
 def plot_links_with_cost_changes(cost_before, cost_after, i_ltm_state=None):
     from dyntapy.assignment_context import running_assignment
     abs_dif_in_secs = np.abs(cost_before - cost_after) * 3600
-    if i_ltm_state is not None:
-        iltm_link_kwargs = get_ltm_link_kwargs(i_ltm_state)
-        show_dynamic_network(running_assignment.g, time=running_assignment.time,
-                             link_kwargs={'cost_before': cost_before, 'cost_after': cost_after,
-                                          'abs_dif_in_secs': abs_dif_in_secs} | iltm_link_kwargs,
-                             highlight_links=np.any(abs_dif_in_secs > 0, axis=0), show_nodes=False)
-    else:
-        show_dynamic_network(running_assignment.g, time=running_assignment.time,
-                             link_kwargs={'cost_before': cost_before, 'cost_after': cost_after,
-                                          'abs_dif_in_secs': abs_dif_in_secs},
-                             highlight_links=np.any(abs_dif_in_secs > 0, axis=0), show_nodes=False)
+    links_with_cost_changes = np.where(np.any(abs_dif_in_secs > 0, axis=0))[0]
+    print(f'{links_with_cost_changes.size} links with cost changes.'
+          f' {links_with_cost_changes=}')
+
+    if links_with_cost_changes.size!=0:
+        if i_ltm_state is not None:
+            iltm_link_kwargs = get_ltm_link_kwargs(i_ltm_state)
+            show_dynamic_network(running_assignment.g, time=running_assignment.time,
+                                 link_kwargs={'cost_before': cost_before*3600, 'cost_after': cost_after*3600,
+                                              'abs_dif_in_secs': abs_dif_in_secs, **iltm_link_kwargs},
+                                 highlight_links=links_with_cost_changes, show_nodes=False)
+        else:
+            show_dynamic_network(running_assignment.g, time=running_assignment.time,
+                                 link_kwargs={'cost_before': cost_before*3600, 'cost_after': cost_after*3600,
+                                              'abs_dif_in_secs': abs_dif_in_secs},
+                                 highlight_links=links_with_cost_changes, show_nodes=False)
 
 
 def plot_i_ltm_state(i_ltm_state):

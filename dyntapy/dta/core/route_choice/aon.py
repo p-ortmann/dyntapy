@@ -21,11 +21,9 @@ route_choice_agg = dynamic_parameters.route_choice.aggregation
 use_turn_delays = dynamic_parameters.network_loading.use_turn_delays
 
 
-# TODO: test function for arrival map topological order
-
 @njit(cache=True, parallel=True)
 def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand, arrival_maps,
-                        old_costs, new_costs):
+                        old_costs, new_costs, link_costs):
     _log('updating arrival map', to_console=True)
     tot_time_steps = time.tot_time_steps
     from_link = network.turns.from_link
@@ -33,34 +31,32 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
     in_turns = network.links.in_turns
     all_destinations = dynamic_demand.all_active_destinations
     delta_costs = np.abs(new_costs - old_costs)
-    next_links_to_update = np.full(network.tot_nodes, False, dtype=np.bool_)  # nodes to be
+    links_2_update = np.full((tot_time_steps, network.tot_links), False, dtype=np.bool_)  # nodes to be
     # activated for earlier time steps
     step_size = time.step_size
-    np.floor_divide(new_costs, step_size)
     turn_time = np.floor_divide(new_costs, step_size)
     interpolation_frac = np.divide(new_costs, step_size) - turn_time
+    is_relevant_time_slice = np.full(tot_time_steps, False)
     # TODO: revisit structuring of the travel time arrays
     # could be worth while to copy and reverse the order depending on where you're at in these loops ..
     # the following implementation closely follows the solution presented in
     # Himpe, Willem. "Integrated Algorithms for Repeated Dynamic Traffic Assignments The Iterative
     # Link Transmission Model with Equilibrium Assignment Procedure."(2016).
     # refer to page 48, algorithm 6 for details.
-    tot_active_nodes = 0  # number of nodes in this time step that still need to be considered
+    # only the time dependency grid has been added to reduce the number of computational points being queried.
     for destination in prange(all_destinations.size):
         _log(' processing new destination', to_console=True)
-        next_links_to_update = np.full(network.tot_links, False, dtype=np.bool_)
         for t in range(tot_time_steps - 1, -1, -1):
             _log('building map for destination ' + str(destination) + ' , now in time step ' + str(t), to_console=True)
-            links_2_update = next_links_to_update.copy()
             for turn, delta in np.ndenumerate(delta_costs[t, :]):
                 # find all turns with changed travel times and add their from_links
                 # to the list of links to be updated
                 # u turn costs are set to infinity and do not change.
                 if delta > route_choice_delta:
                     link = from_link[turn]
-                    links_2_update[link] = True
-                    next_links_to_update[link]=True
-            while np.any(links_2_update == True):
+                    links_2_update[t, link] = True
+
+            while np.any(links_2_update[t, :] == True):
                 # _log('currently active nodes: ' + str(np.argwhere(nodes_2_update == True)))
                 # going through all the nodes that need updating for the current time step
                 # note that nodes_2_update changes dynamically as we traverse the graph ..
@@ -69,12 +65,12 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
 
                 min_dist = np.inf
                 min_link = -1
-                for link, active in enumerate(links_2_update):
+                for link, active in enumerate(links_2_update[t, :]):
                     if active:
                         if arrival_maps[destination, t, link] <= min_dist:
                             min_link = link
                             min_dist = arrival_maps[destination, t, link]
-                links_2_update[min_link] = False  # no longer considered
+                links_2_update[t, min_link] = False  # no longer considered
                 # _log('deactivated node ' + str(min_node))
                 new_dist = np.inf
                 for out_link, turn in zip(out_turns.get_row(min_link), out_turns.get_nnz(min_link)):
@@ -89,16 +85,43 @@ def update_arrival_maps(network: Network, time: SimulationTime, dynamic_demand: 
                     # _log(f'distance to {min_node} via out_link node {to_node[link]} is {dist} ')
                     if dist < new_dist:
                         new_dist = dist
-                        assert new_dist>0
-                        assert new_dist<1000
+                        assert new_dist > 0
+                        assert new_dist < 1000
 
                 # _log(f'result for node {min_node} written back? {np.abs(new_dist - arrival_maps[destination, t, min_node]) > route_choice_delta}')
                 if np.abs(new_dist - arrival_maps[destination, t, min_link]) > route_choice_delta:
                     # new arrival time found
                     arrival_maps[destination, t, min_link] = new_dist
+                    links_2_update[:t, min_link] = _find_relevant_time_slices(t, link_costs[:,min_link], step_size,
+                                                                              is_relevant_time_slice)
                     for turn in in_turns.get_nnz(min_link):
-                        links_2_update[from_link[turn]] = True
-                        # next_links_to_update[from_link[turn]] = True
+                        links_2_update[t, from_link[turn]] = True
+                        links_2_update[:t, from_link[turn]] = _find_relevant_time_slices(t, link_costs[:, from_link[turn]],
+                                                                                         step_size,
+                                                                                         is_relevant_time_slice)
+
+
+@njit()
+def _find_relevant_time_slices(cur_interval, link_costs, step_size, is_relevant_time_slice):
+    """
+
+    Parameters
+    ----------
+    cur_interval : int
+    step_size : float
+    is_relevant_time_slice : boolean array
+
+    Returns
+    -------
+    boolean array
+    """
+    is_relevant_time_slice[:cur_interval] = False
+    for t in range(cur_interval - 1, -1, -1):
+        t1 = np.uint32(t+ link_costs[t]/step_size)
+        t2 = t1 + 1
+        if cur_interval == t1 or cur_interval == t2:
+            is_relevant_time_slice[t] = True
+    return is_relevant_time_slice[:cur_interval]
 
 
 # TODO: test the @njit(parallel=True) option here
