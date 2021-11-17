@@ -17,6 +17,7 @@ __pycache__/
 *.py.lprof
 
 # Distribution / packaging
+push_pypi.sh
 .Python
 build/
 develop-eggs/
