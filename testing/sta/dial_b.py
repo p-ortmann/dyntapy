@@ -4,10 +4,9 @@
 #  More information at: https://gitlab.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 #
-# from numba import config
+from numba import config
 # config.FULL_TRACEBACKS = 1
-#
-# config.DISABLE_JIT = 1
+config.DISABLE_JIT = 1
 from dyntapy.demand import parse_demand, generate_od_xy
 from dyntapy.network_data import load_pickle
 from dyntapy.sta.assignment import StaticAssignment
@@ -20,8 +19,7 @@ import numpy as np
 try:
     g = load_pickle(city + '_grid_centroids')
 except NameError:  # no data file
-    get_graph()
-    g = load_pickle(city + '_grid_centroids')
+    g = get_graph(city)
 seed = 0
 json_demand = generate_od_xy(5, city, seed=seed, max_flow=600)
 od_graph = parse_demand(json_demand, g, 0)
