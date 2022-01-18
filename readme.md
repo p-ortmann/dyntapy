@@ -1,15 +1,11 @@
 # Dyntapy - Dynamic Traffic Assignment in Python
 Provided functionalities:
 - Network generation from OSM using OSMnx complying with [GMNS](https://github.com/zephyr-data-specs/GMNS) attribute names.
-- Static Assignments (deterministic user equilibrium: FW, DialB, MSA; stochastic, uncongested: Dial's Algorithm)
+- Static Assignments (deterministic user equilibrium: DialB, MSA; stochastic, uncongested: Dial's Algorithm)
 - Dynamic User Equilibrium using the iterative link transmission model [^1]
-- Visualization of real and toy networks with Static and Dynamic attributes using Bokeh, including bidirectional flow visualization
+- Visualization of static and dynamic attributes, including bidirectional flow visualization
 - fast shortest path computations
 - Selected Link Analysis
-The biggest asset of dyntapy is that it has been written from the ground up in python. This enables use of jupyter notebooks for analysis.
-It integrates with Binder to enable sharing your results and method with your colleagues and the world without the need of cumbersome installation or license acquisition.
-
-
 
 
 [^1]: convergence below $`10^{-2}`$ according to the provided excess cost criteria cannot be guaranteed for a reasonable amount of iterations
