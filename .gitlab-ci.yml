@@ -1,0 +1,9 @@
+image: ortmann/dyntapy-testing:latest
+# copying image from private docker repository, maintained separately
+test:
+  script:
+    - echo "the project directory is - $CI_PROJECT_DIR"
+    # run pytest with the provided interpreter. It does not have dyntapy installed.
+    # The repository files are available in the home directory of the container,
+    # so the current status of dyntapy on the given branch is being tested against.
+    - conda run -n dyntapy-tests python -m pytest

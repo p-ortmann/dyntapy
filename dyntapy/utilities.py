@@ -7,22 +7,22 @@
 #
 #
 #
+import datetime
+import inspect
+import logging
+import os
+import time
+from functools import wraps
+
+import matplotlib.cm as cm
 import numpy as np
 from matplotlib.colors import to_hex, to_rgba
-import matplotlib.cm as cm
-import logging
+from numba import njit, objmode
+
 import dyntapy.settings as settings
-import inspect
-import os
-import datetime
-from functools import wraps
-import time
-from numba import objmode, njit
-from dyntapy.settings import log_numba, dynamic_parameters
-from dyntapy.__init__ import data_folder
+from dyntapy.settings import log_numba, parameters
 
-default_link_color=dynamic_parameters.visualization.link_color
-
+default_link_color = parameters.visualization.link_color
 
 cleared_log = False
 
@@ -35,12 +35,16 @@ def __create_green_to_red_cm():
 
     """
     x = np.linspace(0, 1, 256)
-    rgba = cm.get_cmap('hsv', 256)(x)
+    rgba = cm.get_cmap("hsv", 256)(x)
     # which element in rgba is the most green and the least red and blue
     temp = np.copy(rgba)
-    np.negative(temp[:, 1:2], temp[:, 1:2])  # negative sign for green --> minimizing rowsum corresponds to green
+    np.negative(
+        temp[:, 1:2], temp[:, 1:2]
+    )  # negative sign for green --> minimizing rowsum corresponds to green
     index_green = temp.sum(axis=1).argmin()
-    rgba = np.flipud(rgba[:index_green, :])  # inverse the resulting colormap to get (green --> yellow--> red)
+    rgba = np.flipud(
+        rgba[:index_green, :]
+    )  # inverse the resulting colormap to get (green --> yellow--> red)
     new_cm = [to_hex(color, keep_alpha=False) for color in rgba]
     new_cm.insert(0, default_link_color)
     return new_cm
@@ -54,14 +58,18 @@ def timeit(my_func):
         output = my_func(*args, **kw)
         tend = time.time()
 
-        print('"{}" took {:.3f} ms to execute\n'.format(my_func.__name__, (tend - tstart) * 1000))
+        print(
+            '"{}" took {:.3f} ms to execute\n'.format(
+                my_func.__name__, (tend - tstart) * 1000
+            )
+        )
         return output
 
     return timed
 
 
 @njit(cache=True)
-def _log(message, level=settings.log_level,to_console=False):
+def _log(message, level=settings.log_level, to_console=False):
     """
 
     Parameters
@@ -78,8 +86,8 @@ def _log(message, level=settings.log_level,to_console=False):
         print(message)
     if log_numba:
         with objmode():
-            print('entered objmode..')
-            log(message,level=level)
+            print("entered objmode..")
+            log(message, level=level)
     else:
         pass
 
@@ -138,15 +146,17 @@ def get_logger(name):
     logger.setLevel(logging.DEBUG)
 
     # if a logger with this name is not already set up
-    if not getattr(logger, 'handler_set', None):
+    if not getattr(logger, "handler_set", None):
 
         # get today's date and construct a log filename
-        todays_date = datetime.datetime.today().strftime('%Y_%m_%d')
-        log_filename = os.path.join(settings.log_folder, '{}_{}.log'.format('dtapy', todays_date))
+        todays_date = datetime.datetime.today().strftime("%Y_%m_%d")
+        log_filename = os.path.join(
+            settings.log_folder, "{}_{}.log".format("dtapy", todays_date)
+        )
         global cleared_log
         if not cleared_log:
             try:
-                open(log_filename, 'w').close()  # clears the log from previous runs
+                open(log_filename, "w").close()  # clears the log from previous runs
             except FileNotFoundError:
                 pass
             cleared_log = True
@@ -156,28 +166,12 @@ def get_logger(name):
             os.makedirs(settings.log_folder)
 
         # create file handler and log formatter and set them up
-        handler = logging.FileHandler(log_filename, encoding='utf-8')
-        formatter = logging.Formatter('%(asctime)s %(levelname)s @%(name)s.py: %(message)s')
+        handler = logging.FileHandler(log_filename, encoding="utf-8")
+        formatter = logging.Formatter(
+            "%(asctime)s %(levelname)s @%(name)s.py: %(message)s"
+        )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         logger.handler_set = True
 
     return logger
-
-
-def np_to_py_type_conversion(value):
-    if isinstance(value, np.integer):
-        return int(value)
-    elif isinstance(value, np.floating):
-        return float(value)
-    elif isinstance(value, np.ndarray):
-        return value.tolist()
-
-
-def _filepath(name: str, check_path_valid=False):
-    assert isinstance(name, str)
-    file_path = os.path.join(data_folder, str(name.lower() + '.pickle'))
-    if check_path_valid:
-        if not os.path.isfile(file_path):
-            raise NameError(f'{name}.pickle not found in data folder!')
-    return file_path

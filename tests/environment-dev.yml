@@ -1,4 +1,4 @@
-name: dyntapy
+name: dyntapy-dev
 channels:
   - https://conda.anaconda.org/conda-forge/
   - https://conda.anaconda.org/anaconda
@@ -7,8 +7,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9
-  - numba=0.54.1
+  - python
+  - numba
   - osmnx
   - numpy
   - scipy
@@ -19,5 +19,9 @@ dependencies:
   - pandas
   - shapely
   - networkx
-  - pip:
-      - dyntapy
+  - pytest
+  - black
+  - isort
+  - pydocstyle
+  - coverage
+  - pre-commit

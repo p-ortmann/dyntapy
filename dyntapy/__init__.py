@@ -7,14 +7,25 @@
 #
 #
 
-import os
-import sys
-from pathlib import Path
 __version__ = "0.1.5"
-sys.path.append(os.getcwd() + os.path.sep)
-
-results_folder = 'results'
-data_folder = 'data'
-Path(os.getcwd() + os.path.sep + data_folder).mkdir(parents=True, exist_ok=True)
-Path(os.getcwd() + os.path.sep + results_folder).mkdir(parents=True, exist_ok=True)
-
+# expose major functionality in dyntapy namespace such
+# that dyntapy.function() can be called directly
+from .assignments import DynamicAssignment, StaticAssignment
+from .demand_data import (
+    add_centroids_to_graph,
+    add_connectors,
+    auto_configured_centroids,
+    find_nearest_centroids,
+    generate_random_od_graph,
+    get_centroid_grid_coords,
+)
+from .graph_utils import get_shortest_paths, get_all_shortest_paths
+from .results import StaticResult, DynamicResult
+from .supply_data import places_around_place, relabel_graph, road_network_from_place
+from .toy_networks.get_networks import get_toy_network
+from .visualization import (
+    show_demand,
+    show_dynamic_network,
+    show_network,
+    show_link_od_flows,
+)

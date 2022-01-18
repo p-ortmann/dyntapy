@@ -7,11 +7,13 @@
 #
 import numpy as np
 from numba import njit
-from dyntapy.settings import static_parameters
 
-gap_method = static_parameters.assignment.gap_method
+from dyntapy.settings import parameters
+
+gap_method = parameters.static_assignment.gap_method
 
 
+@njit
 def gap(flows, travel_times, demand, sp_costs, method=gap_method):
     """
     gap functions typically used in DUE assignments
@@ -22,25 +24,35 @@ def gap(flows, travel_times, demand, sp_costs, method=gap_method):
             flows : link flow vector
             travel_times : link travel time vector given the flow
             demand : vector of OD demands
-            sp_costs : vector of shortest path costs between OD given the current network load
+            sp_costs : vector of shortest path costs
+            between OD given the current network load
             -------
-            """
-    gap_methods = ['relative', 'avg_excess_cost']
+    """
+    gap_methods = ["relative", "avg_excess_cost"]
     assert method in gap_methods
-    if method == 'relative':
+    if method == "relative":
         gamma = __relative(flows, travel_times, demand, sp_costs) - 1
-    elif method == 'avg_excess_cost':
+    elif method == "avg_excess_cost":
         gamma = __avg_excess_cost(flows, travel_times, demand, sp_costs)
 
     return gamma
 
 
 @njit
-def __relative(flows: np.ndarray, travel_times: np.ndarray, demand: np.ndarray, sp_costs: np.ndarray):
-    return np.vdot(flows.astype(np.float32), travel_times.astype(np.float32)) / np.vdot(demand.astype(np.float32),
-                                                                                        sp_costs.astype(np.float32))
+def __relative(
+    flows: np.ndarray,
+    travel_times: np.ndarray,
+    demand: np.ndarray,
+    sp_costs: np.ndarray,
+):
+    return np.vdot(flows.astype(np.float32), travel_times.astype(np.float32)) / np.vdot(
+        demand.astype(np.float32), sp_costs.astype(np.float32)
+    )
 
 
 @njit
 def __avg_excess_cost(flows, travel_times, demand, sp_costs):
-    return (np.vdot(flows.astype(np.float32), travel_times.astype(np.float32)) - np.vdot(demand.astype(np.float32), sp_costs.astype(np.float32))) / np.sum(demand)
+    return (
+        np.vdot(flows.astype(np.float32), travel_times.astype(np.float32))
+        - np.vdot(demand.astype(np.float32), sp_costs.astype(np.float32))
+    ) / np.sum(demand)
