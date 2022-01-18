@@ -16,7 +16,8 @@ from setuptools import setup
 HERE = pathlib.Path(__file__).parent
 
 # The text of the README file
-README = "See docs on [Gitlab](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy)"
+README = "See docs on " \
+         "[Gitlab](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy)"
 
 # PyPI classifiers here
 CLASSIFIERS = [
@@ -29,7 +30,6 @@ CLASSIFIERS = [
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
 ]
 
@@ -57,7 +57,7 @@ INSTALL_REQUIRES = [
 # now call setup
 setup(
     name="dyntapy",
-    version="0.1.5",
+    version="0.2.0",
     description=DESC,
     classifiers=CLASSIFIERS,
     url="https://gitlab.kuleuven.be/ITSCreaLab/mobilitytools",
