@@ -115,6 +115,8 @@ spec_node = [
     ("tot_out_links", uint32[:]),
     ("tot_in_links", uint32[:]),
     ("is_centroid", boolean[:]),
+    ("x_coord", float32[:]),
+    ("y_coord", float32[:]),
 ]
 
 
@@ -134,6 +136,8 @@ class Nodes(object):
         control_type,
         capacity,
         is_centroid,
+        x_coord,
+        y_coord,
     ):
         """
         out_links and in_links are sparse matrices in csr format that indicate
@@ -152,6 +156,8 @@ class Nodes(object):
         self.control_type = control_type  #
         self.capacity = capacity
         self.is_centroid = is_centroid
+        self.x_coord = x_coord
+        self.y_coord = y_coord
 
 
 class UncompiledNodes(object):
@@ -168,6 +174,8 @@ class UncompiledNodes(object):
         control_type,
         capacity,
         is_centroid,
+        x_coord,
+        y_coord,
     ):
         """
         See Nodes class for docs
@@ -180,6 +188,8 @@ class UncompiledNodes(object):
         self.control_type = control_type  #
         self.capacity = capacity
         self.is_centroid = is_centroid
+        self.x_coord = x_coord
+        self.y_coord = y_coord
 
 
 spec_turn = [

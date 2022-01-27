@@ -71,6 +71,8 @@ class ILTMNodes(UncompiledNodes):
             nodes.control_type,
             nodes.capacity,
             nodes.is_centroid,
+            nodes.x_coord,
+            nodes.y_coord,
         )
 
         self.turn_based_in_links = turn_based_in_links

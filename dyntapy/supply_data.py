@@ -285,7 +285,6 @@ def __clean_up_data(g: nx.DiGraph):
                     else:
                         data[key] = max(float_list)
                 if isinstance(e, ValueError):
-
                     # maxspeed may be an individual string 'variable' or 'none' -
                     # we're just deleting this here to infer speed
                     # from the highway tag..
@@ -391,8 +390,17 @@ def build_network(g):
     is_centroid = np.array(
         [bool(d.get("centroid")) for _, d in sorted_nodes], dtype=bool
     )
+    x_coord = np.array([d["x_coord"] for (_, d) in sorted_nodes], dtype=np.float32)
+    y_coord = np.array([d["y_coord"] for (_, d) in sorted_nodes], dtype=np.float32)
     nodes = build_nodes(
-        tot_nodes, tot_links, from_nodes, to_nodes, link_ids, is_centroid
+        tot_nodes,
+        tot_links,
+        from_nodes,
+        to_nodes,
+        link_ids,
+        is_centroid,
+        x_coord,
+        y_coord,
     )
     log("nodes passed")
     link_type = np.array(
@@ -445,7 +453,9 @@ def build_network(g):
     )
 
 
-def build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids, is_centroid):
+def build_nodes(
+    tot_nodes, tot_links, from_nodes, to_nodes, link_ids, is_centroid, x_coord, y_coord
+):
     values, col, row = csr_prep(
         np.column_stack((from_nodes, link_ids)), to_nodes, (tot_nodes, tot_links)
     )
@@ -473,6 +483,8 @@ def build_nodes(tot_nodes, tot_links, from_nodes, to_nodes, link_ids, is_centroi
         control_type,
         capacity,
         is_centroid,
+        x_coord,
+        y_coord,
     )
 
 
