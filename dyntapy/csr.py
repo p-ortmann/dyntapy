@@ -19,7 +19,7 @@ numba_csr_val_types = [float32[:], uint32[:], uint8[:]]
 
 
 @nb.njit(cache=True)
-def csr_sort(index_array, values, number_of_columns):
+def csr_sort(index_array, values, tot_columns):
     """
     sorts index_array increasing according to rows, ties are broken by the columns
     example for sorted index_array:
@@ -47,7 +47,7 @@ def csr_sort(index_array, values, number_of_columns):
         heappush(
             my_heap,
             (
-                uint64(i * (number_of_columns + 1) + j),
+                uint64(i * (tot_columns + 1) + j),
                 uint64(i),
                 uint64(j),
                 uint64(index),
@@ -81,7 +81,7 @@ def __build_csr_cls(nb_type):
         ("col_index", nb.types.uint32[:]),
         ("row_index", nb.types.uint32[:]),
         ("nnz_rows", nb.types.uint32[:]),
-        ("number_of_rows", uint32),
+        ("tot_rows", uint32),
     ]
     spec_csr_matrix = OrderedDict(spec_csr_matrix)
 
@@ -95,7 +95,7 @@ def __build_csr_cls(nb_type):
             self.col_index = col_index
             self.row_index = row_index
             self.nnz_rows = self.__set_nnz_rows()
-            self.number_of_rows = len(row_index) - 2
+            self.tot_rows = len(row_index) - 1
 
         def get_nnz(self, row):
             # getting all the non zero columns of a particular row

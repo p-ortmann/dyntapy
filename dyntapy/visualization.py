@@ -36,16 +36,15 @@ from dyntapy.utilities import __create_green_to_red_cm
 from dyntapy.results import StaticResult
 
 traffic_cm = __create_green_to_red_cm()
-default_plot_size = parameters.visualization.plot_size
-default_notebook_plot_size = parameters.visualization.notebook_plot_size
+
 default_max_links = parameters.visualization.max_links
-scaling = parameters.visualization.link_width_scaling
 link_highlight_colors = parameters.visualization.link_highlight_colors
 node_highlight_color = parameters.visualization.node_highlight_color
 node_color = parameters.visualization.node_color
 centroid_color = parameters.visualization.centroid_color
+link_transparency = parameters.visualization.link_transparency
 node_size = parameters.visualization.node_size
-plot_size = default_plot_size
+link_transparency = 0.8  # 0-1
 
 
 def _get_output_file(plot_name: str):
@@ -53,7 +52,9 @@ def _get_output_file(plot_name: str):
     return os.getcwd() + os.path.sep + f"{plot_name}_{dt_string}.html"
 
 
-def process_plot_arguments(g, title, notebook, show_nodes, toy_network):
+def process_plot_arguments(
+    g, title, notebook, show_nodes, toy_network, link_kwargs, node_kwargs
+):
     # process all arguments that are shared between dynamic and static
     for _, _, data in g.edges.data():
         if "x_coord" in data:
@@ -82,8 +83,8 @@ def process_plot_arguments(g, title, notebook, show_nodes, toy_network):
         )
     if not toy_network:
         plot = figure(
-            plot_height=plot_size,
-            plot_width=plot_size,
+            plot_height=parameters.visualization.plot_size,
+            plot_width=parameters.visualization.plot_size,
             x_axis_type="mercator",
             y_axis_type="mercator",
             aspect_ratio=1,
@@ -96,8 +97,8 @@ def process_plot_arguments(g, title, notebook, show_nodes, toy_network):
         )  # from lan lot to web mercator
     else:
         plot = figure(
-            plot_height=plot_size,
-            plot_width=plot_size,
+            plot_height=parameters.visualization.plot_size,
+            plot_width=parameters.visualization.plot_size,
             aspect_ratio=1,
             toolbar_location="below",
         )
@@ -110,6 +111,28 @@ def process_plot_arguments(g, title, notebook, show_nodes, toy_network):
         output_notebook(hide_banner=True)
     else:
         output_file(_get_output_file(title))
+    # process link and node kwargs to right formatting in the case of
+    # multidimensional arrays, bokeh can only parse list of lists
+    for key, item in zip(link_kwargs.keys(), link_kwargs.values()):
+        if type(link_kwargs[key]) == np.ndarray:
+            if np.issubdtype(item.dtype, np.floating):
+                link_kwargs[key] = (
+                    item.astype(np.float64)
+                    .round(parameters.visualization.rounding_digits)
+                    .tolist()
+                )
+            else:
+                link_kwargs[key] = item.tolist()
+    for key, item in zip(node_kwargs.keys(), node_kwargs.values()):
+        if type(node_kwargs[key]) == np.ndarray:
+            if np.issubdtype(item.dtype, np.floating):
+                node_kwargs[key] = (
+                    item.astype(np.float64)
+                    .round(parameters.visualization.rounding_digits)
+                    .tolist()
+                )
+            else:
+                node_kwargs[key] = item.tolist()
     return plot, tmp
 
 
@@ -127,7 +150,9 @@ def show_network(
     show_nodes=True,
 ):
     # adding different coordinate attribute names to use osmnx functions
-    plot, tmp = process_plot_arguments(g, title, notebook, show_nodes, toy_network)
+    plot, tmp = process_plot_arguments(
+        g, title, notebook, show_nodes, toy_network, link_kwargs, node_kwargs
+    )
     show_flows = True
     if flows is not None:
         pass
@@ -138,7 +163,11 @@ def show_network(
         show_flows = False
     max_flow = max(np.max(flows), 1)
 
-    max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)
+    max_width_bokeh, max_width_coords = get_max_edge_width(
+        tmp,
+        parameters.visualization.link_width_scaling,
+        parameters.visualization.plot_size,
+    )
 
     if type(highlight_links) not in (np.ndarray, list):
         raise ValueError
@@ -155,7 +184,12 @@ def show_network(
     edge_renderer = plot.add_glyph(
         edge_source,
         glyph=Patches(
-            xs="x", ys="y", fill_color="color", line_color="black", line_alpha=0.8
+            xs="x",
+            ys="y",
+            fill_color="color",
+            line_color="black",
+            line_alpha=0.8,
+            fill_alpha=link_transparency,
         ),
     )
     edge_tooltips = [
@@ -247,7 +281,9 @@ def show_dynamic_network(
     -------
 
     """
-    plot, tmp = process_plot_arguments(g, title, notebook, show_nodes, toy_network)
+    plot, tmp = process_plot_arguments(
+        g, title, notebook, show_nodes, toy_network, link_kwargs, node_kwargs
+    )
     if flows is None:
         if "flows" not in list(link_kwargs.keys()):
             flows = np.zeros((time.tot_time_steps, g.number_of_edges()))
@@ -267,11 +303,6 @@ def show_dynamic_network(
                 static = False
             else:
                 raise ValueError("dimension mismatch")
-
-            if np.issubdtype(item.dtype, np.floating):
-                link_kwargs[key] = item.astype(np.float64).round(2).tolist()
-            else:
-                link_kwargs[key] = item.tolist()
             if static:
                 static_link_kwargs[key] = link_kwargs[key]
         else:
@@ -289,14 +320,8 @@ def show_dynamic_network(
                 static = False
             else:
                 raise ValueError("dimension mismatch")
-
-            if np.issubdtype(item.dtype, np.floating):
-                node_kwargs[key] = item.astype(np.float64).round(2).tolist()
-            else:
-                node_kwargs[key] = item.tolist()
             if static:
                 static_node_kwargs[key] = node_kwargs[key]
-
         else:
             raise ValueError("values in node_kwargs need to be numpy.ndarray")
     for key in static_node_kwargs.keys():
@@ -305,7 +330,11 @@ def show_dynamic_network(
     # adding different coordinate attribute names to comply with osmnx
 
     max_flow = min(np.max(flows), 8000)  # weeding out numerical errors
-    max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)
+    max_width_bokeh, max_width_coords = get_max_edge_width(
+        tmp,
+        parameters.visualization.link_width_scaling,
+        parameters.visualization.plot_size,
+    )
     # calculate all colors and coordinates for the different time dependent flows
     all_colors = []
     all_x = []
@@ -341,6 +370,7 @@ def show_dynamic_network(
         glyph=Patches(
             xs="x",
             ys="y",
+            fill_alpha=link_transparency,
             fill_color="color",
             line_color="black",
             line_alpha=0.4,
@@ -466,9 +496,7 @@ def get_max_edge_width(g, scaling, plot_size):
     return max_width_bokeh, max_width_coords
 
 
-def show_demand(
-    g, title=None, plot_size=default_plot_size, notebook=False, toy_network=False
-):
+def show_demand(g, title=None, notebook=False, toy_network=False):
     for _, _, data in g.edges.data():
         if "x_coord" in data:
             data["x"] = data["x_coord"]
@@ -482,15 +510,14 @@ def show_demand(
         title = "demand_plot"
     if notebook:
         output_notebook(hide_banner=True)
-        plot_size = 600
     else:
         output_file(filename=_get_output_file(title))
     if not toy_network:
         g.graph["crs"] = "epsg:4326"
         tmp = ox.project_graph(g, CRS.from_user_input(3857))
         plot = figure(
-            plot_height=plot_size,
-            plot_width=plot_size,
+            plot_height=parameters.visualization.plot_size,
+            plot_width=parameters.visualization.plot_size,
             x_axis_type="mercator",
             y_axis_type="mercator",
             aspect_ratio=1,
@@ -504,13 +531,17 @@ def show_demand(
             # cartesian
         )
         plot = figure(
-            plot_height=plot_size,
-            plot_width=plot_size,
+            plot_height=parameters.visualization.plot_size,
+            plot_width=parameters.visualization.plot_size,
             aspect_ratio=1,
             toolbar_location="below",
         )
     plot.title.text = title
-    max_width_bokeh, max_width_coords = get_max_edge_width(tmp, scaling, plot_size)
+    max_width_bokeh, max_width_coords = get_max_edge_width(
+        tmp,
+        parameters.visualization.link_width_scaling,
+        parameters.visualization.plot_size,
+    )
     min_width_coords = max_width_coords / 10
     all_flow = [flow for u, v, flow in tmp.edges.data("flow") if u != v]
     max_flow = max(all_flow)
@@ -656,7 +687,7 @@ def _get_colors_and_coords(
                 )
             ]
         except IndexError:
-            color = traffic_cm[-1]  # flow larger then capacity!
+            color = traffic_cm[-1]  # flow larger than capacity!
             flow = 0
         except KeyError:  # capacity or flow not defined
             color = traffic_cm[0]

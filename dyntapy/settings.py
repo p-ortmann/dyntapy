@@ -155,7 +155,9 @@ class _Visualization:
 
     max_links: np.uint32 = np.uint32(10000)
     plot_size: int = 800
+    plot_size_notebook: int = 600
     notebook_plot_size: int = 600
+    rounding_digits: int = 2
     link_keys = [
         "link_id",
         "from_node_id",
@@ -179,7 +181,8 @@ class _Visualization:
         "name",
         "place",
     ]
-    link_width_scaling = 0.005
+    link_width_scaling = 0.0025
+    link_transparency = 0.8  # 1 is opaque, 0 transparent
     node_size = 6
     link_highlight_colors = [
         "#ff6ec7",
@@ -240,7 +243,7 @@ class _Static_Assignment:
     fw_delta = 0.001
     dial_b_max_iterations = 100
     dial_b_cost_differences = 0.01
-    logit_theta = 3.1
+    logit_theta = 0.1
     gap_method = "relative"
 
 

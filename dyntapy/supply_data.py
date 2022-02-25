@@ -571,7 +571,8 @@ def build_links(
     -------
 
     """
-    length[length < 0.05] = 0.05
+    # todo: iltm still working with this removed .. ?
+    # length[length < 0.05] = 0.05
     tot_turns = np.uint32(len(turns.to_link))
     fw_index_array = np.column_stack(
         (turns.from_link, np.arange(tot_turns, dtype=np.uint32))

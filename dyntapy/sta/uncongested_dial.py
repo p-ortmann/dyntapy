@@ -6,7 +6,6 @@
 #
 #
 #
-# the
 from math import exp
 
 from numba import njit

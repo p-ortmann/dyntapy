@@ -115,7 +115,6 @@ def dijkstra_all(
     Parameters
     ----------
     is_centroid : bool array, dim tot_nodes, true if node is centroid, false otherwise
-    tot_nodes : int, number of nodes
     costs : float32 vector
     out_links : CSR matrix, fromNode x Link
     Returns
@@ -126,7 +125,7 @@ def dijkstra_all(
     # structures
     # also removed conditional checks/ functionality that are not needed when this is
     # integrated into route choice
-    tot_nodes = out_links.get_nnz_rows().size
+    tot_nodes = out_links.tot_rows
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
     seen = np.copy(distances)
@@ -165,7 +164,6 @@ def dijkstra_with_targets(
     Parameters
     ----------
     is_centroid : bool array, dim tot_nodes, true if node is centroid, false otherwise
-    tot_nodes : int, number of nodes
     costs : float32 vector
     out_links : CSR matrix, fromNode x Link
     target: integer ID of target node
@@ -177,7 +175,7 @@ def dijkstra_with_targets(
     # structures
     # also removed conditional checks/ functionality that are not needed when this is
     # integrated into route choice
-    tot_nodes = out_links.get_nnz_rows().size
+    tot_nodes = out_links.tot_rows
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
     seen = np.copy(distances)
