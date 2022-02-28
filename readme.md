@@ -1,4 +1,8 @@
 # Dyntapy - Dynamic Traffic Assignment in Python
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD?urlpath=/tree/tutorials)
+[![pipeline status](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/badges/master/pipeline.svg)](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/commits/master)
+
+
 Provided functionalities:
 - Network generation from OSM using OSMnx complying with [GMNS](https://github.com/zephyr-data-specs/GMNS) attribute names.
 - Static Assignments (deterministic user equilibrium: DialB, MSA; stochastic, uncongested: Dial's Algorithm)
@@ -11,7 +15,6 @@ Provided functionalities:
 [^1]: convergence below $`10^{-2}`$ according to the provided excess cost criteria cannot be guaranteed for a reasonable amount of iterations
 
 There are demo tutorials available that you can run in Binder.
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD?urlpath=/tree/tutorials)
 
 # How to install
 Download the provided environment.yml. We assume you have conda installed. 
