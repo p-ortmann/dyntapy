@@ -9,6 +9,7 @@ from collections import deque
 from json import loads
 
 import geojson
+import fiona
 import geopandas as gpd
 import networkx as nx
 import numpy as np

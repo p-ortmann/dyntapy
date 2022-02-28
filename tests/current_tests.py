@@ -11,7 +11,7 @@ from tests.test_dyntapy import *
 
 if __name__ == '__main__':
     test_dta()
-    # test_shortest_path()
-    # test_dial_b()
-    # test_sun()
+    test_shortest_path()
+    test_dial_b()
+    test_sun()
     # test_selected_link_analysis()
