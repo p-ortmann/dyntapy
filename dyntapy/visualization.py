@@ -52,9 +52,7 @@ def _get_output_file(plot_name: str):
     return os.getcwd() + os.path.sep + f"{plot_name}_{dt_string}.html"
 
 
-def process_plot_arguments(
-    g, title, notebook, show_nodes, toy_network, link_kwargs, node_kwargs
-):
+def process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_kwargs):
     # process all arguments that are shared between dynamic and static
     for _, _, data in g.edges.data():
         if "x_coord" in data:
@@ -151,7 +149,7 @@ def show_network(
 ):
     # adding different coordinate attribute names to use osmnx functions
     plot, tmp = process_plot_arguments(
-        g, title, notebook, show_nodes, toy_network, link_kwargs, node_kwargs
+        g, title, notebook, toy_network, link_kwargs, node_kwargs
     )
     show_flows = True
     if flows is not None:
@@ -282,7 +280,7 @@ def show_dynamic_network(
 
     """
     plot, tmp = process_plot_arguments(
-        g, title, notebook, show_nodes, toy_network, link_kwargs, node_kwargs
+        g, title, notebook, toy_network, link_kwargs, node_kwargs
     )
     if flows is None:
         if "flows" not in list(link_kwargs.keys()):
@@ -293,12 +291,11 @@ def show_dynamic_network(
     static_link_kwargs = dict()
     static_node_kwargs = dict()
     for key, item in zip(link_kwargs.keys(), link_kwargs.values()):
-        if type(link_kwargs[key]) == np.ndarray:
-            if item.shape == (g.number_of_edges(),):
+        if type(item) == list:
+            if len(item) == g.number_of_edges:
                 static = True
-            elif (
-                item.shape[0] == time.tot_time_steps
-                and item.shape[1] == g.number_of_edges()
+            elif len(item) == time.tot_time_steps and all(
+                len(k) == g.number_of_edges() for k in item
             ):
                 static = False
             else:
@@ -306,7 +303,7 @@ def show_dynamic_network(
             if static:
                 static_link_kwargs[key] = link_kwargs[key]
         else:
-            raise ValueError("values in link_kwargs need to be numpy.ndarray")
+            raise ValueError("values in link_kwargs need to be converted to list")
     for key in static_link_kwargs.keys():
         del link_kwargs[key]
     for key, item in zip(node_kwargs.keys(), node_kwargs.values()):
