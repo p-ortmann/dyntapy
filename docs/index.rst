@@ -10,7 +10,8 @@ Welcome to dyntapy's documentation!
    :maxdepth: 4
    :caption: Contents:
 
-   source/assignments
+   source/dyntapy
+   
 
 Indices and tables
 ==================
