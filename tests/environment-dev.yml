@@ -23,4 +23,5 @@ dependencies:
   - sphinx
   - sphinx_rtd_theme
   - conda-build
+  - twine
   - build
