@@ -6,10 +6,15 @@
 #
 import os
 import pathlib
-from pickle import dump, load
+from pickle import dump
 
 import numpy as np
 
+from dyntapy.toy_networks.get_networks import get_toy_network
+from dyntapy.demand import DynamicDemand
+from dyntapy.demand_data import od_graph_from_matrix
+from dyntapy.dta.time import SimulationTime
+from dyntapy.assignments import DynamicAssignment
 from dyntapy.dta.orca_nodel_model import orca_node_model
 from dyntapy import get_shortest_paths, get_all_shortest_paths
 from dyntapy.demand_data import generate_od_xy, add_centroids_to_graph, \
@@ -20,7 +25,6 @@ from dyntapy import show_demand, show_network, show_dynamic_network, \
 from dyntapy.results import get_od_flows, get_selected_link_analysis
 from dyntapy.supply_data import road_network_from_place, relabel_graph
 from dyntapy.results import StaticResult
-from tests import cascetta
 
 city = 'Zinnowitz'
 graph = None
@@ -29,6 +33,7 @@ demand = None
 network = None
 assignment = None
 HERE = pathlib.Path(__file__).parent
+
 file_path_network = HERE.as_posix() + os.path.sep + city.lower() + '_road_network'
 
 
@@ -49,10 +54,10 @@ def test_get_graph(city=city, k=1, connector_type='link'):
                                 buffer_dist_extended=20000)
     print('road network graph acquired')
     x, y, names, place_tags = auto_configured_centroids(city, buffer_dist_close=5000,
-                                                      buffer_dist_extended=10000)
+                                                        buffer_dist_extended=10000)
     print('centroids found')
     g = add_centroids_to_graph(g, x, y, k=k, method=connector_type,
-                              name=names, place=place_tags)
+                               name=names, place=place_tags)
     print('centroids added to graph')
     g = relabel_graph(g)
     with open(file_path_network, 'wb') as network_file:
@@ -162,4 +167,24 @@ def test_sun():
 
 
 def test_dta():
-    cascetta.run()
+    g = get_toy_network('cascetta')
+    centroid_x = np.array([1, 7, 4])
+    centroid_y = np.array([1, 1, 3.5])
+    g = add_centroids_to_graph(g, centroid_x, centroid_y, euclidean=True)
+    # also adds connectors automatically
+    g = relabel_graph(g)  # adding link and node ids, connectors and centroids
+    # are the first elements
+    show_network(g, toy_network=True)
+    od_matrix = np.zeros(9).reshape((3, 3))
+    od_matrix[0, 1] = 500
+    od_matrix[2, 1] = 500
+    od_graph = od_graph_from_matrix(od_matrix, centroid_x, centroid_y)
+    show_demand(od_graph, toy_network=True)
+    dynamic_demand = DynamicDemand([od_graph], insertion_times=[0])
+    # convert everything to internal representations and parse
+    simulation_time = SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.25)
+    assignment = DynamicAssignment(g, dynamic_demand, simulation_time)
+    result = assignment.run()
+    show_dynamic_network(g, simulation_time, flows=result.flows, toy_network=True,
+                         link_kwargs={'costs': result.link_costs},
+                         )
