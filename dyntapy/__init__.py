@@ -7,7 +7,7 @@
 #
 #
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 # expose major functionality in dyntapy namespace such
 # that dyntapy.function() can be called directly
 from .assignments import DynamicAssignment, StaticAssignment

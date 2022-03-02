@@ -57,10 +57,10 @@ INSTALL_REQUIRES = [
 # now call setup
 setup(
     name="dyntapy",
-    version="0.2.0",
+    version="0.2.1",
     description=DESC,
     classifiers=CLASSIFIERS,
-    url="https://gitlab.kuleuven.be/ITSCreaLab/mobilitytools",
+    url="https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy",
     author="Paul Ortmann",
     author_email="itscrealab@kuleuven.be",
     long_description=README,
