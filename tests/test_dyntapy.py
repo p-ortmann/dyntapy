@@ -6,9 +6,13 @@
 #
 import os
 import pathlib
+import sys
 from pickle import dump
 
 import numpy as np
+
+one_up = pathlib.Path(__file__).parents[1]
+sys.path.append(one_up.as_posix())
 
 from dyntapy.toy_networks.get_networks import get_toy_network
 from dyntapy.demand import DynamicDemand
@@ -33,7 +37,8 @@ demand = None
 network = None
 assignment = None
 HERE = pathlib.Path(__file__).parent
-
+one_up = pathlib.Path(__file__).parents[1]
+sys.path.append(one_up.as_posix())
 file_path_network = HERE.as_posix() + os.path.sep + city.lower() + '_road_network'
 
 

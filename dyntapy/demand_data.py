@@ -9,7 +9,6 @@ from collections import deque
 from json import loads
 
 import geojson
-import fiona
 import geopandas as gpd
 import networkx as nx
 import numpy as np
@@ -356,7 +355,8 @@ def auto_configured_centroids(
     gdf_extended = ox.geometries_from_place(
         place, {"place": ["city", "town"]}, buffer_dist=buffer_dist_extended
     )
-    merged_gdf = gdf_close.append(gdf_extended)
+    merged_gdf = pd.concat([gdf_close, gdf_extended])
+    # merged_gdf = gdf_close.append(gdf_extended)
     G = merged_gdf["geometry"].apply(lambda geom: geom.wkb)
     merged_gdf = merged_gdf.loc[G.drop_duplicates().index]
     names = merged_gdf["name"].tolist()
