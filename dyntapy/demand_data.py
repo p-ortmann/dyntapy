@@ -152,11 +152,11 @@ def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
     """
     if od_matrix.shape != (len(X), len(X)):
         raise ValueError("dimensions of centroid locations and OD matrix incompatible")
-    g = nx.MultiDiGraph()
+    g = nx.DiGraph()
     nodes = [(u, {"x_coord": p[0], "y_coord": p[1]}) for u, p in enumerate(zip(X, Y))]
     g.add_nodes_from(nodes)
     edges = [
-        (u, v, 0, {"flow": od_matrix[u, v]})
+        (u, v, {"flow": od_matrix[u, v]})
         for u, v in np.argwhere(od_matrix > 0)
         if u != v
     ]

@@ -26,19 +26,16 @@ from dyntapy.supply import Network
 class DynamicDemand:
     def __init__(self, od_graphs: list, insertion_times):
         """
-        multiple edges for same od are not supported right now,
-        MultiDiGraph is chosen to
-        maintain compatibility with OSMNX tools
         Parameters
         ----------
-        od_graphs :List of nx.MultiDiGraphs
+        od_graphs :List of nx.DiGraphs
         insertion_times: corresponding times for the demand
          to be loaded into the network
         """
         if type(od_graphs) is not list:
             raise ValueError
         for item in od_graphs:
-            if type(item) is not nx.MultiDiGraph:
+            if type(item) is not nx.DiGraph:
                 raise ValueError
         self.od_graphs = od_graphs
         self.insertion_times = np.array(insertion_times)

@@ -35,9 +35,11 @@ from dyntapy.results import StaticResult, get_skim, DynamicResult
 
 class DynamicAssignment:
     """This class stores all the information needed for the assignment itself.
-    It takes all the information from the nx.MultiDiGraph and the
-    DynamicDemand and translates it into internal representations that can be
-    understood by numba.
+    upon initialisation both the network and dynamic demand are transformed into
+    internal representations.
+    DynamicDemand and translates it into internal array based representation of
+    network and demand that can be
+    understood by Numba.
     """
 
     def __init__(

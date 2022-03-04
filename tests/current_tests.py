@@ -5,13 +5,13 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 from numba import config
-config.DEBUG = 1
-# config.DISABLE_JIT=1
+# config.DEBUG = 1
+config.DISABLE_JIT=1
 from tests.test_dyntapy import *
 
 if __name__ == '__main__':
-    # test_dta()
+    test_dta()
     # test_shortest_path()
-    test_dial_b()
+    # test_dial_b()
     # test_sun()
     # test_selected_link_analysis()
