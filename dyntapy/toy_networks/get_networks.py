@@ -10,7 +10,6 @@ import os
 
 import networkx as nx
 import numpy as np
-import osmnx as ox
 import pandas as pd
 from osmnx.distance import euclidean_dist_vec
 
@@ -27,16 +26,24 @@ default_node_ctrl_type = "none"
 
 def get_toy_network(name, relabel=False):
     """
-    creates toy network based and returns the corresponding GMNS conform MultiDiGraph
+    retrieves toy network options are:
+    'cascetta','simple_merge', 'simple_diverge', 'simple_bottleneck',
+    'chicagosketch' 'chicagoregional' 'siouxfalls' 'birmingham'
+
+    The source of 'chicagosketch' 'chicagoregional' 'siouxfalls' 'birmingham'
+    is Ben Stabler et al. see : https://github.com/bstabler/TransportationNetworks
+
+    The 'cascetta' network is from page 304 of:
+    Cascetta, Ennio. Transportation systems analysis: models and applications.
+    Vol. 29. Springer Science & Business Media, 2009.
     Parameters
     ----------
     relabel : bool, whether to add link and node ids, only applicable if no centroids
-    are needed.
-    name : str, name of the toy network to get, see below
-
+    are needed. Otherwise, relabelling should be done after centroids are added.
+    name : str
     Returns
     -------
-
+    nx.DiGraph
     """
     g = nx.DiGraph()
     if name == "cascetta":
@@ -122,9 +129,7 @@ def get_toy_network(name, relabel=False):
     elif name in [
         "chicagosketch",
         "chicagoregional",
-        "philadelphia",
         "siouxfalls",
-        "sydney",
         "birmingham",
     ]:
         # The source of these networks is Ben Stabler et al.,
@@ -138,9 +143,7 @@ def get_toy_network(name, relabel=False):
             os.path.dirname(os.path.realpath(__file__)), os.path.sep, name
         )
         edge_df = pd.read_csv(edge_file, skiprows=8, sep="\t")
-        if name == "philadelphia":
-            sep = " "
-        elif name == "birmingham":
+        if name == "birmingham":
             sep = "       "
         else:
             sep = "\t"
@@ -200,9 +203,7 @@ if __name__ == "__main__":
     for name in [
         "chicagosketch",
         "chicagoregional",
-        "philadelphia",
         "siouxfalls",
-        "sydney",
         "birmingham",
     ]:
         g = get_toy_network(name)
