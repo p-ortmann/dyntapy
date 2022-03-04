@@ -166,7 +166,7 @@ def convert_osm_to_gmns(g):
     # and also lanes:
     # https://github.com/zephyr-data-specs/
     # GMNS/blob/master/Specification/lane_tod.schema.json
-    new_g = nx.MultiDiGraph()
+    new_g = nx.DiGraph()
     edges = []
     for node, data in g.nodes.data():
         new_data = {
@@ -221,6 +221,7 @@ def relabel_graph(g):
 
 
     """
+    assert type(g) == nx.DiGraph
     centroids = [node for node, is_centroid in g.nodes.data("centroid") if is_centroid]
     intersection_nodes = [
         node for node, is_centroid in g.nodes.data("centroid") if not is_centroid
@@ -241,14 +242,13 @@ def relabel_graph(g):
     for start_node, u in enumerate(ordered_nodes):
         _start_node = start_node
         for v in g.succ[u]:
-            for k in g[u][v].keys():
-                link_id = next(link_counter)
-                end_node = g.nodes[v]["node_id"]
-                data = g[u][v][k].copy()
-                data["link_id"] = link_id
-                data["from_node_id"] = _start_node
-                data["to_node_id"] = end_node
-                new_g.add_edge(_start_node, end_node, key=k, **data)
+            link_id = next(link_counter)
+            end_node = g.nodes[v]["node_id"]
+            data = g[u][v].copy()
+            data["link_id"] = link_id
+            data["from_node_id"] = _start_node
+            data["to_node_id"] = end_node
+            new_g.add_edge(_start_node, end_node, **data)
         # Note that the out_links of a given node always have consecutive ids
     log("graph relabeled")
     return new_g

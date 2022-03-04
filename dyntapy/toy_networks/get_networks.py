@@ -30,14 +30,15 @@ def get_toy_network(name, relabel=False):
     creates toy network based and returns the corresponding GMNS conform MultiDiGraph
     Parameters
     ----------
-    relabel : bool, whether to add link and node ids, only applicable if no centroids are needed.
+    relabel : bool, whether to add link and node ids, only applicable if no centroids
+    are needed.
     name : str, name of the toy network to get, see below
 
     Returns
     -------
 
     """
-    g = nx.MultiDiGraph()
+    g = nx.DiGraph()
     if name == "cascetta":
         ebunch_of_nodes = [
             (1, {"x_coord": 2, "y_coord": np.sqrt(2)}),
@@ -144,7 +145,7 @@ def get_toy_network(name, relabel=False):
         else:
             sep = "\t"
         node_df = pd.read_csv(node_file, sep=sep)
-        Graphtype = nx.MultiDiGraph()
+        Graphtype = nx.DiGraph()
         edge_df["init_node"] = edge_df["init_node"] - 1
         edge_df["term_node"] = edge_df["term_node"] - 1
         edge_df["free_speed"] = edge_df["length"] / edge_df["free_flow_time"]

@@ -171,6 +171,21 @@ def test_sun():
     show_network(graph, res)
 
 
+def test_get_toy_networks():
+    for name in [
+        "cascetta",
+        "simple_bottleneck",
+        "simple_merge",
+        "simple_diverge",
+        "chicagosketch",
+        "chicagoregional",
+        "siouxfalls",
+        "birmingham"]:
+        g = get_toy_network(name, relabel=True)
+        show_network(g, toy_network=True)
+        print(f'{name=}')
+
+
 def test_dta():
     g = get_toy_network('cascetta')
     centroid_x = np.array([1, 7, 4])

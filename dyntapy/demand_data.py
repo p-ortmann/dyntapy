@@ -261,7 +261,7 @@ def add_centroids_to_graph(g, X, Y, k=1, method="turn", euclidean=False, **kwarg
                 raise TypeError(f"{key} is not iterable")
             if len(val) != len(X):
                 raise ValueError(f"{key} has the wrong dimension")
-    new_g = nx.MultiDiGraph()
+    new_g = nx.DiGraph()
     new_g.graph = g.graph
     last_intersection_node = max(g.nodes)
     attributes = {"x_coord": X, "y_coord": Y, **kwargs}
