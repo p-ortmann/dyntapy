@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 two_up = Path(__file__).parents[1]
-sys.path.insert(0, two_up)
+sys.path.insert(0, two_up.as_posix())
 # -- Project information -----------------------------------------------------
 
 project = 'dyntapy'
