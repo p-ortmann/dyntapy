@@ -37,9 +37,6 @@ class DynamicAssignment:
     """This class stores all the information needed for the assignment itself.
     upon initialisation both the network and dynamic demand are transformed into
     internal representations.
-    DynamicDemand and translates it into internal array based representation of
-    network and demand that can be
-    understood by Numba.
     """
 
     def __init__(
@@ -52,18 +49,13 @@ class DynamicAssignment:
 
         Parameters
         ----------
-        network : nx.MultiDiGraph
+        network : nx.DiGraph
         dynamic_demand : DynamicDemand
         """
-        # the data structures starting with _ refer to internal compiled structures,
-        # if you want to change them
-        # you have to be familiar with numba
         _check_centroid_connectivity(network)
         self.network = network
         self.dynamic_demand = dynamic_demand
         self.time = simulation_time
-        # get adjacency from nx, and
-        # self.demand = self.build_demand()
         self.internal_network = build_network(network)
         log("network build")
 
@@ -94,9 +86,6 @@ class DynamicAssignment:
         return DynamicResult(**result)
 
 
-# remapping of od from different time granularity to computation time steps
-# node or link event which triggers a change in otherwise stationary characteristics
-# example ramp metering event capacity choke, relative and absolute events
 class StaticAssignment:
     def __init__(self, g: nx.DiGraph, od_graph: nx.DiGraph):
         """
@@ -104,12 +93,8 @@ class StaticAssignment:
         Parameters
         ----------
         g : nx.DiGraph
-        od_matrix : array like object
-            Dimensions should be nodes x nodes of the nx.DiGraph in the Assignment
-            object
+        od_graph : nx.DiGraph
         """
-
-        # TODO: make all functions use the same network definition as dynamic
         self.internal_network = build_network(g)
         log("network build")
         self.network = g
@@ -127,14 +112,13 @@ class StaticAssignment:
 
         Parameters
         ----------
-        method : ["frank_wolfe", "dial_b", "msa", "sun"]
-        store_iterations :
+        method : str, ["frank_wolfe", "dial_b", "msa", "sun"]
+        store_iterations : whether to retain information on intermediate iterations
 
         Returns
         -------
 
         """
-        # TODO: run assignments in the same format as in dynamic
         dyntapy._context.running_assignment = (
             self  # making the current assignment available as global var
         )
