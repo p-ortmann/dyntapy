@@ -12,7 +12,7 @@ from numba import njit
 from dyntapy.demand import _InternalDynamicDemand, _InternalStaticDemand
 from dyntapy.dta.i_ltm_cls import ILTMNetwork, ILTMState
 from dyntapy.dta.orca_nodel_model import orca_node_model as orca
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.utilities import _log
 

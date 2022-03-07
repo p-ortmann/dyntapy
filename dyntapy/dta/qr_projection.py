@@ -9,7 +9,7 @@ from numba import njit, prange
 
 from dyntapy.demand import _InternalDynamicDemand
 from dyntapy.dta.i_ltm_cls import ILTMNetwork
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.settings import parameters
 
 epsilon = parameters.dynamic_assignment.network_loading.epsilon

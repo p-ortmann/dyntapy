@@ -12,7 +12,7 @@ from numba.experimental import jitclass
 
 from dyntapy.demand import _InternalDynamicDemand
 from dyntapy.dta.qr_projection import qr_projection
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.supply import Network
 from dyntapy.utilities import _log
 from dyntapy.settings import parameters

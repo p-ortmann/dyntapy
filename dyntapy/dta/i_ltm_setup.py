@@ -17,7 +17,7 @@ from dyntapy.dta.i_ltm_cls import (
     ILTMNodes,
     ILTMState,
 )
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.supply import Network
 from dyntapy.utilities import _log
 from dyntapy.settings import parameters

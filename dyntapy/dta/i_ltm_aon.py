@@ -19,7 +19,7 @@ from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
 from dyntapy.dta.aon import link_to_turn_costs_deterministic
 from dyntapy.dta.incremental_assignment import incremental_loading
 from dyntapy.dta.deterministic import update_route_choice
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
 from dyntapy.results import cvn_to_flows
 from dyntapy.settings import debugging, parameters

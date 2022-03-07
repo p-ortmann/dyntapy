@@ -29,7 +29,7 @@ from bokeh.tile_providers import Vendors, get_provider
 from pyproj import CRS
 from shapely.geometry import LineString
 
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.utilities import __create_green_to_red_cm
 from dyntapy.results import StaticResult

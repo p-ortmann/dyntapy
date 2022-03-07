@@ -19,7 +19,8 @@ from dyntapy.demand import DynamicDemand
 from dyntapy.demand_data import od_graph_from_matrix
 from dyntapy.assignments import DynamicAssignment
 from dyntapy.dta.orca_nodel_model import orca_node_model
-from dyntapy import get_shortest_paths, get_all_shortest_paths, SimulationTime
+from dyntapy import get_shortest_paths, get_all_shortest_paths
+from dyntapy.demand import SimulationTime
 from dyntapy.demand_data import generate_od_xy, add_centroids, \
     auto_configured_centroids, parse_demand
 from dyntapy import StaticAssignment

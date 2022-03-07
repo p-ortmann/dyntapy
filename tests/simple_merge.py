@@ -14,7 +14,7 @@ from dyntapy.visualization import show_network, show_dynamic_network, show_deman
 from dyntapy.supply_data import relabel_graph
 from dyntapy.demand import DynamicDemand
 from dyntapy.demand_data import od_graph_from_matrix, add_centroids
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.assignments import DynamicAssignment
 
 toy_network = 'simple_merge'

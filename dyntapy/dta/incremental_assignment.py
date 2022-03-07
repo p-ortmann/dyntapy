@@ -7,7 +7,7 @@ from dyntapy.dta.deterministic import update_arrival_maps, get_turning_fractions
 from dyntapy.dta.i_ltm import i_ltm
 from dyntapy.dta.i_ltm_cls import ILTMState
 from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
-from dyntapy import SimulationTime
+from dyntapy.demand import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
 from dyntapy.results import cvn_to_flows
 from dyntapy.supply import Network
