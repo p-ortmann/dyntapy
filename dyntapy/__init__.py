@@ -12,7 +12,7 @@ __version__ = "0.2.1"
 # that dyntapy.function() can be called directly
 from .assignments import DynamicAssignment, StaticAssignment
 from .demand_data import (
-    add_centroids_to_graph,
+    add_centroids,
     add_connectors,
     auto_configured_centroids,
     find_nearest_centroids,
@@ -29,3 +29,4 @@ from .visualization import (
     show_network,
     show_link_od_flows,
 )
+from dyntapy.dta.time import SimulationTime

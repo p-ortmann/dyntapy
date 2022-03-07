@@ -1,6 +1,7 @@
 # Change log
 ## 0.2.2 (in progress)
 
+- add_centroids_to_graph function has been renamed to add_centroids
 - replace nx.MultiDiGraph with nx.DiGraph where applicable
 - improving docs in all user-facing functions (dyntapy.function)
  

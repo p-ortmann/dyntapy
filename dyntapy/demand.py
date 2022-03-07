@@ -24,7 +24,7 @@ from dyntapy.supply import Network
 
 
 class DynamicDemand:
-    def __init__(self, od_graphs: list, insertion_times):
+    def __init__(self, od_graphs, insertion_times):
         """
         Parameters
         ----------

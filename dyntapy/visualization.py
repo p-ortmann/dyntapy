@@ -31,7 +31,6 @@ from shapely.geometry import LineString
 
 from dyntapy.dta.time import SimulationTime
 from dyntapy.settings import parameters
-from dyntapy.supply_data import relabel_graph
 from dyntapy.utilities import __create_green_to_red_cm
 from dyntapy.results import StaticResult
 
@@ -52,7 +51,7 @@ def _get_output_file(plot_name: str):
     return os.getcwd() + os.path.sep + f"{plot_name}_{dt_string}.html"
 
 
-def process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_kwargs):
+def _process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_kwargs):
     # process all arguments that are shared between dynamic and static
     for _, _, data in g.edges.data():
         if "x_coord" in data:
@@ -71,14 +70,14 @@ def process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_kw
             or not all(i == j - 1 for i, j in zip(linkids, linkids[1:]))
         ):
             needs_relabelling = True
-            # they have got to be
-            # starting at 0 & consecutively labelled integers
     except TypeError:
-        needs_relabelling = True
+        raise ValueError("Links in g were not labelled, use relabel_graph function")
     if needs_relabelling:
         raise ValueError(
             "Links in g were not labelled correctly, use relabel_graph function"
         )
+        # they have got to be
+        # starting at 0 & consecutively labelled integers
     if not toy_network:
         plot = figure(
             plot_height=parameters.visualization.plot_size,
@@ -135,20 +134,38 @@ def process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_kw
 
 
 def show_network(
-    g: nx.MultiDiGraph,
+    g: nx.DiGraph,
     result: StaticResult = None,
-    flows=None,
-    link_kwargs=dict(),
-    node_kwargs=dict(),
-    highlight_links=np.array([]),
-    highlight_nodes=np.array([]),
-    toy_network=False,
-    title=None,
-    notebook=False,
-    show_nodes=True,
+    flows: np.ndarray = None,
+    link_kwargs: dict = dict(),
+    node_kwargs: dict = dict(),
+    highlight_links: np.ndarray = np.array([]),
+    highlight_nodes: np.ndarray = np.array([]),
+    toy_network: bool = False,
+    title: bool = None,
+    notebook: bool = False,
+    show_nodes: bool = True,
 ):
-    # adding different coordinate attribute names to use osmnx functions
-    plot, tmp = process_plot_arguments(
+    """
+    function for visualizing the network in the browser
+    Parameters
+    ----------
+    g
+    result
+    see dyntapy.StaticResult
+    flows
+    link_kwargs
+    node_kwargs
+    highlight_links
+    highlight_nodes
+    toy_network
+    set to True for toy networks. Toy network's coordinates are assumed to be
+    euclidean, if false we assume lon lat
+    title
+    notebook
+    set to True if the plot should be rendered in a notebook.
+    """
+    plot, tmp = _process_plot_arguments(
         g, title, notebook, toy_network, link_kwargs, node_kwargs
     )
     show_flows = True
@@ -279,7 +296,7 @@ def show_dynamic_network(
     -------
 
     """
-    plot, tmp = process_plot_arguments(
+    plot, tmp = _process_plot_arguments(
         g, title, notebook, toy_network, link_kwargs, node_kwargs
     )
     if flows is None:

@@ -21,7 +21,7 @@ from dyntapy.dta.time import SimulationTime
 from dyntapy.assignments import DynamicAssignment
 from dyntapy.dta.orca_nodel_model import orca_node_model
 from dyntapy import get_shortest_paths, get_all_shortest_paths
-from dyntapy.demand_data import generate_od_xy, add_centroids_to_graph, \
+from dyntapy.demand_data import generate_od_xy, add_centroids, \
     auto_configured_centroids, parse_demand
 from dyntapy import StaticAssignment
 from dyntapy import show_demand, show_network, show_dynamic_network, \
@@ -61,8 +61,8 @@ def test_get_graph(city=city, k=1, connector_type='link'):
     x, y, names, place_tags = auto_configured_centroids(city, buffer_dist_close=5000,
                                                         buffer_dist_extended=10000)
     print('centroids found')
-    g = add_centroids_to_graph(g, x, y, k=k, method=connector_type,
-                               name=names, place=place_tags)
+    g = add_centroids(g, x, y, k=k, method=connector_type,
+                      name=names, place=place_tags)
     print('centroids added to graph')
     g = relabel_graph(g)
     with open(file_path_network, 'wb') as network_file:
@@ -190,7 +190,7 @@ def test_dta():
     g = get_toy_network('cascetta')
     centroid_x = np.array([1, 7, 4])
     centroid_y = np.array([1, 1, 3.5])
-    g = add_centroids_to_graph(g, centroid_x, centroid_y, euclidean=True)
+    g = add_centroids(g, centroid_x, centroid_y, euclidean=True)
     # also adds connectors automatically
     g = relabel_graph(g)  # adding link and node ids, connectors and centroids
     # are the first elements

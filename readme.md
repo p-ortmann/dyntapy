@@ -1,7 +1,8 @@
 # Dyntapy - Dynamic Traffic Assignment in Python
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD?urlpath=/tree/tutorials)
 [![pipeline status](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/badges/master/pipeline.svg)](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/commits/master)
 [![Documentation Status](https://readthedocs.org/projects/dyntapy/badge/?version=latest)](https://dyntapy.readthedocs.io/en/latest/?badge=latest)
+[![Gitter](https://badges.gitter.im/dyntapy/dyntapy.svg)](https://gitter.im/dyntapy/dyntapy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD?urlpath=/tree/tutorials)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Latest Release](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/badges/release.svg)](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/releases)
 

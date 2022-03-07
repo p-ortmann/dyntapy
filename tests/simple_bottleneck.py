@@ -13,7 +13,7 @@ import numpy as np
 from dyntapy.visualization import show_network, show_dynamic_network, show_demand
 from dyntapy.supply_data import relabel_graph
 from dyntapy.demand import DynamicDemand
-from dyntapy.demand_data import od_graph_from_matrix, add_centroids_to_graph
+from dyntapy.demand_data import od_graph_from_matrix, add_centroids
 from dyntapy.dta.time import SimulationTime
 from dyntapy.assignments import DynamicAssignment
 
@@ -21,8 +21,8 @@ toy_network = 'simple_bottleneck'
 g = get_toy_network(toy_network)
 centroid_x = np.array([0, 7])
 centroid_y = np.array([0.9, 0.9])
-g = add_centroids_to_graph(g, centroid_x, centroid_y,
-                           euclidean=True)  # also adds connectors automatically
+g = add_centroids(g, centroid_x, centroid_y,
+                  euclidean=True)  # also adds connectors automatically
 g = relabel_graph(g)  # adding link and node ids, connectors and centroids
 # are the first elements
 show_network(g, toy_network=True, title=toy_network)
