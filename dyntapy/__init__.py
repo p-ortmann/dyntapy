@@ -29,4 +29,4 @@ from .visualization import (
     show_network,
     show_link_od_flows,
 )
-from dyntapy.dta.time import SimulationTime
+from .demand import SimulationTime

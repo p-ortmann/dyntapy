@@ -7,9 +7,9 @@
 import numpy as np
 from numba import njit, prange
 
-from dyntapy.demand import InternalDynamicDemand
+from dyntapy.demand import _InternalDynamicDemand
 from dyntapy.dta.i_ltm_cls import ILTMNetwork
-from dyntapy.dta.time import SimulationTime
+from dyntapy import SimulationTime
 from dyntapy.settings import parameters
 
 epsilon = parameters.dynamic_assignment.network_loading.epsilon
@@ -25,7 +25,7 @@ def qr_projection(
     turn_costs,
     network: ILTMNetwork,
     turning_fractions,
-    dynamic_demand: InternalDynamicDemand,
+    dynamic_demand: _InternalDynamicDemand,
     time: SimulationTime,
     k,
 ):
@@ -106,10 +106,13 @@ def qr_projection(
                                 (min_cost - arrival) * cur_translation_factor, -0.1
                             )
                             # print(f'shifting away from {turn=} by {shift[t, turn]}')
-                            # shift always < 0  because the turn is not on the epsilon-shortest-path-tree
-                            # the dampening factor basically translates from the units of costs to a change in
-                            # turning fractions, it's supposed to be updated as you progress through the simulation
-                            # dynamic reduction of change based on convergence of earlier time steps
+                            # shift always < 0  because the turn is not
+                            # on the epsilon-shortest-path-tree
+                            # the dampening factor basically translates from the units
+                            # of costs to a change in turning fractions,
+                            # it's supposed to be updated as you progress through the
+                            # simulation dynamic reduction of change based on
+                            # convergence of earlier time steps
                             shift[t, turn] = max(
                                 -turning_fractions[d, t, turn]
                                 + np.finfo(np.float32).eps,
@@ -119,16 +122,10 @@ def qr_projection(
                                     - HISTORICAL_SHIFT_FACTOR * np.sum(shift[:t, turn]),
                                 ),
                             )
-                            # the aptly named historical shift factor determines how much more we shift based on
-                            # how much has been shifted in previous time slices
+                            # historical shift factor determines how much more we shift
+                            # based on how much has been shifted in previous time slices
                             sum_shift = sum_shift + shift[t, turn]
                             if t > 0:
-                                val = (
-                                    (arrival - min_cost)
-                                    * (cvn_down[t, link, d] - cvn_down[t - 1, link, d])
-                                    * turning_fractions[d, t, turn]
-                                )
-                                # print(f'{link=} contributed {val} for {t=} for loading {turn=} ')
                                 gec_local = (
                                     gec_local
                                     + (arrival - min_cost)
@@ -137,10 +134,6 @@ def qr_projection(
                                 )
 
                             else:
-                                val = (arrival - min_cost) * (
-                                    cvn_down[t, link, d] * turning_fractions[d, t, turn]
-                                )
-                                # print(f'{link=} contributed {val} for {t=} for loading {turn=} ')
                                 gec_local = gec_local + (arrival - min_cost) * (
                                     cvn_down[t, link, d] * turning_fractions[d, t, turn]
                                 )
@@ -151,7 +144,8 @@ def qr_projection(
                         # if the min_cost stems from an arrival map
                         # that wasn't brought into consistency with the current cost,
                         # or there are very small differences.
-                        # it shouldn't happen since we measure the difference to the previously computed arrival map
+                        # it shouldn't happen since we measure the difference to
+                        # the previously computed arrival map
                         local_short_turns = np.nonzero(
                             local_costs == np.argmin(local_costs)
                         )[0]
@@ -164,8 +158,10 @@ def qr_projection(
                                 shift[t, turn] = shift[t, turn] + np.abs(
                                     sum_shift / local_short_turns.size
                                 )
-                                # the previously applied reductions on turns that are not on the shortest path tree
-                                # are now evenly spread among the turns that are part of it, such that the sum of
+                                # the previously applied reductions on turns that are
+                                # not on the shortest path tree
+                                # are now evenly spread among the turns that are
+                                # part of it, such that the sum of
                                 # the turning fractions is still 1.
                                 ptr += 1
                         turning_fractions[d, t, turn] = (

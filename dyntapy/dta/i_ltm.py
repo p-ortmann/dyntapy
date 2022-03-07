@@ -9,10 +9,10 @@
 import numpy as np
 from numba import njit
 
-from dyntapy.demand import InternalDynamicDemand, InternalStaticDemand
+from dyntapy.demand import _InternalDynamicDemand, _InternalStaticDemand
 from dyntapy.dta.i_ltm_cls import ILTMNetwork, ILTMState
 from dyntapy.dta.orca_nodel_model import orca_node_model as orca
-from dyntapy.dta.time import SimulationTime
+from dyntapy import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.utilities import _log
 
@@ -29,7 +29,7 @@ trigger_node_update_threshold = (
 @njit(cache=True)
 def i_ltm(
     network: ILTMNetwork,
-    dynamic_demand: InternalDynamicDemand,
+    dynamic_demand: _InternalDynamicDemand,
     results: ILTMState,
     time: SimulationTime,
     turning_fractions,
@@ -110,11 +110,11 @@ def i_ltm(
         receiving_flow_init = np.full(tot_links, True)
         sending_flow_init = np.full(tot_links, True)
 
-        if dynamic_demand.is_loading(
+        if dynamic_demand._is_loading(
             t
         ):  # check if any origins are sending flow into the network this time step
             _log("demand at time step  " + str(t) + " is loading ")
-            current_demand: InternalStaticDemand = dynamic_demand.get_demand(t)
+            current_demand: _InternalStaticDemand = dynamic_demand._get_demand(t)
             t_id = np.argwhere(dynamic_demand.loading_time_steps == t)[0][0]
             __load_origin_flows(
                 current_demand,

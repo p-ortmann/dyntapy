@@ -9,7 +9,7 @@
 import numpy as np
 from numba import njit, prange
 
-from dyntapy.dta.time import SimulationTime
+from dyntapy import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.supply import Network
 

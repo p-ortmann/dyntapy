@@ -10,12 +10,12 @@ from numba import njit, prange, uint32
 from numba.typed import List
 
 from dyntapy.csr import UI32CSRMatrix
-from dyntapy.demand import InternalDynamicDemand
+from dyntapy.demand import _InternalDynamicDemand
 from dyntapy.dta.deterministic import RouteChoiceState, get_turning_fractions
 from dyntapy.dta.dynamic_dijkstra import dijkstra
 from dyntapy.dta.i_ltm import i_ltm
 from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
-from dyntapy.dta.time import SimulationTime
+from dyntapy import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
 from dyntapy.results import cvn_to_flows
 from dyntapy.settings import parameters
@@ -136,7 +136,7 @@ def link_to_turn_costs_deterministic(
 
 
 @njit(cache=True)
-def aon(network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime):
+def aon(network: Network, dynamic_demand: _InternalDynamicDemand, time: SimulationTime):
     iltm_state, network = i_ltm_aon_setup(network, time, dynamic_demand)
     aon_state = get_aon_route_choice(network, time, dynamic_demand)
     i_ltm(network, dynamic_demand, iltm_state, time, aon_state.turning_fractions)
@@ -156,7 +156,7 @@ def aon(network: Network, dynamic_demand: InternalDynamicDemand, time: Simulatio
 def get_aon_route_choice(
     network: Network,
     time: SimulationTime,
-    dynamic_demand: InternalDynamicDemand,
+    dynamic_demand: _InternalDynamicDemand,
 ):
     _log("calculating aon route choice", to_console=True)
     free_flow_costs = network.links.length / network.links.free_speed

@@ -10,14 +10,14 @@ import numpy as np
 from numba import njit
 
 from dyntapy.csr import F32CSRMatrix, UI8CSRMatrix, csr_prep
-from dyntapy.demand import InternalDynamicDemand
+from dyntapy.demand import _InternalDynamicDemand
 from dyntapy.dta.i_ltm_cls import (
     ILTMLinks,
     ILTMNetwork,
     ILTMNodes,
     ILTMState,
 )
-from dyntapy.dta.time import SimulationTime
+from dyntapy import SimulationTime
 from dyntapy.supply import Network
 from dyntapy.utilities import _log
 from dyntapy.settings import parameters
@@ -27,7 +27,7 @@ v_wave_default = parameters.dynamic_assignment.network_loading.v_wave_default
 
 @njit(cache=True)
 def i_ltm_aon_setup(
-    network: Network, time: SimulationTime, dynamic_demand: InternalDynamicDemand
+    network: Network, time: SimulationTime, dynamic_demand: _InternalDynamicDemand
 ):
     """
     Adding additional structures (arrays, sparse matrices) to the network for i_ltm

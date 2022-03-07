@@ -12,14 +12,14 @@ from numba import njit
 from numba.typed import List
 
 from dyntapy.csr import UI32CSRMatrix
-from dyntapy.demand import InternalDynamicDemand, InternalStaticDemand
+from dyntapy.demand import _InternalDynamicDemand, _InternalStaticDemand
 from dyntapy.dta.debugging import sum_of_turning_fractions, verify_assignment_state
 from dyntapy.dta.i_ltm import i_ltm
 from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
 from dyntapy.dta.aon import link_to_turn_costs_deterministic
 from dyntapy.dta.incremental_assignment import incremental_loading
 from dyntapy.dta.deterministic import update_route_choice
-from dyntapy.dta.time import SimulationTime
+from dyntapy import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
 from dyntapy.results import cvn_to_flows
 from dyntapy.settings import debugging, parameters
@@ -32,7 +32,7 @@ commodity_type = "destination"
 
 
 def _i_ltm_aon(
-    network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime
+    network: Network, dynamic_demand: _InternalDynamicDemand, time: SimulationTime
 ):
     # network loading time and route choice time may differ in the future
     network_loading_time = time
@@ -163,7 +163,7 @@ def is_cost_converged(
     costs,
     flows,
     arrival_map,
-    dynamic_demand: InternalDynamicDemand,
+    dynamic_demand: _InternalDynamicDemand,
     step_size,
     out_links: UI32CSRMatrix,
     target_gap=parameters.dynamic_assignment.gap,
@@ -178,7 +178,7 @@ def is_cost_converged(
     costs : tot_time_steps x tot_links
     flows : tot_time_steps x tot_links
     arrival_map : tot_destinations x tot_time_steps x tot_nodes
-    dynamic_demand : InternalDynamicDemand
+    dynamic_demand : _InternalDynamicDemand
 
     Returns
     -------
@@ -190,7 +190,7 @@ def is_cost_converged(
     )
     shortest_path_travel_times = np.float64(0)
     for t in dynamic_demand.loading_time_steps:
-        demand: InternalStaticDemand = dynamic_demand.get_demand(t)
+        demand: _InternalStaticDemand = dynamic_demand._get_demand(t)
         for origin in demand.to_destinations.get_nnz_rows():
             for flow, destination in zip(
                 demand.to_destinations.get_row(origin),

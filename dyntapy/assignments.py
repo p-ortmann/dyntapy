@@ -10,7 +10,6 @@
 #
 #
 """
-    All assignment methods take the same network as an input.
     The DiGraph format of networkx is very flexible in its formatting.
     We describe below the semantics and labelling requirements for the DiGraph in
     order to use the assignments in dyntapy.
@@ -22,19 +21,31 @@
 
     For the links we need:
     'from_node_id', 'to_node_id', 'link_id', 'lanes',
-    'capacity', 'length', 'geometry', 'free_speed', 'facility_type', 'link_type'
+    'capacity', 'length', 'free_speed'
 
+    optional are:
 
-    We deviate from the standard as we include a boolean 'connector' attribute
-    that is set to True if the link is a connector and a 'link_type' attribute which
-    should be set to 1 for source connectors, set to -1 for sink connectors and 0
-    otherwise.
-    Both of these are optional to set.
+    'geometry': shapely.geometry.LineString
+        if it is not set we assume a straight line
+        between the two nodes.
+
+    'link_type': int,
+        set to 1 for source connectors, -1 for sinks, 0 otherwise.
+
+    'connector': bool,
+        True if the link is a connector
+
 
     For the nodes:
     'node_id', 'x_coord', 'y_coord', 'ctrl_type', 'node_type'
 
-    A boolean 'centroid' attribute is added, once again optional.
+    optional are:
+
+    'connector': bool,
+        True if the node is a centroid
+
+    The inclusion of the 'link_type', 'connector' and 'centroid' attributes are
+    deviations from GMNS.
 
     The graph's nodes and edges need to be labelled consecutively and starting
     from 0.
@@ -43,7 +54,7 @@
     from OpenStreetMap are used.
 
     See Also
-    -----------
+    --------
 
     dyntapy.supply_data.road_network_from_place
 
@@ -60,8 +71,8 @@ import numpy as np
 
 import dyntapy._context
 from dyntapy.demand import (
-    InternalDynamicDemand,
-    build_static_demand,
+    _InternalDynamicDemand,
+    _build_static_demand,
     _build_dynamic_demand,
 )
 from dyntapy.demand_data import _check_centroid_connectivity
@@ -92,6 +103,7 @@ class DynamicAssignment:
 
         Parameters
         ----------
+
         network : nx.DiGraph
         dynamic_demand : dyntapy.DynamicDemand
         simulation_time: dyntapy.time.SimulationTime,
@@ -103,20 +115,23 @@ class DynamicAssignment:
         self.internal_network = build_network(network)
         log("network build")
 
-        self.internal_dynamic_demand: InternalDynamicDemand = _build_dynamic_demand(
+        self.internal_dynamic_demand: _InternalDynamicDemand = _build_dynamic_demand(
             dynamic_demand, simulation_time, self.internal_network
         )
         log("demand simulation build")
 
     def run(self, method: str = "i_ltm_aon"):
         """
+
         Parameters
         ----------
+
         method: {'i_ltm_aon','incremental_assignment', 'aon'}
 
         Returns
         -------
 
+        DynamicResult
         """
         dyntapy._context.running_assignment = (
             self  # making the current assignment available as global var
@@ -145,8 +160,10 @@ class StaticAssignment:
     This class stores all the information needed for the assignment itself.
     Upon initialisation both the network and demand are transformed into
     internal representations.
+
     Parameters
     ----------
+
     g : nx.DiGraph
     od_graph : nx.DiGraph
 
@@ -157,7 +174,7 @@ class StaticAssignment:
         log("network build")
         self.network = g
         self.od_graph = od_graph
-        self.internal_demand = build_static_demand(od_graph)
+        self.internal_demand = _build_static_demand(od_graph)
         self.result = None
         self.iterations = None
         log("Assignment object initialized!")
@@ -168,17 +185,21 @@ class StaticAssignment:
 
         Parameters
         ----------
+
         method : str, ["dial_b","frank_wolfe", "msa", "sun"]
         store_iterations : bool
             set to True to get information on the individual iterations
+
         Returns
         -------
+
         StaticResult
-        List[StaticResult], optional
+        list of StaticResult, optional
             intermediate computation states
 
         Notes
-        ___________
+        -----
+
         "msa", "frank_wolfe" and "dial_b" all try to find the static deterministic
         user equilibrium.
 
@@ -203,7 +224,7 @@ class StaticAssignment:
         large networks with thousands of links.
 
         References
-        -----------
+        ----------
 
         .. [1] Dial, Robert B. ‘A Path-Based User-Equilibrium Traffic Assignment
             Algorithm That Obviates Path Storage and Enumeration’.

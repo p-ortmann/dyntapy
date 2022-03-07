@@ -13,25 +13,39 @@ from collections import OrderedDict
 from warnings import warn
 import networkx as nx
 import numpy as np
-from numba import njit
+from numba import njit, float32
 from numba.core.types import ListType, uint32
 from numba.typed.typedlist import List
 from numba.experimental import jitclass
 
 from dyntapy.csr import F32CSRMatrix, UI32CSRMatrix, csr_prep, f32csr_type
-from dyntapy.dta.time import SimulationTime
 from dyntapy.supply import Network
 
 
 class DynamicDemand:
+    """
+
+    Parameters
+    ----------
+    od_graphs :list of nx.DiGraph
+    insertion_times: np.ndarray
+        times for the demand to be loaded into the network
+
+    Notes
+    -----
+
+    The insertion times need to be within the bounds of the defined simulation time
+    that is passed to the DynamicAssignment
+
+    See Also
+    --------
+
+    dyntapy.assignments.DynamicAssignment
+
+    dyntapy.demand.time.SimulationTime
+    """
+
     def __init__(self, od_graphs, insertion_times):
-        """
-        Parameters
-        ----------
-        od_graphs :List of nx.DiGraphs
-        insertion_times: corresponding times for the demand
-         to be loaded into the network
-        """
         if type(od_graphs) is not list:
             raise ValueError
         for item in od_graphs:
@@ -40,7 +54,7 @@ class DynamicDemand:
         self.od_graphs = od_graphs
         self.insertion_times = np.array(insertion_times)
 
-    def get_sparse_repr(self, time):
+    def _get_sparse_repr(self, time):
         """
         Parameters
         ----------
@@ -48,12 +62,12 @@ class DynamicDemand:
 
         Returns
         -------
-        lil_matrix of trip table for given time slice
+        scipy.lil_matrix of trip table for given time slice
         """
-        graph = self.get_od_graph(time)
+        graph = self._get_od_graph(time)
         return nx.to_scipy_sparse_matrix(graph, weight="flow", format="lil")
 
-    def get_od_graph(self, time):
+    def _get_od_graph(self, time):
         _id = np.argwhere(self.insertion_times == time)[0][0]
         graph: nx.DiGraph = self.od_graphs[_id]
         return graph
@@ -70,7 +84,7 @@ spec_demand = OrderedDict(
 )
 
 
-def build_static_demand(od_graph: nx.DiGraph):
+def _build_static_demand(od_graph: nx.DiGraph):
     lil_demand = nx.to_scipy_sparse_matrix(od_graph, weight="flow", format="lil")
     tot_centroids = od_graph.number_of_nodes()
     row = np.asarray(lil_demand.nonzero()[0])
@@ -95,7 +109,7 @@ def build_static_demand(od_graph: nx.DiGraph):
     to_origins = F32CSRMatrix(
         *csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids))
     )
-    return InternalStaticDemand(
+    return _InternalStaticDemand(
         to_origins,
         to_destinations,
         to_destinations.get_nnz_rows(),
@@ -105,7 +119,7 @@ def build_static_demand(od_graph: nx.DiGraph):
 
 
 @jitclass(spec_demand)
-class InternalStaticDemand(object):
+class _InternalStaticDemand(object):
     def __init__(
         self,
         to_origins: F32CSRMatrix,
@@ -121,32 +135,10 @@ class InternalStaticDemand(object):
         self.time_step = time_step  # time at which this demand is added to the network
 
 
-def get_demand_fraction(demand: InternalStaticDemand, fraction):
-    # returns new demand object with fraction x cell for all cells.
-    assert fraction > 0.0
-    values = np.copy(demand.to_destinations.values)
-    values = values * fraction
-    to_destinations = F32CSRMatrix(
-        values, demand.to_destinations.col_index, demand.to_destinations.row_index
-    )
-    values = np.copy(demand.to_origins.values)
-    values = values * fraction
-    to_origins = F32CSRMatrix(
-        values, demand.to_origins.col_index, demand.to_origins.row_index
-    )
-    return InternalStaticDemand(
-        to_origins,
-        to_destinations,
-        demand.origins,
-        demand.destinations,
-        demand.time_step,
-    )
-
-
 try:
     spec_simulation = [
-        ("next", InternalStaticDemand.class_type.instance_type),
-        ("demands", ListType(InternalStaticDemand.class_type.instance_type)),
+        ("next", _InternalStaticDemand.class_type.instance_type),
+        ("demands", ListType(_InternalStaticDemand.class_type.instance_type)),
         ("__time_step", uint32),
         ("tot_time_steps", uint32),
         ("all_active_destinations", uint32[:]),
@@ -164,7 +156,7 @@ except Exception:
 
 
 @jitclass(spec_simulation)
-class InternalDynamicDemand(object):
+class _InternalDynamicDemand(object):
     def __init__(self, demands, tot_time_steps, tot_centroids, in_links: UI32CSRMatrix):
         self.demands = demands
         self.next = demands[0]
@@ -183,7 +175,7 @@ class InternalDynamicDemand(object):
         self.tot_time_steps = np.uint32(tot_time_steps)
         self.tot_centroids = np.uint32(tot_centroids)
 
-    def is_loading(self, t):
+    def _is_loading(self, t):
         _ = np.argwhere(self.loading_time_steps == t)
         if _.size == 1:
             return True
@@ -194,7 +186,7 @@ class InternalDynamicDemand(object):
         else:
             return False
 
-    def get_demand(self, t):
+    def _get_demand(self, t):
         _id = np.argwhere(self.loading_time_steps == t)[0][0]
         return self.demands[_id]
 
@@ -203,7 +195,7 @@ class InternalDynamicDemand(object):
 def _get_loading_time_steps(demands):
     loading = np.empty(len(demands), dtype=np.uint32)
     for _id, demand in enumerate(demands):
-        demand: InternalStaticDemand
+        demand: _InternalStaticDemand
         t = demand.time_step
         loading[_id] = np.uint32(t)
     return loading
@@ -217,7 +209,7 @@ def _get_all_destinations(demands):
     if len(demands) == 1:
         return previous
     for demand in demands[1:]:
-        demand: InternalStaticDemand
+        demand: _InternalStaticDemand
         current = np.concatenate((demand.destinations, previous))
         previous = current
     return np.unique(current)
@@ -231,7 +223,7 @@ def _get_all_origins(demands):
     if len(demands) == 1:
         return previous
     for demand in demands[1:]:
-        demand: InternalStaticDemand
+        demand: _InternalStaticDemand
         current = np.concatenate((demand.origins, previous))
         previous = current
     return np.unique(current)
@@ -257,6 +249,33 @@ def _get_destination_links(destinations: np.ndarray, in_links: UI32CSRMatrix):
         for link in in_links.get_nnz(destination):
             destinations_link[d_id] = link
     return destinations_link
+
+
+spec_time = [
+    ("start", float32),
+    ("end", float32),
+    ("step_size", float32),
+    ("tot_time_steps", uint32),
+]
+
+
+@jitclass(spec_time)
+class SimulationTime(object):
+    """
+    time discretization, units are always in hours
+    Parameters
+    ----------
+    start : int
+    end : int
+    step_size : float
+    """
+
+    def __init__(self, start, end, step_size):
+        # TODO: start always 0
+        self.start = start
+        self.end = end
+        self.step_size = step_size
+        self.tot_time_steps = np.uint32(np.ceil((end - start) / step_size))
 
 
 def _build_dynamic_demand(
@@ -288,7 +307,7 @@ def _build_dynamic_demand(
         dtype=np.uint32,
     )
     demand_data = [
-        dynamic_demand.get_sparse_repr(t) for t in dynamic_demand.insertion_times
+        dynamic_demand._get_sparse_repr(t) for t in dynamic_demand.insertion_times
     ]
 
     if not np.all(
@@ -328,7 +347,7 @@ def _build_dynamic_demand(
             *csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids))
         )
         static_demands.append(
-            InternalStaticDemand(
+            _InternalStaticDemand(
                 to_origins,
                 to_destinations,
                 to_destinations.get_nnz_rows(),
@@ -336,7 +355,7 @@ def _build_dynamic_demand(
                 np.uint32(internal_time),
             )
         )
-    return InternalDynamicDemand(
+    return _InternalDynamicDemand(
         static_demands,
         simulation_time.tot_time_steps,
         tot_centroids,

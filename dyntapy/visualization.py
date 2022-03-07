@@ -29,7 +29,7 @@ from bokeh.tile_providers import Vendors, get_provider
 from pyproj import CRS
 from shapely.geometry import LineString
 
-from dyntapy.dta.time import SimulationTime
+from dyntapy import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.utilities import __create_green_to_red_cm
 from dyntapy.results import StaticResult
@@ -134,36 +134,43 @@ def _process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_k
 
 
 def show_network(
-    g: nx.DiGraph,
-    result: StaticResult = None,
-    flows: np.ndarray = None,
-    link_kwargs: dict = dict(),
-    node_kwargs: dict = dict(),
-    highlight_links: np.ndarray = np.array([]),
-    highlight_nodes: np.ndarray = np.array([]),
-    toy_network: bool = False,
-    title: bool = None,
-    notebook: bool = False,
-    show_nodes: bool = True,
+    g,
+    result=None,
+    flows=None,
+    link_kwargs=dict(),
+    node_kwargs=dict(),
+    highlight_links=np.array([]),
+    highlight_nodes=np.array([]),
+    toy_network=False,
+    title=None,
+    notebook=False,
+    show_nodes=True,
 ):
     """
-    function for visualizing the network in the browser
+    Visualizing the network as a .html.
+
     Parameters
     ----------
-    g
-    result
-    see dyntapy.StaticResult
-    flows
-    link_kwargs
-    node_kwargs
-    highlight_links
-    highlight_nodes
-    toy_network
-    set to True for toy networks. Toy network's coordinates are assumed to be
-    euclidean, if false we assume lon lat
-    title
-    notebook
-    set to True if the plot should be rendered in a notebook.
+    g: nx.DiGraph
+    result: StaticResult, optional
+    flows: np.ndarray, optional
+    link_kwargs: dict, optional
+    node_kwargs: dict, optional
+    highlight_links: np.ndarray, optional
+    highlight_nodes: np.ndarray, optional
+    toy_network: bool, optional
+        set to True for toy networks. Toy network's coordinates are assumed to be
+        euclidean, if false we assume lon lat.
+    title: str, optional
+    notebook: bool, optional
+        set to True if the plot should be rendered in a notebook.
+    show_nodes: bool, optional
+
+    See Also
+    -------------
+
+    dyntapy.results.StaticResult
+
     """
     plot, tmp = _process_plot_arguments(
         g, title, notebook, toy_network, link_kwargs, node_kwargs
