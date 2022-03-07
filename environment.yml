@@ -8,7 +8,7 @@ channels:
   - defaults
 dependencies:
   - python=3.9
-  - numba=0.54.1
+  - numba>=0.54.1
   - osmnx
   - numpy
   - scipy
