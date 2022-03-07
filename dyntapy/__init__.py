@@ -29,4 +29,3 @@ from .visualization import (
     show_network,
     show_link_od_flows,
 )
-from .demand import SimulationTime

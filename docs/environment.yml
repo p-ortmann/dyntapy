@@ -1,4 +1,4 @@
-name: dyntapy-dev
+name: docs
 channels:
   - conda-forge
   - numba
