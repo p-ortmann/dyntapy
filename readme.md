@@ -4,7 +4,13 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![conda verson](https://anaconda.org/conda-forge/dyntapy/badges/version.svg)](https://anaconda.org/conda-forge/dyntapy)
 
-
+dyntapy is a macroscopic car traffic modelling toolkit that brings together both static
+and dynamic modelling approaches into a combined framework. 
+Dyntapy is designed to support assignment researchers by removing the need to implement 
+auxiliary functionalities that handle the network parsing and visualization. 
+It is straightforward to add new methods for both static and dynamic assignment 
+since there is a common interface for demand, supply and the visualization
+oof the assignment results.
 
 
 Provided functionalities:
@@ -49,6 +55,19 @@ we now can install the package with
 ```shell
 python -m pip install -e path-to-folder
 ```
-Using -e makes the repo editable.
-If you make changes or add a functionality it will be available in a fresh session
-or if you reload the module.
+Using -e makes the repository editable.
+
+# Visualization of Networks and Assignment Results
+
+
+# Related Python Packages
+[AequilibraE](http://aequilibrae.com/python/latest/)
+is a traffic modelling kit that supports a set of static assignments paired with OpenStreetMap parsing.
+It aims to be an open source alternative to Visum
+and provides comprehensive visualization and network management capabilities in QGIS.
+dyntapy differs from AequilibraE mainly by its inclusion of dynamic models and command-driven 
+visualization capabilities within jupyter notebooks.
+
+Similar to other popular graph packages, such as [igraph](https://igraph.org/) and [networkx](https://networkx.org/), 
+we offer shortest path computations. Our implementations are more than twice as fast as igraph
+and more than 20x faster than networkx for road networks. This is demonstrated in our tutorials. 
