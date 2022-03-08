@@ -76,7 +76,7 @@ def test_get_graph(city=city, k=1, connector_type='link'):
 test_get_graph()
 seed = 1
 json_demand = generate_od_xy(30, city, seed=seed, max_flow=200)
-od_graph = parse_demand(json_demand, graph, 0)
+od_graph = parse_demand(json_demand, graph)
 
 
 def test_shortest_path():

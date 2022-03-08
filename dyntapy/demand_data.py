@@ -16,7 +16,6 @@ import osmnx as ox
 import pandas as pd
 from geojson import Feature, FeatureCollection, dumps
 from osmnx.distance import euclidean_dist_vec, great_circle_vec
-from scipy.sparse import lil_matrix
 from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point
 
@@ -24,39 +23,52 @@ from dyntapy.settings import parameters
 from dyntapy.utilities import log
 
 
-def generate_random_od_graph(tot_ods, name, g, time, max_flow, seed=0):
+def generate_random_od_graph(tot_ods, name, g, max_flow=2000, seed=0):
     """
+    generates a random od-graph for a place
 
     Parameters
     ----------
-    tot_ods : total number of OD pairs to be generated
-    name : str, name of the city or region to geocode and sample from
-    g : nx.MultiDiGraph
-    time : time step to which this demand corresponds
-    max_flow : maximum demand per pair of points
-    seed : numpy random seed
+    tot_ods : int
+        total number of OD pairs to be generated
+    name : str
+        name of the city or region to geocode and sample from
+    g : nx.DiGraph
+    max_flow : float, optional
+        maximum demand for any OD pair
+    seed : int, optional
+        random seed
 
     Returns
     -------
 
+    od_graph: networkx.DiGraph
+        graph with centroids as nodes with specified coordinates as 'x_coord' and
+        'y_coord'. For each OD pair with a non-zero demand there
+        is a link with a corresponding 'flow' element as read from the OD matrix.
     """
     json = generate_od_xy(tot_ods, name, max_flow, seed)
-    return parse_demand(json, g, time)
+    return parse_demand(json, g)
 
 
 def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
     """
+    generate random demand for a place in geojson format
 
     Parameters
     ----------
-    seed : numpy random seed
-    tot_ods :total number of OD pairs to be generated
-    name : str, name of the city or region to geocode and sample from
-    max_flow : maximum demand per pair of points
-
+    tot_ods : int
+        total number of OD pairs to be generated
+    name : str
+        name of the city or region to geocode and sample from
+    max_flow : float, optional
+        maximum demand for any OD pair
+    seed : int, optional
+        random seed
     Returns
     -------
-    geojson containing lineStrings and flows
+    geojson
+        containing LineStrings with a 'flow' attribute
     """
     # 4326 : WGS84
     # 3857 : web mercator
@@ -116,9 +128,6 @@ def _check_centroid_connectivity(g: nx.DiGraph):
     ----------
     g : nx.Digraph
 
-    Returns
-    -------
-
     """
     centroids = [u for u, data_dict in g.nodes(data=True) if "centroid" in data_dict]
     tot_out_c = [__count_iter_items(g.successors(n)) for n in centroids]
@@ -139,16 +148,26 @@ def _check_centroid_connectivity(g: nx.DiGraph):
 
 def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
     """
-    creates od_graph(s) from od_matrix and centroid locations, if
+    creates od_graph from od_matrix and centroid locations
+
     Parameters
     ----------
-    od_matrix : float array, centroids x centroids
-    X : x_coord array of centroids
-    Y : y_coord array of centroids
+
+    od_matrix : np.ndarray
+        float, 2D
+    X : np.ndarray
+        float, 1D - lon of centroid locations
+    Y : np.ndarray
+        float, 1D - lat of centroid locations
 
     Returns
     -------
-    od_flow_graph: nx.DiGraph
+    od_graph: nx.DiGraph
+        graph with centroids as nodes with specified coordinates as 'x_coord' and
+        'y_coord'. For each OD pair with a non-zero demand there
+        is a link with a corresponding 'flow' element as read from the OD matrix.
+
+
     """
     if od_matrix.shape != (len(X), len(X)):
         raise ValueError("dimensions of centroid locations and OD matrix incompatible")
@@ -169,17 +188,26 @@ default_centroid_spacing = parameters.demand.default_centroid_spacing
 
 def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     """
+
     creates centroids on a grid that overlap with the polygon
-     that is associated with city or region specified
-    under 'name'
+    that is associated with city or region specified
+
+
     Parameters
     ----------
-    name : name of the city to be used as reference polygon
-    spacing : distance between two adjacent centroids on the grid
+    name : str,
+        name of the city to be used as reference polygon
+    spacing : float, optional
+        distance between two adjacent centroids on the grid
 
     Returns
     -------
-    X,Y arrays of centroid locations
+    X: np.ndarray
+        float, 1D
+        lon of centroid locations
+    Y: np.ndarray
+        float, 1D
+        lat of centroid locations
     """
     my_gdf = ox.geocode_to_gdf(name)
     range_ns_meters = great_circle_vec(
@@ -218,9 +246,31 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
 def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
     """
     Adds centroids to g.
-    Each centroids data dict contains 'x_coord','y_coord' and
-    'centroid' with x and y coords as given in X,Y
-    and 'centroid' a boolean set to True.
+
+    Parameters
+    ----------
+    g : nx.Digraph
+        road network graph, containing only road network edges and nodes
+    euclidean : bool, optional
+        set to True for toy networks that use the euclidean coordinate system
+    method : {'turns' , 'links'}
+        whether to add link or turn connectors
+    Y : np.ndarray
+        float, 1D - lat of centroids
+    X : np.ndarray
+        float, 1D - lon of centroids
+    k : int
+        number of road network nodes to connect to per centroid.
+    g : nx.Digraph
+        containing only road network edges and nodes
+    **kwargs : iterable, optional
+        any keyword arguments are passed as additional attributes into the graph and
+        appear as attributes of the centroids.
+        They are assumed to be iterable and of
+        the same length as X.
+
+    Notes
+    -----
     if method =='link':
         k*2 connectors are added per centroid, one for each direction as defined below.
     if method == 'turn':
@@ -229,29 +279,25 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
         intersection node. All connector turns share the first starting link
         from centroid to this artificial node.
 
-    any keyword arguments are passed as additional attributes into the graph.
-    They are assumed to be iterable and of
-    the same length as X
+    The route choice algorithms for DTA within dyntapy rely on iterative computations on
+    the link-turn graph rather than the node-link graph.
+    Within the network one can take the current link and evaluate the options as the
+    set of all outgoing turns.
+    Evaluating the choice of the next turn to take from a centroid node without a
+    dummy starting link and turns is cumbersome because the structure differs.
+    We add these dummy turns to keep the algorithms simpler.
 
-
-    Parameters
-    ----------
-    euclidean : bool, toy networks use the euclidean coordinate system
-    method : ['turns' , 'links'] whether to add auto-configured link-connectors,
-     k*2 for each centroid
-    or auto-configured turn-connectors, k*2+2 for each centroid
-    Y : lat vector of centroids
-    X : lon vector of centroids
-    k : number of road network nodes to connect to per centroid.
-    g : nx.MultiDigraph containing only road network edges and nodes with 'x_coord'
-    and 'y_coord' attribute on each node
-    any keyword arguments are passed as additional attributes into the graph.
-    They are assumed to be iterable and of
-    the same length as X
 
     Returns
     -------
-    new nx.MultiDiGraph with centroids (and connectors)
+    nx.DiGraph
+        new graph with centroids and connectors
+
+    See Also
+    --------
+
+    dyntapy.demand_data.add_connectors
+
     """
     if len(kwargs) != 0:
         for key, val in zip(kwargs.keys(), kwargs.values()):
@@ -341,11 +387,46 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
 
 
 def auto_configured_centroids(
-    place: str,
-    buffer_dist_close: float,
+    place,
+    buffer_dist_close,
     buffer_dist_extended,
     inner_city_centroid_spacing=default_centroid_spacing,
 ):
+    """
+    generates centroids for the inner and extended study area from OpenStreetMap.
+    The inner area is filled with a grid.
+    The outer buffers are queried for settlements via OSMs 'place' tag.
+
+    Parameters
+    ----------
+    place: str,
+        name of the city or region to buffer around.
+    buffer_dist_close: float
+        width of the inner buffer
+    buffer_dist_extended: float
+        width of the outer buffer
+    inner_city_centroid_spacing: float, optional
+
+    Returns
+    -------
+    X: np.ndarray
+        float, 1D
+        lon of centroid locations
+    Y: np.ndarray
+        float, 1D
+        lat of centroid locations
+    name: list of strings
+        name of the place as specified in OSM
+    place: list of strings
+        values for OSMs place tag
+
+
+    Notes
+    -----
+    The inner buffer is queried for places that are tagged as 'village', 'city',
+    or 'town'. The outer buffer is just querying for 'city' or 'town'.
+
+    """
     x_inner, y_inner = get_centroid_grid_coords(
         place, spacing=inner_city_centroid_spacing
     )
@@ -356,7 +437,6 @@ def auto_configured_centroids(
         place, {"place": ["city", "town"]}, buffer_dist=buffer_dist_extended
     )
     merged_gdf = pd.concat([gdf_close, gdf_extended])
-    # merged_gdf = gdf_close.append(gdf_extended)
     G = merged_gdf["geometry"].apply(lambda geom: geom.wkb)
     merged_gdf = merged_gdf.loc[G.drop_duplicates().index]
     names = merged_gdf["name"].tolist()
@@ -378,20 +458,30 @@ def auto_configured_centroids(
 def add_connectors(x, y, u, k, g, new_g, euclidean):
     """
     adding connectors to new_g from starting node u with coordinates x and y to
-     nearest k intersection nodes in g.
+    nearest k intersection nodes in g.
+
     Parameters
     ----------
-    euclidean : bool, whether x and y are euclidean
-    x : lon
-    y : lat
-    u : connector from_node in new_g
-    k : number of (bidirectional) connectors to add
-    g : nx.MultiDiGraph containing all road network nodes
-    new_g : nx.MultiDiGraph containing at least u and all nodes of g
+    x : float
+        lon
+    y : float
+        lat
+    u : int
+        connector's from_node in new_g
+    k : int
+        number of (bidirectional) connectors to add
+    g : nx.DiGraph
+        containing all road network nodes
+    new_g : nx.DiGraph
+        containing at least u and all nodes of g
+    euclidean : bool
+        whether x and y are euclidean
+
+    Notes
+    -----
+
     default attributes of the connectors (speed, capacity, lanes)
-    can be changed in the settings.
-    Returns
-    -------
+    can be changed in dyntapy.settings.
 
     """
     tmp: nx.MultiDiGraph = g  # calculate distance to road network graph
@@ -401,9 +491,9 @@ def add_connectors(x, y, u, k, g, new_g, euclidean):
         # nearest nodes in consequent iterations if
         # multiple connectors are wanted
         if not euclidean:
-            v, length = get_nearest_node(tmp, (y, x), return_dist=True)
+            v, length = _get_nearest_node(tmp, (y, x), return_dist=True)
         else:
-            v, length = get_nearest_node(
+            v, length = _get_nearest_node(
                 tmp, (y, x), method="euclidean", return_dist=True
             )
         og_nodes.remove(v)
@@ -428,38 +518,40 @@ def add_connectors(x, y, u, k, g, new_g, euclidean):
         new_g.add_edge(v, u, **sink_data)
 
 
-def parse_demand(data: str, g: nx.DiGraph, time=0):
+def parse_demand(data: str, g: nx.DiGraph):
     """
     Maps travel demand to existing closest centroids in g.
-    The demand pattern is expressed as its own directed graph od_graph
-    returned with 'time', 'crs' and 'name' as metadata
-    in od_graph.graph : Dict.
-    The od_graph contains edges with a 'flow' entry that indicates the
-    movements from centroid to centroid.
-    The corresponding OD table can be retrieved through calling
-    nx.to_scipy_sparse_matrix(od_graph,weight='flow' )
+    The returned demand pattern is expressed as its own directed graph.
 
     Parameters
     ----------
-    time : time stamp for the demand data in hours (0<= time <=24)
     data : geojson that contains lineStrings (WGS84) as features,
-     each line has an associated 'flow' stored in the properties dict
+     each line has an associated 'flow' stored in the properties dictionary
     g : nx.MultiDigraph for the city under consideration with centroids assumed
     to be labelled starting from 0, .. ,C-1
     with C being the number of centroids.
 
+    Notes
+    -----
+
     There's no checking on whether the data and the nx.Digraph
     correspond to the same geo-coded region.
+
+    The corresponding OD table can be retrieved through calling
+    nx.to_scipy_sparse_matrix(od_graph,weight='flow' )
+
     Returns
     -------
-    od_graph: nx.DiGraph
 
+    od_graph: networkx.DiGraph
+        graph with centroids as nodes with specified coordinates as 'x_coord' and
+        'y_coord'. For each OD pair with a non-zero demand there
+        is a link with a corresponding 'flow' element as read from the OD matrix.
     """
     od_graph = nx.MultiDiGraph()
-    od_graph.graph["time"] = time  # time in hours
     od_graph.graph["crs"] = "epsg:4326"
     name = g.graph["name"]
-    od_graph.graph["name"] = f"mobility flows in {name} at {time} s"
+    od_graph.graph["name"] = f"mobility flows in {name}"
     od_graph.add_nodes_from(
         [
             (u, data_dict)
@@ -505,15 +597,23 @@ def parse_demand(data: str, g: nx.DiGraph, time=0):
 
 def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
     """
+
+    finds the nearest centroids in the graph for a set of locations
+
     Parameters
     ----------
-    X : longitude of points epsg 4326
-    Y : latitude of points epsg 4326
-    centroid_graph : nx.DiGraph with existing centroids,
-    coordinates stored as 'x' and 'y' in epsg 4326
+    X : np.ndarray
+        longitude of points
+    Y : np.ndarray
+        latitude of points
+    centroid_graph : nx.DiGraph
+        with existing centroids,
+        coordinates stored as 'x_coord' and 'y_coord' assumed to be lon and lat
 
     Returns
     -------
+    nearest_centroids, np.ndarray
+    distances, np.ndarray
 
     """
     if centroid_graph.number_of_nodes() == 0:
@@ -526,8 +626,6 @@ def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
         }
     )
     tree = cKDTree(data=centroids[["x", "y"]], compact_nodes=True, balanced_tree=True)
-    # ox.get_nearest_nodes()
-    # query the tree for nearest node to each origin
     points = np.array([X, Y]).T
     centroid_dists, centroid_idx = tree.query(points, k=1)
     snapped_centroids = centroids.iloc[centroid_idx].index
@@ -551,7 +649,7 @@ def _merge_gjsons(geojsons):
     return {"type": "FeatureCollection", "features": features}
 
 
-def get_nearest_node(G, point, method="haversine", return_dist=False):
+def _get_nearest_node(G, point, method="haversine", return_dist=False):
     """
     adapted from OSMNX
     Find the nearest node to a point.
@@ -620,96 +718,6 @@ def get_nearest_node(G, point, method="haversine", return_dist=False):
         return nearest_node, dists.loc[nearest_node]
     else:
         return nearest_node
-
-
-def generate_od(
-    number_of_nodes,
-    origins_to_nodes_ratio,
-    origins_to_destinations_connection_ratio=0.15,
-    seed=0,
-):
-    """
-
-    Parameters
-    ----------
-    number_of_nodes : number of nodes (potential origins)
-    origins_to_nodes_ratio : float, indicates what
-    fraction of nodes are assumed to be origins
-    seed : seed for numpy random
-    origins_to_destinations_connection_ratio :
-
-    Returns
-    -------
-    od_matrix
-
-    """
-    rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=np.uint32)
-    np.random.seed(seed)
-    number_of_origins = int(origins_to_nodes_ratio * number_of_nodes)
-    origins = np.random.choice(
-        np.arange(number_of_nodes), size=number_of_origins, replace=False
-    )
-    destinations = np.random.choice(
-        np.arange(number_of_nodes), size=number_of_origins, replace=False
-    )
-    for origin in origins:
-        # randomly sample how many and which destinations this origin is connected to
-        number_of_destinations = int(
-            np.random.gumbel(
-                loc=origins_to_destinations_connection_ratio,
-                scale=origins_to_destinations_connection_ratio / 2,
-            )
-            * len(destinations)
-        )
-        if number_of_destinations < 0:
-            continue
-        if number_of_destinations > len(destinations):
-            number_of_destinations = len(destinations)
-        destinations_by_origin = np.random.choice(
-            destinations, size=number_of_destinations, replace=False
-        )
-        rand_od.rows[origin] = list(destinations_by_origin)
-        rand_od.data[origin] = [
-            int(np.random.random() * 2000) for _ in destinations_by_origin
-        ]
-    return rand_od
-
-
-def generate_od_fixed(number_of_nodes, number_of_od_values, seed=0):
-    rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=np.uint32)
-    np.random.seed(seed)
-    arr = np.arange(number_of_nodes * number_of_nodes)
-    vals = np.random.choice(arr, size=number_of_od_values, replace=False)
-    ids = [
-        np.where(arr.reshape((number_of_nodes, number_of_nodes)) == val) for val in vals
-    ]
-    for i, j in ids:
-        i, j = int(i), int(j)
-        if isinstance(rand_od.rows[i], list):
-            rand_od.rows[i].append(j)
-            rand_od.data[i].append(int(np.random.random() * 2000))
-        else:
-            rand_od.rows[i] = list(j)
-            rand_od.data[i] = list((int(np.random.random() * 2000)))
-    return rand_od
-
-
-def generate_random_bush(number_of_nodes, number_of_branches, seed=0):
-    rand_od = lil_matrix((number_of_nodes, number_of_nodes), dtype=np.uint32)
-    np.random.seed(seed)
-    origin = np.random.randint(0, number_of_nodes)
-    destinations = np.random.choice(
-        np.arange(0, number_of_nodes), number_of_branches, replace=False
-    )
-    for destination in destinations:
-        i, j = int(origin), int(destination)
-        if isinstance(rand_od.rows[i], list):
-            rand_od.rows[i].append(j)
-            rand_od.data[i].append(int(np.random.random() * 2000))
-        else:
-            rand_od.rows[i] = list(j)
-            rand_od.data[i] = list((int(np.random.random() * 2000)))
-    return rand_od
 
 
 def __count_iter_items(iterable):

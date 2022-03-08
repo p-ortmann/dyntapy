@@ -22,5 +22,3 @@ dependencies:
   - pandas
   - shapely
   - networkx
-  - pip:
-      - dyntapy

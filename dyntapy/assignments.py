@@ -165,7 +165,12 @@ class StaticAssignment:
     ----------
 
     g : nx.DiGraph
+        road network graph with attributes and labelling as specified in the module
+        description.
     od_graph : nx.DiGraph
+        graph with centroids as nodes with specified coordinates as 'x_coord' and
+        'y_coord'. For each OD pair with a non-zero demand there
+        is a link with a corresponding 'flow' element.
 
     """
 
