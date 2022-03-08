@@ -40,7 +40,7 @@ napoleon_use_param = False
 
 # adding mock imports needed for any machine to build the docs for dyntapy using autodoc
 autodoc_mock_imports = ['networkx', 'osmnx', 'shapely', 'numba', 'bokeh', 'numpy',
-                        'scipy', 'geojson', 'pandas', 'geopandas']
+                        'scipy', 'geojson', 'pandas', 'geopandas','matplotlib']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
