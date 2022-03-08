@@ -9,6 +9,7 @@ channels:
 dependencies:
   - python=3.9
   - numba>=0.54.1
+  - matplotlib
   - osmnx
   - numpy
   - scipy
@@ -16,6 +17,7 @@ dependencies:
   - jupyter
   - python-igraph
   - bokeh
+  - pyproj
   - geojson
   - pandas
   - shapely
