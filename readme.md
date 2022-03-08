@@ -10,7 +10,7 @@ Dyntapy is designed to support assignment researchers by removing the need to im
 auxiliary functionalities that handle the network parsing and visualization. 
 It is straightforward to add new methods for both static and dynamic assignment 
 since there is a common interface for demand, supply and the visualization
-oof the assignment results.
+of the assignment results.
 
 
 Provided functionalities:
@@ -22,9 +22,9 @@ Provided functionalities:
 - Selected Link Analysis
 
 
-[^1]: convergence below $`10^{-2}`$ according to the provided excess cost criteria cannot be guaranteed for a reasonable amount of iterations
-
 There are demo tutorials available that you can run in Binder. [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD?urlpath=/tree/tutorials)
+These tutorials are running with the latest released version of dyntapy. 
+For the development version based on this repository, go [here](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD?urlpath=/tree/tutorials).
 
 # How to install
 
