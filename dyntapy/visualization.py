@@ -89,9 +89,11 @@ def _process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_k
         )
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
+        tmp = nx.MultiDiGraph(g)
         tmp = ox.project_graph(
-            g, CRS.from_user_input(3857)
+            tmp, CRS.from_user_input(3857)
         )  # from lan lot to web mercator
+
     else:
         plot = figure(
             plot_height=parameters.visualization.plot_size,
@@ -535,7 +537,8 @@ def show_demand(g, title=None, notebook=False, toy_network=False):
         output_file(filename=_get_output_file(title))
     if not toy_network:
         g.graph["crs"] = "epsg:4326"
-        tmp = ox.project_graph(g, CRS.from_user_input(3857))
+        tmp = nx.MultiDiGraph(g)
+        tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
         plot = figure(
             plot_height=parameters.visualization.plot_size,
             plot_width=parameters.visualization.plot_size,
