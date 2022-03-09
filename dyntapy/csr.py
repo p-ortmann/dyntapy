@@ -181,6 +181,10 @@ def __build_csr_cls(nb_type):
                     rows.append(row)
             return np.array(rows, dtype=np.uint32)
 
+        def get_nnz_rows(self):
+            # get rows that have non-zero values
+            return self.nnz_rows
+
     return CSRMatrix
 
 
