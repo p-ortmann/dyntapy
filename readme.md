@@ -58,7 +58,7 @@ Using -e makes the repository editable.
 ## Static Assignment Results
 
 On the left: Results of an assignment with Dial's Algorithm B. \
-On the right: Selected Link Analysis of the link highlighted in pink. \
+On the right: Selected Link Analysis of the link highlighted in pink. 
 
 The color transition from green to red mirror the volume-to-capacity ratio from 0 to >1.
 The width of the links is scaled to the largest flow in the network.
@@ -71,6 +71,7 @@ The width of the links is scaled to the largest flow in the network.
 
 For analysis of dynamic scenarios a time slider can be used to step through different time discretization steps.
 The state of the plot is updated as the time slider is moved, the data that can be attained by hovering over elements is also changed dynamically.
+
 <img src="./tutorials/imgs/visualizing_dta.gif"  width="500" height="500">
 
 
