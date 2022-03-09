@@ -8,6 +8,17 @@
 #
 #
 #
+"""
+This module provides a simple interface for creating CSR formatted sparse matrices
+that can be used in Numba.
+Namely, one can import F32CSRMatrix, UI32CSRMatrix, UI8CSRMatrix from this module with
+the starting letters indicating the item type of the sparse matrix. F32 stands for
+float32, UI32 for unsigned int32 and UI8 for unsigned int8.
+
+Because of the way these classes are build we cannot just integrate the docs for them in
+sphinx, the source code itself however has extensive comments in the defined CSRMatrix.
+
+"""
 from collections import OrderedDict
 from heapq import heappop, heappush
 
@@ -21,19 +32,39 @@ numba_csr_val_types = [float32[:], uint32[:], uint8[:]]
 @nb.njit(cache=True)
 def csr_sort(index_array, values, tot_columns):
     """
-    sorts index_array increasing according to rows, ties are broken by the columns
-    example for sorted index_array:
+    sorts index_array and values by rows, ties are broken by the
+    columns
+    Parameters
+    ----------
+    index_array : np.ndarray
+        uint32, 2D - with each row containing the indexes of nnz element
+    values : np.ndarray
+        int or float, 1D - corresponding value for each nnz element
+
+
+    Returns
+    -------
+
+    sorted_index_array : np.ndarray
+    sorted_values : np.ndarray
+
+    Examples
+    --------
+    example for sorting index_array.
+    before:
+
+    array([[2, 3],
+           [1, 480640],
+           [2, 356104],
+           [0, 1], dtype=uint32)
+
+
+    after:
+
     array([[0, 1],
            [1, 480640],
            [2, 3],
            [2, 356104], dtype=uint32)
-    Parameters
-    ----------
-    index_array : 2d array with each row containing the indexes of nnz element, uint32
-    values : 1d array with corresponding value, any type
-
-    Returns
-    -------
 
     """
     # need to use reflected list here ([]) and not the faster typed List(), see ticket
@@ -87,9 +118,21 @@ def __build_csr_cls(nb_type):
 
     @nb.experimental.jitclass(spec_csr_matrix)
     class CSRMatrix(object):
-        # a minimal csr matrix implementation a la wikipedia
-        # get_nnz and get_row should only be used on rows for which a value is present
-        # otherwise IndexErrors will be raised
+        """
+        a minimal CSR matrix implementation
+        get_nnz and get_row should only be used on rows for which a value is present
+        otherwise IndexErrors will be raised
+
+        Notes
+        -----
+
+        empty initialization below
+        col, row = _csr_format(np.array([[]]), 4)
+        val = np.array([], dtype=np.float32)
+        my_csr = F32CSRMatrix(val, col, row)
+
+        """
+
         def __init__(self, values, col_index, row_index):
             self.values = values
             self.col_index = col_index
@@ -98,17 +141,38 @@ def __build_csr_cls(nb_type):
             self.tot_rows = len(row_index) - 1
 
         def get_nnz(self, row):
-            # getting all the non zero columns of a particular row
+            """
+            getting all the non-zero columns of a particular row
+
+            Parameters
+            ----------
+            row: uint32
+
+            Returns
+            -------
+            np.ndarray
+
+            """
             row_start = self.row_index[row]
             row_end = self.row_index[row + 1]
             return self.col_index[row_start:row_end]
 
         def get_row(self, row):
+            """
+            getting all the non-zero values of a particular row
+
+            Parameters
+            ----------
+            row: uint32
+
+            Returns
+            -------
+            np.ndarray
+
+            """
             row_start = self.row_index[row]
             row_end = self.row_index[row + 1]
             return self.values[row_start:row_end]
-            # except Exception:
-            #   return np.empty(0, dtype=np_type)
 
         def __set_nnz_rows(self):
             rows = []
@@ -117,10 +181,6 @@ def __build_csr_cls(nb_type):
                     rows.append(row)
             return np.array(rows, dtype=np.uint32)
 
-        def get_nnz_rows(self):
-            # get rows that have non-zero values
-            return self.nnz_rows
-
     return CSRMatrix
 
 
@@ -128,15 +188,31 @@ def __build_csr_cls(nb_type):
 def csr_prep(index_array, values, shape, unsorted=True):
     """
 
+    processes index array and values by sorting them and casts them into values,
+    col and row arrays than can be used directly to instantiate a CSRMatrix
+
+
     Parameters
     ----------
-    index_array :  2d array with each row containing the indexes of nnz element, uint32
-    values : 1d array with corresponding value, any type
-    shape : shape of sparse matrix (rows,colums), uint32/64
-    unsorted : index_array and values sorted or not, see csr_sort, boolean
+    index_array : np.ndarray
+        uint32, 2D -  array with each row containing the indexes of nnz element
+    values : np.ndarray
+        any, 1D - array with corresponding value
+    shape : tuple
+        uint32 or uint64 ,shape of sparse matrix (rows, columns)
+    unsorted : bool, optional
+        index_array and values sorted or not
 
     Returns
     -------
+    values: np.ndarray
+    col: np.ndarray
+    row: np.ndarray
+
+    See Also
+    --------
+
+    dyntapy.csr.csr_sort
 
     """
     if np.max(index_array[:, 1]) > (shape[1] - 1) or np.max(index_array[:, 0]) > (
@@ -155,12 +231,19 @@ def csr_prep(index_array, values, shape, unsorted=True):
 def _csr_format(index_array, number_of_rows):
     """
 
+    casts index array into col row format.
+
     Parameters
     ----------
-    index_array : 2d array with each row containing the indexes of nnz element
-    number_of_rows : size of sparse matrix
+    index_array : np.ndarray
+        uint32, 2D -  array with each row containing the indexes of nnz element
+    number_of_rows : int
+
     Returns
     -------
+
+    col: np.ndarray
+    row: np.ndarray
 
     """
     # index_array with the position of the elements (i,j),
@@ -208,8 +291,3 @@ except Exception:
     ui32csr_type = None
     f32csr_type = None
     ui8csr_type = None
-
-# empty initilization below
-# col, row = _csr_format(np.array([[]]), 4)
-# val = np.array([], dtype=np.float32)
-# my_csr = F32CSRMatrix(val, col, row)

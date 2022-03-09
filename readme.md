@@ -89,4 +89,4 @@ visualization capabilities within jupyter notebooks.
 
 Similar to other popular graph packages, such as [igraph](https://igraph.org/) and [networkx](https://networkx.org/), 
 we offer shortest path computations. Our implementations are more than twice as fast as igraph
-and more than 20x faster than networkx for road networks. This is demonstrated in our tutorials. 
+and more than 20x faster than networkx for road networks.
