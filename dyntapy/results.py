@@ -4,7 +4,7 @@
 #  More information at: https://gitlab.kuleuven.be/ITSCreaLab
 #  or contact: ITScrealab@kuleuven.be
 #
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import numpy as np
 from numba import njit, prange
 from heapq import heappop, heappush
@@ -51,9 +51,26 @@ class DynamicResult:
 
 @njit(parallel=True, cache=True)
 def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
-    # get skim matrices in dense format such that skim[0, 10] is the impedance between
-    # the first and the eleventh zone corresponding to nodes demand.origins[0] and
-    # demand.destinations[10] in the graph
+    """
+    get skim matrix in dense format from link costs
+
+    Parameters
+    ----------
+    link_costs: np.ndarray
+    demand: InternalStaticDemand
+    network: Network
+
+    Notes
+    -----
+    get skim matrices in dense format such that skim[0, 10] is the impedance between
+    the first and the eleventh zone corresponding to nodes demand.origins[0] and
+    demand.destinations[10] in the graph
+
+    Returns
+    -------
+    skim: np.ndarray
+        float, 2D
+    """
     is_centroid = network.nodes.is_centroid
     out_links = network.nodes.out_links
     skim = np.empty((demand.origins.size, demand.destinations.size))
@@ -67,6 +84,32 @@ def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
 
 
 def get_od_flows(assignment, result: StaticResult, return_as_matrix=False):
+    """
+    reconstructs  origin destination flows for a static assignment result
+
+    Parameters
+    ----------
+    assignment: StaticAssignment
+    result: StaticResult
+        assumes either origin or destination flows to be set
+    return_as_matrix: bool, False
+        whether to return in matrix format, may yield issues with memory for large
+        assignments
+
+    Returns
+    -------
+    od_flow: list, optional
+        each element is a list of tuples (origin, destination, flow), one for each link
+    od_mat: np.ndarray, optional
+        float, 3D, (tot_origins, tot_destinations, tot_links)
+    Notes
+    -----
+
+    only yields entropy maximised solution if the origin flows or destination flows
+    are also entropy maximised.
+
+
+    """
     # add interval for dynamic
     # add handling of dynamic assignment result
     if result.origin_flows is not None:
@@ -118,6 +161,23 @@ def get_od_flows(assignment, result: StaticResult, return_as_matrix=False):
 
 
 def get_selected_link_analysis(assignment, od_flows, link):
+    """
+    filters origin destination flows for elements that flow past link
+
+    Parameters
+    ----------
+    assignment: StaticAssignment
+    od_flows: list
+        as defined in get_od_flows
+    link: int
+        link for SLA
+
+    Returns
+    -------
+    sla: list
+        each element is a list of tuples (origin, destination, flow), one for each link
+
+    """
     # has not been optimised for performance
     relevant_ods = [
         (origin, destination) for origin, destination, flow in od_flows[link]
@@ -340,7 +400,7 @@ def _propagate_flows(
 
 
 @njit(cache=True, parallel=True)
-def cvn_to_flows(cvn_down):
+def _cvn_to_flows(cvn_down):
     """
 
     Parameters

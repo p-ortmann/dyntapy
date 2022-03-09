@@ -15,18 +15,6 @@ from numba.experimental import jitclass
 
 from dyntapy.csr import UI32CSRMatrix, f32csr_type, ui32csr_type
 
-# We differentiate here between the generic Links Nodes and Turns object and more
-# specialized objects that inherit from these classes Dynamic Traffic Assignment
-# algorithms all use a base line of attributes that are kept in these baseline
-# classes Algorithms like LTM need additional attributes - these are kept in objects
-# that inherit from their respective class, so LTM has a special class for its links
-# to store things like cvn .. the source code for the baseline classes is replicated
-# both in jitclass decorated and undecorated (uncompiled) form because inheritance
-# otherwise does not work at this point,
-# see https://github.com/numba/numba/issues/1694 . adding a new assignment algorithm
-# to this is meant to be made simpler this way, nothing changes in the assignment
-# object one simply needs to define new extending network, turn, node and link
-# objects as needed and write a setup file, as shown for i-ltm.
 
 spec_link = [
     ("capacity", float32[:]),
@@ -48,8 +36,21 @@ spec_link = [
 @jitclass(spec_link)
 class Links(object):
     """
-    A simple class that carries various arrays and CSR Matrices that have link ids as
-    their index
+    specifies internal Links object
+    should not be initialized by the user, use dyntapy.supply_data.build_network
+
+    Parameters
+    ----------
+    length: np.ndarray
+    from_node: np.ndarray
+    to_node: np.ndarray
+    capacity: np.ndarray
+    free_speed: np.ndarray
+    out_turns: np.ndarray
+    in_turns: np.ndarray
+    lanes: np.ndarray
+    link_type: np.ndarray
+
     """
 
     def __init__(
@@ -70,13 +71,12 @@ class Links(object):
         self.from_node = from_node
         self.free_speed = free_speed
         self.out_turns = out_turns  # csr link x turns row is outgoing
-        # links
         self.in_turns = in_turns  # csr incoming turns
         self.lanes = lanes
         self.link_type = link_type
 
 
-class UncompiledLinks(object):
+class _UncompiledLinks(object):
     """
     See Links class for docs
     """
@@ -123,8 +123,19 @@ spec_node = [
 @jitclass(spec_node)
 class Nodes(object):
     """
-    A simple class that carries various arrays and CSR Matrices that have node ids as
-    their index
+    specifies internal Nodes object
+    should not be initialized by the user, use dyntapy.supply_data.build_network
+    Parameters
+    ----------
+    out_links: np.ndarray
+    in_links: np.ndarray
+    tot_out_links: np.ndarray
+    tot_in_links: np.ndarray
+    control_type: np.ndarray
+    capacity: np.ndarray
+    is_centroid: np.ndarray
+    x_coord: np.ndarray
+    y_coord: np.ndarray
     """
 
     def __init__(
@@ -140,14 +151,26 @@ class Nodes(object):
         y_coord,
     ):
         """
-        out_links and in_links are sparse matrices in csr format that indicate
-        connected links and their nodes
-        both are nodes x links with f(i,link_id) = j and essentially carry the same
-        information. There's duplication to
-        avoid on-the-fly transformations.
-        out_links is fromNode x Link and in_links toNode x Link in dim with toNode
-        and fromNode as val, respectively.
+
+        Parameters
+        ----------
+        out_links
+        in_links
+        tot_out_links
+        tot_in_links
+        control_type
+        capacity
+        is_centroid
+        x_coord
+        y_coord
         """
+        # out_links and in_links are sparse matrices in csr format that indicate
+        #  connected links and their nodes
+        #  both are nodes x links with f(i,link_id) = j and essentially carry the same
+        #  information. There's duplication to
+        #  avoid on-the-fly transformations.
+        #  out_links is fromNode x Link and in_links toNode x Link in dim with toNode
+        #  and fromNode as val, respectively.
         self.out_links: UI32CSRMatrix = out_links
         self.in_links: UI32CSRMatrix = in_links
         self.tot_out_links = tot_out_links
@@ -160,7 +183,7 @@ class Nodes(object):
         self.y_coord = y_coord
 
 
-class UncompiledNodes(object):
+class _UncompiledNodes(object):
     """
     See Nodes class for docs
     """
@@ -209,8 +232,21 @@ spec_turn = OrderedDict(spec_turn)
 @jitclass(spec_turn)
 class Turns(object):
     """
-    A simple class that carries various arrays and CSR Matrices that have turn ids as
-    their index
+
+    specifies internal Turns object
+    should not be initialized by the user, use dyntapy.supply_data.build_network
+
+    Attributes
+    ----------
+    penalty: np.ndarray
+    capacity: np.ndarray
+    from_node: np.ndarray
+    via_node: np.ndarray
+    to_node: np.ndarray
+    from_link: np.ndarray
+    to_link: np.ndarray
+    turn_type: np.ndarray
+
     """
 
     # db_restrictions refer to destination based restrictions as used in recursive logit
@@ -251,7 +287,25 @@ except Exception:
 
 @jitclass(spec_network)
 class Network(object):
-    # link mat
+    """
+    specifies internal Network object
+    should be initialized with dyntapy.supply_data.build_network
+
+    Attributes
+    ----------
+    links: Links
+    nodes: Nodes
+    turns: Turns
+
+    See Also
+    --------
+    dyntapy.supply_data.build_network
+    dyntapy.supply.Links
+    dyntapy.supply.Nodes
+    dyntapy.supply.Turns
+
+    """
+
     def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_turns):
         self.links: Links = links
         self.nodes: Nodes = nodes
@@ -272,7 +326,7 @@ except Exception:
     spec_uncompiled_network = []
 
 
-class UncompiledNetwork(object):
+class _UncompiledNetwork(object):
     def __init__(self, links, nodes, turns, tot_links, tot_nodes, tot_turns):
         self.links = links
         self.nodes = nodes

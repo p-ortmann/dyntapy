@@ -17,7 +17,7 @@ from dyntapy.dta.i_ltm import i_ltm
 from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
 from dyntapy.demand import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
-from dyntapy.results import cvn_to_flows
+from dyntapy.results import _cvn_to_flows
 from dyntapy.settings import parameters
 from dyntapy.supply import Network
 from dyntapy.utilities import _log
@@ -148,7 +148,7 @@ def aon(network: Network, dynamic_demand: InternalDynamicDemand, time: Simulatio
         con_down=iltm_state.con_down,
     )
 
-    flows = cvn_to_flows(iltm_state.cvn_down)
+    flows = _cvn_to_flows(iltm_state.cvn_down)
     return flows, link_costs
 
 

@@ -21,7 +21,7 @@ from dyntapy.dta.incremental_assignment import incremental_loading
 from dyntapy.dta.deterministic import update_route_choice
 from dyntapy.demand import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
-from dyntapy.results import cvn_to_flows
+from dyntapy.results import _cvn_to_flows
 from dyntapy.settings import debugging, parameters
 from dyntapy.supply import Network
 from dyntapy.utilities import _log
@@ -121,7 +121,7 @@ def _i_ltm_aon(
             network.turns.to_node,
             tot_centroids=dynamic_demand.tot_centroids,
         )
-    flows = cvn_to_flows(iltm_state.cvn_down)
+    flows = _cvn_to_flows(iltm_state.cvn_down)
     convergence_arr = np.empty(len(convergence))
     for _id, i in enumerate(convergence):
         convergence_arr[_id] = i

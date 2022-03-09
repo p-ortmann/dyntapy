@@ -11,7 +11,7 @@ import numpy as np
 from numba import njit, prange
 
 from dyntapy.csr import UI32CSRMatrix
-from dyntapy.results import cvn_to_flows
+from dyntapy.results import _cvn_to_flows
 from dyntapy.settings import debugging, parameters
 from dyntapy.supply import Network
 from dyntapy.visualization import show_dynamic_network
@@ -292,7 +292,7 @@ def storage(
 
 
 def get_ltm_link_kwargs(i_ltm_state):
-    flows = cvn_to_flows(i_ltm_state.cvn_down)
+    flows = _cvn_to_flows(i_ltm_state.cvn_down)
     cur_queues = np.sum(i_ltm_state.cvn_up, axis=2) - np.sum(
         i_ltm_state.cvn_down, axis=2
     )  # current queues

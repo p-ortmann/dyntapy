@@ -7,6 +7,18 @@
 #
 #
 
+# We differentiate here between the generic Links Nodes and Turns object and more
+# specialized objects that inherit from these classes Dynamic Traffic Assignment
+# algorithms all use a base line of attributes that are kept in these baseline
+# classes Algorithms like LTM need additional attributes - these are kept in objects
+# that inherit from their respective class, so LTM has a special class for its links
+# to store things like cvn .. the source code for the baseline classes is replicated
+# both in jitclass decorated and undecorated (uncompiled) form because inheritance
+# otherwise does not work at this point,
+# see https://github.com/numba/numba/issues/1694 . adding a new assignment algorithm
+# to this is meant to be made simpler this way, nothing changes in the assignment
+# object one simply needs to define new extending network, turn, node and link
+# objects as needed and write a setup file, as shown for i-ltm.
 from numba import boolean, float32, int32
 from numba.experimental import jitclass
 
@@ -16,9 +28,9 @@ from dyntapy.supply import (
     Network,
     Nodes,
     Turns,
-    UncompiledLinks,
-    UncompiledNetwork,
-    UncompiledNodes,
+    _UncompiledLinks,
+    _UncompiledNetwork,
+    _UncompiledNodes,
     spec_link,
     spec_node,
     spec_uncompiled_network,
@@ -37,8 +49,8 @@ except Exception:
 
 
 @jitclass(spec_node + spec_iltm_node)
-class ILTMNodes(UncompiledNodes):
-    __init__Nodes = UncompiledNodes.__init__
+class ILTMNodes(_UncompiledNodes):
+    __init__Nodes = _UncompiledNodes.__init__
 
     def __init__(
         self,
@@ -97,8 +109,8 @@ except Exception:
 
 
 @jitclass(spec_link + spec_iltm_link)
-class ILTMLinks(UncompiledLinks):
-    __init__Links = UncompiledLinks.__init__
+class ILTMLinks(_UncompiledLinks):
+    __init__Links = _UncompiledLinks.__init__
 
     def __init__(
         self, links, vf_index, vw_index, vf_ratio, vw_ratio, k_jam, k_crit, v_wave
@@ -171,8 +183,8 @@ except Exception:
 
 
 @jitclass(spec_uncompiled_network + spec_iltm_network)
-class ILTMNetwork(UncompiledNetwork):
-    __init__Network = UncompiledNetwork.__init__
+class ILTMNetwork(_UncompiledNetwork):
+    __init__Network = _UncompiledNetwork.__init__
 
     def __init__(self, network, links, nodes, turns):
         self.__init__Network(
