@@ -230,7 +230,7 @@ def relabel_graph(g):
     intersection_nodes = [
         node for node, is_centroid in g.nodes.data("centroid") if not is_centroid
     ]
-    new_g = nx.MultiDiGraph()
+    new_g = nx.DiGraph()
     new_g.graph = g.graph
     link_counter = count(0)
     ordered_nodes = centroids + intersection_nodes
@@ -783,7 +783,7 @@ def get_toy_network(name):
                 #   no edge with this node was added..
                 continue
         g.graph = {"name": name}
-        return relabel_graph(g)
+        return g
 
     else:
         raise ValueError("no toy network provided under that name")

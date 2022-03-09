@@ -11,7 +11,7 @@ from tests.test_dyntapy import *
 
 if __name__ == '__main__':
     test_get_toy_networks()
-    test_dta()
+    #test_dta()
     # test_shortest_path()
     # test_dial_b()
     # test_sun()

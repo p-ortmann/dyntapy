@@ -120,7 +120,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
             all_in_links_supply_constrained = False
             for j in J:
                 # it can send fully to all its out_links
-                if S[i][j] > np.float(0):  # if in_link i is competing for out_link j
+                if S[i][j] > float(0):  # if in_link i is competing for out_link j
                     q[i, j] = S[i][j]
                     # to verify: does this implicitly respect turn capacities if the
                     # S[i][j] are set appropriately - I reckon it does.
@@ -135,7 +135,7 @@ def __impose_constraint(_j, min_a, a, U, c, s, S, q, J, R, C, i_bucket, j_bucket
                     # removing outside the loops to keep the set stable for iterations
                     if len(U[j]) == 0:
                         j_bucket.append(np.int8(j))  # to remove j after looping
-        if s[i] == np.float(0):
+        if s[i] == float(0):
             i_bucket.append(np.int8(i))
     # print(f'{all_in_links_supply_constrained=}')
     while len(i_bucket) > 0:
