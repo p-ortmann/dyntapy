@@ -43,6 +43,11 @@ dyntapy.results
 .. automodule:: dyntapy.results
     :members:
 
+dyntapy.csr
+----------------------------------------
+
+.. automodule:: dyntapy.csr
+    :members:
 dyntapy.visualization
 ----------------------------------------
 
