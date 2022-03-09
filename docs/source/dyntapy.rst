@@ -19,6 +19,18 @@ dyntapy.supply_data
 .. automodule:: dyntapy.supply_data
     :members:
 
+dyntapy.demand
+----------------------------------------
+
+.. automodule:: dyntapy.demand
+    :members:
+   
+dyntapy.supply
+----------------------------------------
+
+.. automodule:: dyntapy.supply
+    :members:
+
 dyntapy.graph_utils
 ----------------------------------------
 
