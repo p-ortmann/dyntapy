@@ -55,6 +55,10 @@ python -m pip install -e path-to-folder
 Using -e makes the repository editable.
 
 # Visualization of Networks and Assignment Results
+
+We briefly demonstrate here the visualization capabilities within dyntapy, for a more detailed look
+at all the provided functionality we refer to the tutorials.
+
 ## Static Assignment Results
 
 On the left: Results of an assignment with Dial's Algorithm B. \
