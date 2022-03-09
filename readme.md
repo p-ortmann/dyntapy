@@ -4,21 +4,18 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![conda verson](https://anaconda.org/conda-forge/dyntapy/badges/version.svg)](https://anaconda.org/conda-forge/dyntapy)
 
-dyntapy is a macroscopic car traffic modelling toolkit that brings together both static
-and dynamic modelling approaches into a combined framework. 
-Dyntapy is designed to support assignment researchers by removing the need to implement 
-auxiliary functionalities that handle the network parsing and visualization. 
-It is straightforward to add new methods for both static and dynamic assignment 
-since there is a common interface for demand, supply and the visualization
-of the assignment results.
-
+dyntapy is a macroscopic car traffic modelling toolkit that offers both Static and Dynamic
+assignment algorithms and support for visualizing assignment results in 
+jupyter notebooks.
+It is designed to be extendable. Other assignment algorithms can be added rather easily, 
+building on the provided definitions of supply, demand and assignment results.
 
 Provided functionalities:
 - Network generation from OSM using OSMnx complying with [GMNS](https://github.com/zephyr-data-specs/GMNS) attribute names.
 - Static Assignments (deterministic user equilibrium: DialB, MSA; stochastic, uncongested: Dial's Algorithm)
-- Dynamic User Equilibrium using the iterative link transmission model [^1]
+- Dynamic User Equilibrium using the iterative link transmission model
 - Visualization of static and dynamic attributes, including bidirectional flow visualization
-- fast shortest path computations
+- Fast shortest path computations
 - Selected Link Analysis
 
 
@@ -59,6 +56,9 @@ Using -e makes the repository editable.
 
 # Visualization of Networks and Assignment Results
 
+![A Static Assignment Result](<./tutorials/imgs/assignment_dial_b.png>) 
+![Selected Link Analysis](<./tutorials/imgs/selected_link_analysis.png>) 
+![Dynamic Traffic Assignment](<./tutorials/imgs/visualizing_dta.gif>) 
 
 # Related Python Packages
 [AequilibraE](http://aequilibrae.com/python/latest/)
