@@ -137,7 +137,7 @@ class InternalStaticDemand(object):
     """
     internal specification of static demand
 
-    Attributes
+    Parameters
     ----------
     to_origins: F32CSRMatrix
         sparse OD matrix destinations to origins
@@ -200,7 +200,9 @@ class InternalDynamicDemand(object):
 
     internal specification of dynamic demand
 
-    Attributes
+    should be initialized with build_dynamic_demand function
+
+    Parameters
     ----------
     demands: list of InternalStaticDemand
     tot_time_steps: int
@@ -211,9 +213,7 @@ class InternalDynamicDemand(object):
     See Also
     --------
 
-    should be initiated with
-
-    dyntapy.demand.build_dynamic_demand
+    dyntapy.demand.build_internal_dynamic_demand
 
     """
 
@@ -324,7 +324,7 @@ class SimulationTime(object):
     """
     specification of time discretization, units are always assumed in hours
 
-    Attributes
+    Parameters
     ----------
     start : int
     end : int

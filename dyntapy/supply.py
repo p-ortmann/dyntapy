@@ -236,7 +236,7 @@ class Turns(object):
     specifies internal Turns object
     should not be initialized by the user, use dyntapy.supply_data.build_network
 
-    Attributes
+    Parameters
     ----------
     penalty: np.ndarray
     capacity: np.ndarray
@@ -291,7 +291,7 @@ class Network(object):
     specifies internal Network object
     should be initialized with dyntapy.supply_data.build_network
 
-    Attributes
+    Parameters
     ----------
     links: Links
     nodes: Nodes
