@@ -11,7 +11,7 @@ import numpy as np
 from numba import njit
 from numba.typed import List
 
-from dyntapy.demand import _InternalStaticDemand
+from dyntapy.demand import InternalStaticDemand
 from dyntapy.graph_utils import dijkstra_all, pred_to_paths
 from dyntapy.settings import parameters
 from dyntapy.supply import Network
@@ -51,7 +51,7 @@ def __bpr_derivative_single(flow, capacity, ff_tt):
 
 
 @njit(parallel=True, nogil=True)
-def aon(demand: _InternalStaticDemand, costs, network: Network):
+def aon(demand: InternalStaticDemand, costs, network: Network):
     out_links = network.nodes.out_links
     flows = np.zeros(len(costs))
     number_of_od_pairs = 0

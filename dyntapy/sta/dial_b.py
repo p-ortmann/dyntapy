@@ -17,7 +17,7 @@ import numpy as np
 from numba import njit, prange, objmode
 
 from dyntapy._context import iteration_states
-from dyntapy.demand import _InternalStaticDemand
+from dyntapy.demand import InternalStaticDemand
 from dyntapy.graph_utils import (
     dijkstra_all,
     make_in_links,
@@ -41,7 +41,7 @@ gap_definition = (
 
 
 @njit
-def dial_b(network: Network, demand: _InternalStaticDemand, store_iterations):
+def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
     gaps = []
     from_nodes = network.links.from_node
     to_nodes = network.links.to_node
@@ -254,7 +254,7 @@ def topological_sort(forward_star, backward_star, tot_nodes, origin):
 
 
 @njit()
-def __initial_loading(network: Network, demand: _InternalStaticDemand):
+def __initial_loading(network: Network, demand: InternalStaticDemand):
     tot_links = network.tot_links
     link_capacities = network.links.capacity
     link_ff_times = network.links.length / network.links.free_speed

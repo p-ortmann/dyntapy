@@ -7,7 +7,7 @@
 import numpy as np
 from numba import njit, prange
 
-from dyntapy.demand import _InternalDynamicDemand
+from dyntapy.demand import InternalDynamicDemand
 from dyntapy.dta.i_ltm_cls import ILTMNetwork
 from dyntapy.demand import SimulationTime
 from dyntapy.settings import parameters
@@ -25,7 +25,7 @@ def qr_projection(
     turn_costs,
     network: ILTMNetwork,
     turning_fractions,
-    dynamic_demand: _InternalDynamicDemand,
+    dynamic_demand: InternalDynamicDemand,
     time: SimulationTime,
     k,
 ):

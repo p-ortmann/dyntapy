@@ -1,7 +1,7 @@
 import numpy as np
 from numba import njit
 
-from dyntapy.demand import _InternalDynamicDemand
+from dyntapy.demand import InternalDynamicDemand
 from dyntapy.dta.aon import get_aon_route_choice, link_to_turn_costs_deterministic
 from dyntapy.dta.deterministic import update_arrival_maps, get_turning_fractions
 from dyntapy.dta.i_ltm import i_ltm
@@ -16,7 +16,7 @@ from dyntapy.utilities import _log
 
 @njit(cache=True)
 def incremental(
-    network: Network, dynamic_demand: _InternalDynamicDemand, time: SimulationTime
+    network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime
 ):
     iltm_state, network = i_ltm_aon_setup(network, time, dynamic_demand)
     incremental_loading(network, time, dynamic_demand, 20, iltm_state)
@@ -35,7 +35,7 @@ def incremental(
 def incremental_loading(
     network: Network,
     time: SimulationTime,
-    dynamic_demand: _InternalDynamicDemand,
+    dynamic_demand: InternalDynamicDemand,
     K,
     iltm_state: ILTMState,
 ):

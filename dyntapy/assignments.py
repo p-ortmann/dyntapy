@@ -71,9 +71,9 @@ import numpy as np
 
 import dyntapy._context
 from dyntapy.demand import (
-    _InternalDynamicDemand,
-    _build_static_demand,
-    _build_dynamic_demand,
+    InternalDynamicDemand,
+    build_internal_static_demand,
+    build_internal_dynamic_demand,
 )
 from dyntapy.demand_data import _check_centroid_connectivity
 from dyntapy.dta.aon import aon
@@ -115,8 +115,10 @@ class DynamicAssignment:
         self.internal_network = build_network(network)
         log("network build")
 
-        self.internal_dynamic_demand: _InternalDynamicDemand = _build_dynamic_demand(
-            dynamic_demand, simulation_time, self.internal_network
+        self.internal_dynamic_demand: InternalDynamicDemand = (
+            build_internal_dynamic_demand(
+                dynamic_demand, simulation_time, self.internal_network
+            )
         )
         log("demand simulation build")
 
@@ -179,7 +181,7 @@ class StaticAssignment:
         log("network build")
         self.network = g
         self.od_graph = od_graph
-        self.internal_demand = _build_static_demand(od_graph)
+        self.internal_demand = build_internal_static_demand(od_graph)
         self.result = None
         self.iterations = None
         log("Assignment object initialized!")

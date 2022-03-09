@@ -36,14 +36,11 @@ from dyntapy.results import StaticResult
 
 traffic_cm = __create_green_to_red_cm()
 
-default_max_links = parameters.visualization.max_links
 link_highlight_colors = parameters.visualization.link_highlight_colors
 node_highlight_color = parameters.visualization.node_highlight_color
 node_color = parameters.visualization.node_color
 centroid_color = parameters.visualization.centroid_color
-link_transparency = parameters.visualization.link_transparency
 node_size = parameters.visualization.node_size
-link_transparency = 0.8  # 0-1
 
 
 def _get_output_file(plot_name: str):
@@ -213,7 +210,7 @@ def show_network(
             fill_color="color",
             line_color="black",
             line_alpha=0.8,
-            fill_alpha=link_transparency,
+            fill_alpha=parameters.visualization.link_transparency,
         ),
     )
     edge_tooltips = [
@@ -393,7 +390,7 @@ def show_dynamic_network(
         glyph=Patches(
             xs="x",
             ys="y",
-            fill_alpha=link_transparency,
+            fill_alpha=parameters.visualization.link_transparency,
             fill_color="color",
             line_color="black",
             line_alpha=0.4,

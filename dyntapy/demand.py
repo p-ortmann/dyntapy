@@ -84,7 +84,21 @@ spec_demand = OrderedDict(
 )
 
 
-def _build_static_demand(od_graph: nx.DiGraph):
+def build_internal_static_demand(od_graph: nx.DiGraph):
+    """
+
+    builds InternalStaticDemand
+
+    Parameters
+    ----------
+    od_graph: nx.DiGraph
+
+    See Also
+    --------
+
+    dyntapy.demand.InternalStaticDemand
+
+    """
     lil_demand = nx.to_scipy_sparse_matrix(od_graph, weight="flow", format="lil")
     tot_centroids = od_graph.number_of_nodes()
     row = np.asarray(lil_demand.nonzero()[0])
@@ -109,7 +123,7 @@ def _build_static_demand(od_graph: nx.DiGraph):
     to_origins = F32CSRMatrix(
         *csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids))
     )
-    return _InternalStaticDemand(
+    return InternalStaticDemand(
         to_origins,
         to_destinations,
         to_destinations.get_nnz_rows(),
@@ -119,7 +133,32 @@ def _build_static_demand(od_graph: nx.DiGraph):
 
 
 @jitclass(spec_demand)
-class _InternalStaticDemand(object):
+class InternalStaticDemand(object):
+    """
+    internal specification of static demand
+
+    Attributes
+    ----------
+    to_origins: F32CSRMatrix
+        sparse OD matrix destinations to origins
+    to_destinations: F32CSRMatrix
+        sparse OD matrix destinations to origins
+    origins: np.ndarray
+        all origins with non-zero flow
+    destinations: np.ndarray
+        all destinations with non-zero flow
+    time_step: int
+
+
+    See Also
+    --------
+
+    should be initiated with
+
+    dyntapy.demand.build_internal_static_demand
+
+    """
+
     def __init__(
         self,
         to_origins: F32CSRMatrix,
@@ -137,8 +176,8 @@ class _InternalStaticDemand(object):
 
 try:
     spec_simulation = [
-        ("next", _InternalStaticDemand.class_type.instance_type),
-        ("demands", ListType(_InternalStaticDemand.class_type.instance_type)),
+        ("next", InternalStaticDemand.class_type.instance_type),
+        ("demands", ListType(InternalStaticDemand.class_type.instance_type)),
         ("__time_step", uint32),
         ("tot_time_steps", uint32),
         ("all_active_destinations", uint32[:]),
@@ -156,7 +195,28 @@ except Exception:
 
 
 @jitclass(spec_simulation)
-class _InternalDynamicDemand(object):
+class InternalDynamicDemand(object):
+    """
+
+    internal specification of dynamic demand
+
+    Attributes
+    ----------
+    demands: list of InternalStaticDemand
+    tot_time_steps: int
+    tot_centroids: int
+    in_links: UI32CSRMatrix
+        in_links for all nodes in the networks
+
+    See Also
+    --------
+
+    should be initiated with
+
+    dyntapy.demand.build_dynamic_demand
+
+    """
+
     def __init__(self, demands, tot_time_steps, tot_centroids, in_links: UI32CSRMatrix):
         self.demands = demands
         self.next = demands[0]
@@ -195,7 +255,7 @@ class _InternalDynamicDemand(object):
 def _get_loading_time_steps(demands):
     loading = np.empty(len(demands), dtype=np.uint32)
     for _id, demand in enumerate(demands):
-        demand: _InternalStaticDemand
+        demand: InternalStaticDemand
         t = demand.time_step
         loading[_id] = np.uint32(t)
     return loading
@@ -209,7 +269,7 @@ def _get_all_destinations(demands):
     if len(demands) == 1:
         return previous
     for demand in demands[1:]:
-        demand: _InternalStaticDemand
+        demand: InternalStaticDemand
         current = np.concatenate((demand.destinations, previous))
         previous = current
     return np.unique(current)
@@ -223,7 +283,7 @@ def _get_all_origins(demands):
     if len(demands) == 1:
         return previous
     for demand in demands[1:]:
-        demand: _InternalStaticDemand
+        demand: InternalStaticDemand
         current = np.concatenate((demand.origins, previous))
         previous = current
     return np.unique(current)
@@ -262,12 +322,14 @@ spec_time = [
 @jitclass(spec_time)
 class SimulationTime(object):
     """
-    time discretization, units are always in hours
-    Parameters
+    specification of time discretization, units are always assumed in hours
+
+    Attributes
     ----------
     start : int
     end : int
     step_size : float
+
     """
 
     def __init__(self, start, end, step_size):
@@ -278,14 +340,17 @@ class SimulationTime(object):
         self.tot_time_steps = np.uint32(np.ceil((end - start) / step_size))
 
 
-def _build_dynamic_demand(
+def build_internal_dynamic_demand(
     dynamic_demand: DynamicDemand, simulation_time: SimulationTime, network: Network
 ):
     """
+    instantiates InternalDynamicDemand
 
     Parameters
     ----------
-    dynamic_demand: DynamicDemand as defined in demand.py
+    dynamic_demand: DynamicDemand
+    simulation_time: SimulationTime
+    network: Network
 
     Returns
     -------
@@ -347,7 +412,7 @@ def _build_dynamic_demand(
             *csr_prep(index_array_to_o, vals, (tot_centroids, tot_centroids))
         )
         static_demands.append(
-            _InternalStaticDemand(
+            InternalStaticDemand(
                 to_origins,
                 to_destinations,
                 to_destinations.get_nnz_rows(),
@@ -355,7 +420,7 @@ def _build_dynamic_demand(
                 np.uint32(internal_time),
             )
         )
-    return _InternalDynamicDemand(
+    return InternalDynamicDemand(
         static_demands,
         simulation_time.tot_time_steps,
         tot_centroids,

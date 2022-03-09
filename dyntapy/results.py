@@ -10,7 +10,7 @@ from numba import njit, prange
 from heapq import heappop, heappush
 from numba.typed.typedlist import List as NumbaList
 
-from dyntapy.demand import _InternalStaticDemand
+from dyntapy.demand import InternalStaticDemand
 from dyntapy.supply import Network
 from dyntapy.graph_utils import dijkstra_all
 from dyntapy.csr import UI32CSRMatrix
@@ -50,7 +50,7 @@ class DynamicResult:
 
 
 @njit(parallel=True, cache=True)
-def get_skim(link_costs, demand: _InternalStaticDemand, network: Network):
+def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
     # get skim matrices in dense format such that skim[0, 10] is the impedance between
     # the first and the eleventh zone corresponding to nodes demand.origins[0] and
     # demand.destinations[10] in the graph
@@ -222,7 +222,7 @@ def _calc_sla(
 def _get_od_flows(
     multi_commodity_flows: np.ndarray,
     commodity_type: str,
-    demand: _InternalStaticDemand,
+    demand: InternalStaticDemand,
     network: Network,
     threshold=0.0001,
 ):

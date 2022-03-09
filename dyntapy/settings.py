@@ -9,8 +9,6 @@
 #
 #
 #
-# file containing all the parameters used in the assignment procedures for DTA
-import os
 from dataclasses import dataclass
 
 import numpy as np
@@ -30,16 +28,12 @@ default_dynamic_city = "Zinnowitz"
 default_static_city = "Leuven"
 
 
-# static and dynamic defaults differ because
-# the network files have a different supply- and demand interface
-# (turn vs link connectors), this avoids name clashing and overwrites in the test files.
-
 # Parameters for various methods
 @dataclass
 class _Supply:
     """
     container for parameters that concern supply,
-    Note: Changes to these values may only take affect after the numba_cache
+    Note: Changes to these values may only take effect after the numba_cache
      directory has been deleted
     """
 
@@ -218,7 +212,7 @@ class _Dynamic_Assignment:
     """
     container for parameters that concern the dynamic assignment
     are wired up with each other.
-    Note: Changes to these values may only take affect
+    Note: Changes to these values may only take effect
     after the numba_cache directory has been deleted
     """
 
@@ -230,11 +224,6 @@ class _Dynamic_Assignment:
 
 @dataclass
 class _Static_Assignment:
-    methods = {
-        "DUE": "bpr,flow_avg",
-        "SUN": "dial_uncongested",
-        "SUE": "dial_congested",
-    }
     bpr_alpha = np.double(0.15)
     bpr_beta = np.double(4)
     msa_max_iterations = 200

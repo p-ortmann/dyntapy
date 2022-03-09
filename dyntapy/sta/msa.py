@@ -10,7 +10,7 @@
 from numba import objmode, njit
 import numpy as np
 
-from dyntapy.demand import _InternalStaticDemand
+from dyntapy.demand import InternalStaticDemand
 from dyntapy.settings import parameters
 from dyntapy.sta.gap import gap
 from dyntapy.sta.utilities import aon, __bpr_cost
@@ -25,7 +25,7 @@ msa_delta = parameters.static_assignment.msa_delta
 
 @njit
 def msa_flow_averaging(
-    network: Network, demand: _InternalStaticDemand, store_iterations=False
+    network: Network, demand: InternalStaticDemand, store_iterations=False
 ):
     gaps = []
     converged = False

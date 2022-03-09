@@ -11,7 +11,7 @@ from math import exp
 from numba import njit
 import numpy as np
 
-from dyntapy.demand import _InternalStaticDemand
+from dyntapy.demand import InternalStaticDemand
 from dyntapy.graph_utils import (
     dijkstra_all,
     make_in_links,
@@ -22,7 +22,7 @@ from dyntapy.supply import Network
 
 
 # since this works with topological orders the full path set is not considered.
-def sun(network: Network, demand: _InternalStaticDemand):
+def sun(network: Network, demand: InternalStaticDemand):
     theta = parameters.static_assignment.logit_theta
     ff_times = network.links.length / network.links.free_speed
     topological_orders, links_in_bush, distances = generate_bushes(

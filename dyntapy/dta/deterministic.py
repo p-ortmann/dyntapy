@@ -10,7 +10,7 @@ import numpy as np
 from numba import bool_, float32, float64, njit, prange
 from numba.experimental import jitclass
 
-from dyntapy.demand import _InternalDynamicDemand
+from dyntapy.demand import InternalDynamicDemand
 from dyntapy.dta.qr_projection import qr_projection
 from dyntapy.demand import SimulationTime
 from dyntapy.supply import Network
@@ -54,7 +54,7 @@ def update_route_choice(
     turn_costs: np.ndarray,
     cvn_down,
     network: Network,
-    dynamic_demand: _InternalDynamicDemand,
+    dynamic_demand: InternalDynamicDemand,
     time: SimulationTime,
     k: int,
     method="quasi-reduced-projection",
@@ -66,7 +66,7 @@ def update_route_choice(
     state : RouteChoiceState
     turn_costs : time_steps x links
     network : Network
-    dynamic_demand : _InternalDynamicDemand
+    dynamic_demand : InternalDynamicDemand
     time : SimulationTime
     k : int, number of iteration
     method : str
@@ -117,7 +117,7 @@ def update_route_choice(
 def update_arrival_maps(
     network: Network,
     time: SimulationTime,
-    dynamic_demand: _InternalDynamicDemand,
+    dynamic_demand: InternalDynamicDemand,
     arrival_maps,
     old_costs,
     new_costs,
@@ -230,7 +230,7 @@ def update_arrival_maps(
 
 @njit(cache=True)
 def get_turning_fractions(
-    dynamic_demand: _InternalDynamicDemand,
+    dynamic_demand: InternalDynamicDemand,
     network: Network,
     time: SimulationTime,
     arrival_maps,
