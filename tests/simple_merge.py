@@ -8,7 +8,7 @@
 #
 #
 #
-from dyntapy.toy_networks.get_networks import get_toy_network
+from dyntapy import get_toy_network
 import numpy as np
 from dyntapy.visualization import show_network, show_dynamic_network, show_demand
 from dyntapy.supply_data import relabel_graph

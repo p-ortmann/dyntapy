@@ -1,6 +1,9 @@
 # Change log
 ## 0.2.2 (in progress)
 
+- places_around_place became a private function e.g. _places_around_place and moved to
+dyntapy.demand_data
+- moved get_toy_network function to dyntapy.supply_data
 - add_centroids_to_graph function has been renamed to add_centroids
 - replace nx.MultiDiGraph with nx.DiGraph where applicable
 - improving docs in all user-facing functions (dyntapy.function)

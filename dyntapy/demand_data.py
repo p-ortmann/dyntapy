@@ -20,6 +20,7 @@ from scipy.spatial import cKDTree
 from shapely.geometry import LineString, Point
 
 from dyntapy.settings import parameters
+from dyntapy.supply_data import default_buffer_dist
 from dyntapy.utilities import log
 
 
@@ -271,13 +272,10 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
 
     Notes
     -----
-    if method =='link':
-        k*2 connectors are added per centroid, one for each direction as defined below.
-    if method == 'turn':
-        k*2+2 connectors are added per centroid. There is another artificial
-        node between the centroid and the first
-        intersection node. All connector turns share the first starting link
-        from centroid to this artificial node.
+    if method is 'link' k*2 connectors are added per centroid, one for each direction.
+    if method is 'turn'k*2+2 connectors are added per centroid. There is another
+    artificial node between the centroid and the first intersection node. All
+    connector turns share the first starting link from centroid to this artificial node.
 
     The route choice algorithms for DTA within dyntapy rely on iterative computations on
     the link-turn graph rather than the node-link graph.
@@ -525,11 +523,19 @@ def parse_demand(data: str, g: nx.DiGraph):
 
     Parameters
     ----------
-    data : geojson that contains lineStrings (WGS84) as features,
-     each line has an associated 'flow' stored in the properties dictionary
-    g : nx.MultiDigraph for the city under consideration with centroids assumed
-    to be labelled starting from 0, .. ,C-1
-    with C being the number of centroids.
+    data : geojson
+        that contains lineStrings (WGS84) as features,
+        each line has an associated 'flow' stored in the properties dictionary
+    g : nx.Digraph
+
+
+    Returns
+    -------
+
+    od_graph: networkx.DiGraph
+        graph with centroids as nodes with specified coordinates as 'x_coord' and
+        'y_coord'. For each OD pair with a non-zero demand there
+        is a link with a corresponding 'flow' element as read from the OD matrix.
 
     Notes
     -----
@@ -540,13 +546,6 @@ def parse_demand(data: str, g: nx.DiGraph):
     The corresponding OD table can be retrieved through calling
     nx.to_scipy_sparse_matrix(od_graph,weight='flow' )
 
-    Returns
-    -------
-
-    od_graph: networkx.DiGraph
-        graph with centroids as nodes with specified coordinates as 'x_coord' and
-        'y_coord'. For each OD pair with a non-zero demand there
-        is a link with a corresponding 'flow' element as read from the OD matrix.
     """
     od_graph = nx.MultiDiGraph()
     od_graph.graph["crs"] = "epsg:4326"
@@ -732,3 +731,16 @@ def __count_iter_items(iterable):
 default_connector_speed = parameters.demand.default_connector_speed
 default_connector_capacity = parameters.demand.default_connector_capacity
 default_connector_lanes = parameters.demand.default_connector_lanes
+
+
+def _places_around_place(
+    place, buffer_dist=default_buffer_dist, tags=["city", "town", "village"]
+):
+    gdf = ox.geometries_from_place(place, {"place": tags}, buffer_dist=buffer_dist)
+    names = gdf["name"].tolist()
+    x, y = (
+        gdf.geometry.apply(lambda x: x.x).to_numpy(dtype=np.float),
+        gdf.geometry.apply(lambda x: x.y).to_numpy(dtype=np.float),
+    )
+    place_tags = gdf["place"].tolist()
+    return x, y, names, place_tags

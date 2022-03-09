@@ -8,7 +8,7 @@
 #
 #
 #
-
+import os
 from itertools import count
 from warnings import warn
 
@@ -16,7 +16,9 @@ import networkx as nx
 import numpy as np
 import osmnx as ox
 import osmnx._errors
+import pandas as pd
 from numba.typed import List
+from osmnx.distance import euclidean_dist_vec
 
 from dyntapy.csr import UI32CSRMatrix, csr_prep, csr_sort
 from dyntapy.settings import parameters
@@ -28,26 +30,11 @@ cap_mapping = parameters.supply.cap_mapping
 default_capacity = parameters.supply.cap_mapping
 default_speed = parameters.supply.default_speed
 default_buffer_dist = parameters.supply.default_buffer
-close_surrounding_filter = parameters.supply.close_surroundings_filter
-extended_surrounding_filter = parameters.supply.extended_surroundings_filter
 turn_capacity_default = parameters.supply.turn_capacity_default
 turn_type_default = parameters.supply.turn_type_default
 node_capacity_default = parameters.supply.node_capacity_default
 penalty_default = parameters.supply.turn_penalty_default
 node_control_default = parameters.supply.node_control_default
-
-
-def places_around_place(
-    place, buffer_dist=default_buffer_dist, tags=["city", "town", "village"]
-):
-    gdf = ox.geometries_from_place(place, {"place": tags}, buffer_dist=buffer_dist)
-    names = gdf["name"].tolist()
-    x, y = (
-        gdf.geometry.apply(lambda x: x.x).to_numpy(dtype=np.float),
-        gdf.geometry.apply(lambda x: x.y).to_numpy(dtype=np.float),
-    )
-    place_tags = gdf["place"].tolist()
-    return x, y, names, place_tags
 
 
 def road_network_from_place(
@@ -57,19 +44,31 @@ def road_network_from_place(
 ):
     """
     retrieves road_network from OSM for driving.
+
     Detailed network for the inner polygon given by querying OSM.
-    The buffer value determines the outer polygon
-     for which we acquire a coarser network.
+    The buffer values determine surrounding polygons
+    for which we acquire a coarser network.
+
     Parameters
     ----------
-    place : str, name of the city
-    buffer_dist : float, in meters
-    reload : whether to query disc for existing network
+    place : str
+        name of the city or region
+    buffer_dist_close : float
+        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
+        'primary'}
+    buffer_dist_extended: float
+        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
+        }
+
+
+    Notes
+    -----
+
+    The filters for the buffers can be adjusted in the settings file.
 
     Returns
     -------
-    nx.DiGraph of road network with GMNS compliant
-    attribute names and capacity estimates.
+    nx.DiGraph
     """
 
     # TODO: provide default filters for network coarsity
@@ -83,7 +82,7 @@ def road_network_from_place(
                 place,
                 network_type="drive",
                 buffer_dist=buffer_dist_close,
-                custom_filter=close_surrounding_filter,
+                custom_filter=parameters.supply.close_surroundings_filter,
             )
         except (ox._errors.EmptyOverpassResponse, ValueError):
             warn("Could not find any elements in outer Buffer")
@@ -92,7 +91,7 @@ def road_network_from_place(
                 place,
                 network_type="drive",
                 buffer_dist=buffer_dist_extended,
-                custom_filter=extended_surrounding_filter,
+                custom_filter=parameters.supply.extended_surroundings_filter,
             )
         except (ox._errors.EmptyOverpassResponse, ValueError):
             warn("Could not find any elements in inner Buffer")
@@ -141,7 +140,7 @@ def road_network_from_place(
                     nodes_to_be_removed.append(node)
         dir_g = nx.subgraph(dir_g, largest).copy()
     __clean_up_data(dir_g)
-    dir_g = convert_osm_to_gmns(dir_g)
+    dir_g = _convert_osm_to_gmns(dir_g)
     assert "crs" in dir_g.graph
     dir_g.graph["name"] = place
     log(
@@ -154,7 +153,7 @@ def road_network_from_place(
     return dir_g
 
 
-def convert_osm_to_gmns(g):
+def _convert_osm_to_gmns(g):
     # the attribute names are chosen in compliance with GMNS,
     # see https://github.com/zephyr-data-specs/
     # GMNS/blob/master/Specification/node.schema.json
@@ -205,19 +204,24 @@ def convert_osm_to_gmns(g):
 
 def relabel_graph(g):
     """
-    osmnx labels the graph nodes and edges by their osm ids.
-     These are neither stable nor continuous. We relabel nodes and edges
+    relabels graph's links and nodes consecutively starting from 0.
+
+    Graphs obtained from external sources have labels that are often
+    neither stable nor continuous. We relabel nodes and edges
     with our internal ids. The first C nodes in the network are centroids,
-     with C the total number of centroids.
+    with C the total number of centroids.
     The first K links in the network are source connectors,
-     as link labelling is consecutive by the start node ids.
+    as link labelling is consecutive by the start node ids.
     Sink connector ids are therefore random.
+
     Parameters
     ----------
     g : nx.DiGraph
+
     Returns
     -------
-    nx.Digraph with continuously labelled nodes, consistent with internal notation
+    new_g: nx.Digraph
+        with continuously labelled nodes, consistent with internal notation
 
 
     """
@@ -361,6 +365,25 @@ def __speed(highway_val):
 
 
 def build_network(g):
+    """
+    creates internal network representation
+
+    Parameters
+    ----------
+    g: networkx.DiGraph
+        road network graph
+
+    Returns
+    -------
+
+    dyntapy.supply.Network
+
+
+    See Also
+    --------
+    dyntapy.supply.Network
+
+    """
     edge_data = [(_, _, data) for _, _, data in g.edges.data()]
     sorted_edges = sorted(edge_data, key=lambda t: t[2]["link_id"])
     sorted_nodes = sorted(g.nodes(data=True), key=lambda t: t[1]["node_id"])
@@ -392,7 +415,7 @@ def build_network(g):
     )
     x_coord = np.array([d["x_coord"] for (_, d) in sorted_nodes], dtype=np.float32)
     y_coord = np.array([d["y_coord"] for (_, d) in sorted_nodes], dtype=np.float32)
-    nodes = build_nodes(
+    nodes = _build_nodes(
         tot_nodes,
         tot_links,
         from_nodes,
@@ -406,7 +429,7 @@ def build_network(g):
     link_type = np.array(
         [np.int8(d.get("link_type", 0)) for (_, _, d) in sorted_edges], dtype=np.int8
     )
-    turns = build_turns(tot_nodes, nodes, link_type)
+    turns = _build_turns(tot_nodes, nodes, link_type)
     log("turns passed")
 
     link_capacity = np.array(
@@ -430,7 +453,7 @@ def build_network(g):
     # )
     # 1 is for sources (connectors leading out of a centroid)
     # -1 for sinks (connectors leading towards a centroid)
-    links = build_links(
+    links = _build_links(
         turns,
         tot_links,
         from_nodes,
@@ -453,7 +476,7 @@ def build_network(g):
     )
 
 
-def build_nodes(
+def _build_nodes(
     tot_nodes, tot_links, from_nodes, to_nodes, link_ids, is_centroid, x_coord, y_coord
 ):
     values, col, row = csr_prep(
@@ -488,7 +511,7 @@ def build_nodes(
     )
 
 
-def build_turns(tot_nodes, nodes: Nodes, link_types):
+def _build_turns(tot_nodes, nodes: Nodes, link_types):
     to_nodes = List()
     from_nodes = List()
     from_links = List()
@@ -552,7 +575,7 @@ def build_turns(tot_nodes, nodes: Nodes, link_types):
     )
 
 
-def build_links(
+def _build_links(
     turns,
     tot_links,
     from_nodes,
@@ -600,3 +623,192 @@ def build_links(
         lanes,
         link_type,
     )
+
+
+def get_toy_network(name):
+    """
+    retrieves toy network by name
+
+
+    Parameters
+    ----------
+    name : {'cascetta','simple_merge', 'simple_diverge', 'simple_bottleneck',
+    'chicagosketch' 'chicagoregional' 'siouxfalls' 'birmingham'}
+
+    Returns
+    -------
+    nx.DiGraph
+
+    References
+    ----------
+
+    The source of 'chicagosketch' 'chicagoregional' 'siouxfalls' 'birmingham'
+    is Ben Stabler et al. see : https://github.com/bstabler/TransportationNetworks
+
+    The 'cascetta' network is from:
+
+    Cascetta, Ennio. Transportation systems analysis: models and applications.
+    Vol. 29. Springer Science & Business Media, 2009. Page 304.
+
+    The remaining networks were set up by the authors.
+
+    """
+
+    g = nx.DiGraph()
+    if name == "cascetta":
+        ebunch_of_nodes = [
+            (1, {"x_coord": 2, "y_coord": np.sqrt(2)}),
+            (2, {"x_coord": np.sqrt(2) + 2, "y_coord": 2 * np.sqrt(2)}),
+            (3, {"x_coord": np.sqrt(2) + 2, "y_coord": 0}),
+            (4, {"x_coord": 2 * np.sqrt(2) + 2, "y_coord": np.sqrt(2)}),
+        ]
+        g.add_nodes_from(ebunch_of_nodes)
+        ebunch_of_edges = [
+            (1, 2),
+            (1, 3),
+            (2, 3),
+            (2, 4),
+            (3, 4),
+            (4, 3),
+            (4, 2),
+            (3, 2),
+            (3, 1),
+            (2, 1),
+        ]
+        bottle_neck_edges = [(2, 3), (3, 2), (3, 4), (4, 3)]
+        g.add_edges_from(ebunch_of_edges)
+        _set_toy_network_attributes(g, bottle_neck_edges)
+
+    elif name == "simple_bottleneck":
+        ebunch_of_nodes = [
+            (1, {"x_coord": 2, "y_coord": 1}),
+            (2, {"x_coord": 3, "y_coord": 1}),
+            (3, {"x_coord": 4, "y_coord": 1}),
+            (4, {"x_coord": 5, "y_coord": 1}),
+        ]
+        ebunch_of_edges = [(2, 3), (3, 2), (1, 2), (2, 1), (3, 4), (4, 3)]
+        g.add_nodes_from(ebunch_of_nodes)
+        g.add_edges_from(ebunch_of_edges)
+        bottleneck_edges = [(2, 3), (3, 2)]
+        _set_toy_network_attributes(g, bottleneck_edges)
+    elif name == "simple_merge":
+        ebunch_of_nodes = [
+            (1, {"x_coord": 2, "y_coord": 1}),
+            (2, {"x_coord": 2, "y_coord": 2}),
+            (3, {"x_coord": 4, "y_coord": 1.5}),
+            (4, {"x_coord": 5, "y_coord": 1.5}),
+            (5, {"x_coord": 6, "y_coord": 1.5}),
+        ]
+        ebunch_of_edges = [
+            (2, 3),
+            (3, 2),
+            (1, 3),
+            (3, 1),
+            (3, 4),
+            (4, 3),
+            (4, 5),
+            (5, 4),
+        ]
+        g.add_nodes_from(ebunch_of_nodes)
+        g.add_edges_from(ebunch_of_edges)
+        bottleneck_edges = [(3, 4), (4, 3)]
+        _set_toy_network_attributes(g, bottleneck_edges)
+    elif name == "simple_diverge":
+        ebunch_of_nodes = [
+            (1, {"x_coord": 2, "y_coord": 2}),
+            (2, {"x_coord": 3, "y_coord": 2}),
+            (3, {"x_coord": 4, "y_coord": 2}),
+            (4, {"x_coord": 5, "y_coord": 1}),
+            (5, {"x_coord": 5, "y_coord": 3}),
+        ]
+        ebunch_of_edges = [
+            (2, 3),
+            (3, 2),
+            (1, 2),
+            (2, 1),
+            (3, 4),
+            (4, 3),
+            (3, 5),
+            (5, 3),
+        ]
+        g.add_nodes_from(ebunch_of_nodes)
+        g.add_edges_from(ebunch_of_edges)
+        bottleneck_edges = [(2, 3), (3, 2)]
+        _set_toy_network_attributes(g, bottleneck_edges)
+    elif name in [
+        "chicagosketch",
+        "chicagoregional",
+        "siouxfalls",
+        "birmingham",
+    ]:
+        # The source of these networks is Ben Stabler et al.,
+        # see here: https://github.com/bstabler/TransportationNetworks
+        # don't forget to cite as shown in the repository
+
+        edge_file = "{0}{1}{2}_net.tntp".format(
+            os.path.dirname(os.path.realpath(__file__)),
+            os.path.sep + "toy_networks" + os.path.sep,
+            name,
+        )
+        node_file = "{0}{1}{2}_node.tntp".format(
+            os.path.dirname(os.path.realpath(__file__)),
+            os.path.sep + "toy_networks" + os.path.sep,
+            name,
+        )
+        edge_df = pd.read_csv(edge_file, skiprows=8, sep="\t")
+        if name == "birmingham":
+            sep = "       "
+        else:
+            sep = "\t"
+        node_df = pd.read_csv(node_file, sep=sep)
+        Graphtype = nx.DiGraph()
+        edge_df["init_node"] = edge_df["init_node"] - 1
+        edge_df["term_node"] = edge_df["term_node"] - 1
+        edge_df["free_speed"] = edge_df["length"] / edge_df["free_flow_time"]
+        edge_df["lanes"] = 1
+        g = nx.from_pandas_edgelist(
+            edge_df,
+            source="init_node",
+            target="term_node",
+            edge_attr=["length", "capacity", "free_speed", "lanes"],
+            create_using=Graphtype,
+        )
+        node_df = node_df.rename(columns={col: col.lower() for col in node_df.columns})
+        node_df["node"] = node_df["node"] - 1
+        for node, x, y in zip(node_df["node"], node_df["x"], node_df["y"]):
+            try:
+                g.nodes[node]["x_coord"] = x
+                g.nodes[node]["y_coord"] = y
+            except KeyError:
+                #   no edge with this node was added..
+                continue
+        g.graph = {"name": name}
+        return relabel_graph(g)
+
+    else:
+        raise ValueError("no toy network provided under that name")
+    g.graph = {"name": name}
+    return g
+
+
+def _set_toy_network_attributes(g, bottleneck_edges):
+    capacity = 2000
+    free_speed = 80
+    lanes = 1
+    bottleneck_capacity = 500
+    bottleneck_free_speed = 120
+    node_ctrl_type = "none"
+    for v in g.nodes:
+        g.nodes[v]["ctrl_type"] = node_ctrl_type
+    for u, v, data in g.edges.data():
+        y1 = g.nodes[v]["y_coord"]
+        x1 = g.nodes[v]["x_coord"]
+        y0 = g.nodes[u]["y_coord"]
+        x0 = g.nodes[u]["x_coord"]
+        data["length"] = euclidean_dist_vec(y0, x0, y1, x1)
+        data["capacity"] = capacity
+        data["free_speed"] = free_speed
+        data["lanes"] = lanes
+        if (u, v) in bottleneck_edges:
+            data["capacity"] = bottleneck_capacity
+            data["free_speed"] = bottleneck_free_speed

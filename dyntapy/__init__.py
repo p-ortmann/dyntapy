@@ -18,11 +18,11 @@ from .demand_data import (
     find_nearest_centroids,
     generate_random_od_graph,
     get_centroid_grid_coords,
+    _places_around_place,
 )
 from .graph_utils import get_shortest_paths, get_all_shortest_paths
 from .results import StaticResult, DynamicResult
-from .supply_data import places_around_place, relabel_graph, road_network_from_place
-from .toy_networks.get_networks import get_toy_network
+from .supply_data import relabel_graph, road_network_from_place, get_toy_network
 from .visualization import (
     show_demand,
     show_dynamic_network,

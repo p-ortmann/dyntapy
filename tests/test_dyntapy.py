@@ -14,12 +14,11 @@ import numpy as np
 one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
 
-from dyntapy.toy_networks.get_networks import get_toy_network
 from dyntapy.demand import DynamicDemand
 from dyntapy.demand_data import od_graph_from_matrix
 from dyntapy.assignments import DynamicAssignment
 from dyntapy.dta.orca_nodel_model import orca_node_model
-from dyntapy import get_shortest_paths, get_all_shortest_paths
+from dyntapy import get_shortest_paths, get_all_shortest_paths, get_toy_network
 from dyntapy.demand import SimulationTime
 from dyntapy.demand_data import generate_od_xy, add_centroids, \
     auto_configured_centroids, parse_demand
@@ -181,7 +180,8 @@ def test_get_toy_networks():
         "chicagoregional",
         "siouxfalls",
         "birmingham"]:
-        g = get_toy_network(name, relabel=True)
+        g = get_toy_network(name)
+        g = relabel_graph(g)
         show_network(g, toy_network=True)
         print(f'{name=}')
 
