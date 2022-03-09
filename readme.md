@@ -55,10 +55,24 @@ python -m pip install -e path-to-folder
 Using -e makes the repository editable.
 
 # Visualization of Networks and Assignment Results
+## Static Assignment Results
 
-![A Static Assignment Result](<./tutorials/imgs/assignment_dial_b.png>) 
-![Selected Link Analysis](<./tutorials/imgs/selected_link_analysis.png>) 
-![Dynamic Traffic Assignment](<./tutorials/imgs/visualizing_dta.gif>) 
+On the left: Results of an assignment with Dial's Algorithm B. \
+On the right: Selected Link Analysis of the link highlighted in pink. \
+
+The color transition from green to red mirror the volume-to-capacity ratio from 0 to >1.
+The width of the links is scaled to the largest flow in the network.
+
+
+<img src="./tutorials/imgs/assignment_dial_b.png"  width="500" height="500">
+<img src="./tutorials/imgs/selected_link_analysis.png"  width="500" height="500">
+
+## Dynamic Assignment Results
+
+For analysis of dynamic scenarios a time slider can be used to step through different time discretization steps.
+The state of the plot is updated as the time slider is moved, the data that can be attained by hovering over elements is also changed dynamically.
+<img src="./tutorials/imgs/visualizing_dta.gif"  width="500" height="500">
+
 
 # Related Python Packages
 [AequilibraE](http://aequilibrae.com/python/latest/)
