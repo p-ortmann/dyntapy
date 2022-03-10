@@ -6,11 +6,28 @@
 #
 #
 #
+"""
+
+after initializing either a `dyntapy.assignments.StaticAssignment` or
+`dyntapy.assignments.DynamicAssignment` we have access to a compiled
+`dyntapy.supply.Network` object.
+Alternatively, this can be build using `dyntapy.supply_data.build_network`
+
+>>> network = dyntapy.supply_data.build_network(g)
+
+The structure of this network object is described below.
+It gives access to a Links, Nodes and Turns object such that one can easily retrieve
+any network information rather intuitively.
+
+For example, if one wanted to get the free flow travel times for all links,
+simply query the underlying links object.
+
+>>> free_flow_costs = network.links.length/network.links.free_speed
+
+"""
 from collections import OrderedDict
 
-import numpy as np
 from numba.core.types import boolean, float32, int8, uint8, uint32
-from numba.core.types.containers import ListType
 from numba.experimental import jitclass
 
 from dyntapy.csr import UI32CSRMatrix, f32csr_type, ui32csr_type

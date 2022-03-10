@@ -7,13 +7,11 @@
 #
 from heapq import heappop, heappush
 
-import networkx as nx
 import numpy as np
-from numba import generated_jit, njit, typeof, types
-from numba.core.errors import TypingError
+from numba import njit
 from numba.typed import Dict, List
 
-from dyntapy.csr import UI32CSRMatrix, f32csr_type, ui8csr_type, ui32csr_type
+from dyntapy.csr import UI32CSRMatrix
 from dyntapy.supply_data import build_network
 
 
@@ -78,7 +76,7 @@ def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
 def _make_in_links(links_to_include, from_node, to_node, tot_nodes):
     """
 
-    creates in_links as dictionary
+    creates in_links as dictionary.
 
     Parameters
     ----------
@@ -125,13 +123,6 @@ def _make_in_links(links_to_include, from_node, to_node, tot_nodes):
     for i in range(tot_nodes):
         backward_star[i] = backward_star[i][: star_sizes[i]]
     return backward_star
-
-
-def node_to_edge_path(node_path, edge_map):
-    edge_path = List()
-    for id, node in enumerate(node_path[:-1]):
-        edge_path.append(edge_map[(node, node_path[id + 1])])
-    return edge_path
 
 
 @njit()
@@ -209,8 +200,28 @@ def dijkstra_all(
         int, 1D - predecessor for each node that is closest to source.
         Can be used to reconstruct paths.
 
+    Examples
+    --------
+
+    A network object is build using `dyntapy.supply_data.build_network`, this happens
+    during the intilization of any assignment.
+
+    >>> network = dyntapy.supply_data.build_network(g)
+
+    from this we can retrieve both `is_centroid` and `out_links`:
+
+    >>> out_links = network.nodes.out_links
+    >>> is_centroid = network.nodes.is_centroid
+
+    which is what we need to run this function.
+
+
     See Also
     --------
+
+    dyntapy.supply
+
+    dyntapy.supply_data.build_network
 
     dyntapy.graph_utils.pred_to_paths
 
@@ -270,7 +281,11 @@ def dijkstra_with_targets(
         float, 1D
     predecessors: numpy.ndarray
         int, 1D - predecessor for each node that is closest to source.
-        Can be used to reconstruct paths.
+
+    Notes
+    -----
+    depending on how many targets there are to be found it can be faster to use
+    `dyntapy.graph_utils.dijkstra_all`
 
     See Also
     --------
@@ -332,7 +347,11 @@ def get_all_shortest_paths(g, source, costs=None):
         float, 1D
     predecessors: numpy.ndarray
         int, 1D - predecessor for each node that is closest to source.
-        Can be used to reconstruct paths.
+
+    See Also
+    --------
+
+    dyntapy.graph_utils.pred_to_paths
 
     Notes
     -----

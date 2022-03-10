@@ -67,8 +67,8 @@ def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
     Parameters
     ----------
     link_costs: numpy.ndarray
-    demand: InternalStaticDemand
-    network: Network
+    demand: dyntapy.demand.InternalStaticDemand
+    network: dyntapy.supply.Network
 
     Returns
     -------
@@ -107,8 +107,8 @@ def get_od_flows(assignment, result: StaticResult, return_as_matrix=False):
 
     Parameters
     ----------
-    assignment: StaticAssignment
-    result: StaticResult
+    assignment: dyntapy.assignments.StaticAssignment
+    result: dyntapy.results.StaticResult
         assumes either origin or destination flows to be set
     return_as_matrix: bool, False
         whether to return in matrix format, may yield issues with memory for large
@@ -184,11 +184,10 @@ def get_selected_link_analysis(assignment, od_flows, link):
 
     Parameters
     ----------
-    assignment: StaticAssignment
+    assignment: dyntapy.assignments.StaticAssignment
     od_flows: list
         as defined in get_od_flows
     link: int
-        link for SLA
 
     Returns
     -------
@@ -385,7 +384,7 @@ def _propagate_flows(
     if is_centroid[node]:
         return 0
     # origin_flows_for_destination are fixed to a particular OD
-    # which destination that is, i:s not relevant here
+    # which destination that is, is not relevant here
     # commodity flows are the full origin flows not just for the destination in question
     # the function propagates to the upstream links based on proportionality
     tot_out_flow_for_destination = np.zeros(tot_origins)
