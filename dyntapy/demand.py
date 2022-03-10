@@ -27,8 +27,8 @@ class DynamicDemand:
 
     Parameters
     ----------
-    od_graphs :list of nx.DiGraph
-    insertion_times: np.ndarray
+    od_graphs :list of networkx.DiGraph
+    insertion_times: numpy.ndarray
         times for the demand to be loaded into the network
 
     Notes
@@ -91,7 +91,7 @@ def build_internal_static_demand(od_graph: nx.DiGraph):
 
     Parameters
     ----------
-    od_graph: nx.DiGraph
+    od_graph: networkx.DiGraph
 
     See Also
     --------
@@ -143,9 +143,9 @@ class InternalStaticDemand(object):
         sparse OD matrix destinations to origins
     to_destinations: F32CSRMatrix
         sparse OD matrix destinations to origins
-    origins: np.ndarray
+    origins: numpy.ndarray
         all origins with non-zero flow
-    destinations: np.ndarray
+    destinations: numpy.ndarray
         all destinations with non-zero flow
     time_step: int
 

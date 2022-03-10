@@ -150,13 +150,13 @@ def show_network(
 
     Parameters
     ----------
-    g: nx.DiGraph
+    g: networkx.DiGraph
     result: StaticResult, optional
-    flows: np.ndarray, optional
+    flows: numpy.ndarray, optional
     link_kwargs: dict, optional
     node_kwargs: dict, optional
-    highlight_links: np.ndarray, optional
-    highlight_nodes: np.ndarray, optional
+    highlight_links: numpy.ndarray, optional
+    highlight_nodes: numpy.ndarray, optional
     toy_network: bool, optional
         set to True for toy networks. Toy network's coordinates are assumed to be
         euclidean, if false we assume lon lat.

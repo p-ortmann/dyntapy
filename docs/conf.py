@@ -34,6 +34,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon'
 
 napoleon_google_docstring = False  # using numpydoc via napoleon rather than directly
 # numpydoc itself is rather strict
+
+napoleon_preprocess_types = True
 napoleon_use_ivar = True
 napoleon_use_rtype = False
 napoleon_use_param = False

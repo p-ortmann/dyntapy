@@ -34,7 +34,7 @@ def generate_random_od_graph(tot_ods, name, g, max_flow=2000, seed=0):
         total number of OD pairs to be generated
     name : str
         name of the city or region to geocode and sample from
-    g : nx.DiGraph
+    g : networkx.DiGraph
     max_flow : float, optional
         maximum demand for any OD pair
     seed : int, optional
@@ -154,16 +154,16 @@ def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
     Parameters
     ----------
 
-    od_matrix : np.ndarray
+    od_matrix : numpy.ndarray
         float, 2D
-    X : np.ndarray
+    X : numpy.ndarray
         float, 1D - lon of centroid locations
-    Y : np.ndarray
+    Y : numpy.ndarray
         float, 1D - lat of centroid locations
 
     Returns
     -------
-    od_graph: nx.DiGraph
+    od_graph: networkx.DiGraph
         graph with centroids as nodes with specified coordinates as 'x_coord' and
         'y_coord'. For each OD pair with a non-zero demand there
         is a link with a corresponding 'flow' element as read from the OD matrix.
@@ -203,10 +203,10 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
 
     Returns
     -------
-    X: np.ndarray
+    X: numpy.ndarray
         float, 1D
         lon of centroid locations
-    Y: np.ndarray
+    Y: numpy.ndarray
         float, 1D
         lat of centroid locations
     """
@@ -256,9 +256,9 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
         set to True for toy networks that use the euclidean coordinate system
     method : {'turns' , 'links'}
         whether to add link or turn connectors
-    Y : np.ndarray
+    Y : numpy.ndarray
         float, 1D - lat of centroids
-    X : np.ndarray
+    X : numpy.ndarray
         float, 1D - lon of centroids
     k : int
         number of road network nodes to connect to per centroid.
@@ -288,7 +288,7 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
 
     Returns
     -------
-    nx.DiGraph
+    networkx.DiGraph
         new graph with centroids and connectors
 
     See Also
@@ -397,7 +397,7 @@ def auto_configured_centroids(
 
     Parameters
     ----------
-    place: str,
+    place: str
         name of the city or region to buffer around.
     buffer_dist_close: float
         width of the inner buffer
@@ -407,10 +407,10 @@ def auto_configured_centroids(
 
     Returns
     -------
-    X: np.ndarray
+    X: numpy.ndarray
         float, 1D
         lon of centroid locations
-    Y: np.ndarray
+    Y: numpy.ndarray
         float, 1D
         lat of centroid locations
     name: list of strings
@@ -468,9 +468,9 @@ def add_connectors(x, y, u, k, g, new_g, euclidean):
         connector's from_node in new_g
     k : int
         number of (bidirectional) connectors to add
-    g : nx.DiGraph
+    g : networkx.DiGraph
         containing all road network nodes
-    new_g : nx.DiGraph
+    new_g : networkx.DiGraph
         containing at least u and all nodes of g
     euclidean : bool
         whether x and y are euclidean
@@ -601,18 +601,18 @@ def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
 
     Parameters
     ----------
-    X : np.ndarray
+    X : numpy.ndarray
         longitude of points
-    Y : np.ndarray
+    Y : numpy.ndarray
         latitude of points
-    centroid_graph : nx.DiGraph
+    centroid_graph : networkx.DiGraph
         with existing centroids,
         coordinates stored as 'x_coord' and 'y_coord' assumed to be lon and lat
 
     Returns
     -------
-    nearest_centroids, np.ndarray
-    distances, np.ndarray
+    nearest_centroids, numpy.ndarray
+    distances, numpy.ndarray
 
     """
     if centroid_graph.number_of_nodes() == 0:

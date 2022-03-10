@@ -216,7 +216,7 @@ def relabel_graph(g):
 
     Parameters
     ----------
-    g : nx.DiGraph
+    g : networkx.DiGraph
 
     Returns
     -------
@@ -587,7 +587,7 @@ def _build_links(
     link_type,
 ):
     """
-    initiates all the different numpy arrays for the links object from nx.DiGraph,
+    initiates all the different numpy arrays for the links object from networkx.DiGraph,
     requires the networkx graph to be set up as specified in the network_data
     Returns
     links : Links
@@ -627,17 +627,20 @@ def _build_links(
 
 def get_toy_network(name):
     """
-    retrieves toy network by name
+    retrieves toy network by name.
+
+    Options are:
+    'cascetta','simple_merge', 'simple_diverge', 'simple_bottleneck',
+    'chicagosketch' 'chicagoregional' 'siouxfalls' 'birmingham'
 
 
     Parameters
     ----------
-    name : {'cascetta','simple_merge', 'simple_diverge', 'simple_bottleneck',
-    'chicagosketch' 'chicagoregional' 'siouxfalls' 'birmingham'}
+    name : str
 
     Returns
     -------
-    nx.DiGraph
+    networkx.DiGraph
 
     References
     ----------

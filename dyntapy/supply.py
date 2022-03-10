@@ -37,20 +37,23 @@ spec_link = [
 class Links(object):
     """
     specifies internal Links object
-    should not be initialized by the user, use dyntapy.supply_data.build_network
 
     Parameters
     ----------
-    length: np.ndarray
-    from_node: np.ndarray
-    to_node: np.ndarray
-    capacity: np.ndarray
-    free_speed: np.ndarray
-    out_turns: np.ndarray
-    in_turns: np.ndarray
-    lanes: np.ndarray
-    link_type: np.ndarray
+    length: numpy.ndarray
+    from_node: numpy.ndarray
+    to_node: numpy.ndarray
+    capacity: numpy.ndarray
+    free_speed: numpy.ndarray
+    out_turns: numpy.ndarray
+    in_turns: numpy.ndarray
+    lanes: numpy.ndarray
+    link_type: numpy.ndarray
 
+    Notes
+    -----
+
+    should not be initialized by the user, use dyntapy.supply_data.build_network
     """
 
     def __init__(
@@ -124,18 +127,24 @@ spec_node = [
 class Nodes(object):
     """
     specifies internal Nodes object
-    should not be initialized by the user, use dyntapy.supply_data.build_network
+
     Parameters
     ----------
-    out_links: np.ndarray
-    in_links: np.ndarray
-    tot_out_links: np.ndarray
-    tot_in_links: np.ndarray
-    control_type: np.ndarray
-    capacity: np.ndarray
-    is_centroid: np.ndarray
-    x_coord: np.ndarray
-    y_coord: np.ndarray
+    out_links: numpy.ndarray
+    in_links: numpy.ndarray
+    tot_out_links: numpy.ndarray
+    tot_in_links: numpy.ndarray
+    control_type: numpy.ndarray
+    capacity: numpy.ndarray
+    is_centroid: numpy.ndarray
+    x_coord: numpy.ndarray
+    y_coord: numpy.ndarray
+
+    Notes
+    -----
+
+    should not be initialized by the user, use dyntapy.supply_data.build_network
+
     """
 
     def __init__(
@@ -150,20 +159,6 @@ class Nodes(object):
         x_coord,
         y_coord,
     ):
-        """
-
-        Parameters
-        ----------
-        out_links
-        in_links
-        tot_out_links
-        tot_in_links
-        control_type
-        capacity
-        is_centroid
-        x_coord
-        y_coord
-        """
         # out_links and in_links are sparse matrices in csr format that indicate
         #  connected links and their nodes
         #  both are nodes x links with f(i,link_id) = j and essentially carry the same
@@ -238,14 +233,19 @@ class Turns(object):
 
     Parameters
     ----------
-    penalty: np.ndarray
-    capacity: np.ndarray
-    from_node: np.ndarray
-    via_node: np.ndarray
-    to_node: np.ndarray
-    from_link: np.ndarray
-    to_link: np.ndarray
-    turn_type: np.ndarray
+    penalty: numpy.ndarray
+    capacity: numpy.ndarray
+    from_node: numpy.ndarray
+    via_node: numpy.ndarray
+    to_node: numpy.ndarray
+    from_link: numpy.ndarray
+    to_link: numpy.ndarray
+    turn_type: numpy.ndarray
+
+    Notes
+    -----
+
+    should not be initialized by the user, use dyntapy.supply_data.build_network
 
     """
 
@@ -289,7 +289,6 @@ except Exception:
 class Network(object):
     """
     specifies internal Network object
-    should be initialized with dyntapy.supply_data.build_network
 
     Parameters
     ----------
@@ -297,12 +296,18 @@ class Network(object):
     nodes: Nodes
     turns: Turns
 
+    Notes
+    -----
+
+    should be initialized with dyntapy.supply_data.build_network
+
     See Also
     --------
     dyntapy.supply_data.build_network
     dyntapy.supply.Links
     dyntapy.supply.Nodes
     dyntapy.supply.Turns
+
 
     """
 

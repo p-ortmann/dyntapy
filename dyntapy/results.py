@@ -5,6 +5,7 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 from dataclasses import dataclass
+import numpy
 import numpy as np
 from numba import njit, prange
 from heapq import heappop, heappush
@@ -19,34 +20,39 @@ from dyntapy.dta.i_ltm_cls import ILTMState
 
 @dataclass
 class StaticResult:
-    link_costs: np.ndarray
-    flows: np.ndarray
-    origins: np.ndarray
-    destinations: np.ndarray
-    origin_flows: np.ndarray = None
-    destination_flows: np.ndarray = None
-    skim: np.ndarray = None
+    link_costs: numpy.ndarray
+    flows: numpy.ndarray
+    origins: numpy.ndarray
+    destinations: numpy.ndarray
+    origin_flows: numpy.ndarray = None
+    destination_flows: numpy.ndarray = None
+    skim: numpy.ndarray = None
     gap_definition: str = None
-    gap: np.ndarray = None
+    gap: numpy.ndarray = None
     od_flows: list = None
 
 
 @dataclass
 class DynamicResult:
-    link_costs: np.ndarray
-    cvn_up: np.ndarray
-    cvn_down: np.ndarray
-    con_up: np.ndarray
-    con_down: np.ndarray
-    turning_fractions: np.ndarray
-    turn_costs: np.ndarray
-    flows: np.ndarray
+    """
+    Parameters
+    ---------
+    """
+
+    link_costs: numpy.ndarray
+    cvn_up: numpy.ndarray
+    cvn_down: numpy.ndarray
+    con_up: numpy.ndarray
+    con_down: numpy.ndarray
+    turning_fractions: numpy.ndarray
+    turn_costs: numpy.ndarray
+    flows: numpy.ndarray
     commodity_type: str
-    origins: np.ndarray
-    destinations: np.ndarray
-    skim: np.ndarray = None
+    origins: numpy.ndarray
+    destinations: numpy.ndarray
+    skim: numpy.ndarray = None
     gap_definition: str = None
-    iterations: np.ndarray = None
+    iterations: numpy.ndarray = None
 
 
 @njit(parallel=True, cache=True)
@@ -56,7 +62,7 @@ def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
 
     Parameters
     ----------
-    link_costs: np.ndarray
+    link_costs: numpy.ndarray
     demand: InternalStaticDemand
     network: Network
 
@@ -68,7 +74,7 @@ def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
 
     Returns
     -------
-    skim: np.ndarray
+    skim: numpy.ndarray
         float, 2D
     """
     is_centroid = network.nodes.is_centroid
@@ -100,7 +106,7 @@ def get_od_flows(assignment, result: StaticResult, return_as_matrix=False):
     -------
     od_flow: list, optional
         each element is a list of tuples (origin, destination, flow), one for each link
-    od_mat: np.ndarray, optional
+    od_mat: numpy.ndarray, optional
         float, 3D, (tot_origins, tot_destinations, tot_links)
     Notes
     -----

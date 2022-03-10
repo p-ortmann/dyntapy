@@ -66,7 +66,7 @@
 
 
 """
-import networkx as nx
+import networkx
 import numpy as np
 
 import dyntapy._context
@@ -104,9 +104,9 @@ class DynamicAssignment:
         Parameters
         ----------
 
-        network : nx.DiGraph
-        dynamic_demand : dyntapy.DynamicDemand
-        simulation_time: dyntapy.time.SimulationTime,
+        network : networkx.DiGraph
+        dynamic_demand : dyntapy.demand.DynamicDemand
+        simulation_time: dyntapy.time.SimulationTime
         """
         _check_centroid_connectivity(network)
         self.network = network
@@ -133,7 +133,38 @@ class DynamicAssignment:
         Returns
         -------
 
-        DynamicResult
+        dyntapy.results.DynamicResult
+
+        Notes
+        -----
+
+        All the presented options utilize the same dynamic network loading (DNL) and
+        route choice component, that is the iterative link transmission model [1]_
+        and an
+        iterative procedure to update a time-dependent arrival map, see [2]_.
+
+        'i_ltm_aon' refers to a dynamic deterministic user equilibrium solution,
+        note that for congested networks this is not guaranteed to converge below a
+        gap of $10^-2$.
+
+        'incremental_assignment' assigns the demands in chunks and updates the
+        both costs and route choice after each DNL.
+
+        'aon' simply assigns all demand at free flow costs and executes one DNL.
+
+        References
+        ----------
+
+        .. [1] Himpe, Willem, Ruben Corthout, and MJ Chris Tampère.
+            ‘An Efficient Iterative Link Transmission Model’. Transportation Research
+            Part B: Methodological 92 (2016): 170–90.
+
+        .. [2] Himpe, Willem. ‘INTEGRATED ALGORITHMS FOR REPEATED DYNAMIC
+            TRAFFIC ASSIGNMENTS’. KU Leuven, 2016.
+
+
+
+
         """
         dyntapy._context.running_assignment = (
             self  # making the current assignment available as global var
@@ -159,6 +190,7 @@ class DynamicAssignment:
 
 class StaticAssignment:
     """
+
     This class stores all the information needed for the assignment itself.
     Upon initialisation both the network and demand are transformed into
     internal representations.
@@ -166,13 +198,14 @@ class StaticAssignment:
     Parameters
     ----------
 
-    g : nx.DiGraph
+    g : networkx.DiGraph
         road network graph with attributes and labelling as specified in the module
         description.
-    od_graph : nx.DiGraph
+    od_graph : networkx.DiGraph
         graph with centroids as nodes with specified coordinates as 'x_coord' and
         'y_coord'. For each OD pair with a non-zero demand there
         is a link with a corresponding 'flow' element.
+
 
     """
 
@@ -200,8 +233,8 @@ class StaticAssignment:
         Returns
         -------
 
-        StaticResult
-        list of StaticResult, optional
+        dyntapy.results.StaticResult
+        list of dyntapy.results.StaticResult, optional
             intermediate computation states
 
         Notes
@@ -217,11 +250,11 @@ class StaticAssignment:
 
         "dial_b" refers to Dial's Algorithm B, a bush-based assignment
         algorithm. It alleviates the rather slow convergence of the Frank-Wolfe
-        algorithm close to equilibrium, see [1]_.
+        algorithm close to equilibrium, see [3]_.
 
         "sun" returns a stochastic uncongested assignment of flows on the free-flow
         travel times that are determined by the lengths and speeds of the links. It
-        is based on Dial's method, see [2]_. It does not consider the whole path set
+        is based on Dial's method, see [4]_. It does not consider the whole path set
         and rests the definition of 'efficient links' to allow for computations on an
         acyclic graph.
 
@@ -233,12 +266,12 @@ class StaticAssignment:
         References
         ----------
 
-        .. [1] Dial, Robert B. ‘A Path-Based User-Equilibrium Traffic Assignment
+        .. [3] Dial, Robert B. ‘A Path-Based User-Equilibrium Traffic Assignment
             Algorithm That Obviates Path Storage and Enumeration’.
             Transportation Research Part B: Methodological 40,
             no. 10 (December 2006): 917–36. https://doi.org/10.1016/j.trb.2006.02.008.
 
-        .. [2] Dial, Robert B. "A probabilistic multipath traffic assignment model
+        .. [4] Dial, Robert B. "A probabilistic multipath traffic assignment model
             which obviates path enumeration."
             Transportation research 5, no. 2 (1971): 83-111.
 

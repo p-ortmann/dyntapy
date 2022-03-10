@@ -34,19 +34,21 @@ def csr_sort(index_array, values, tot_columns):
     """
     sorts index_array and values by rows, ties are broken by the
     columns
+
     Parameters
     ----------
-    index_array : np.ndarray
+    index_array : numpy.ndarray
         uint32, 2D - with each row containing the indexes of nnz element
-    values : np.ndarray
+
+    values : numpy.ndarray
         int or float, 1D - corresponding value for each nnz element
 
 
     Returns
     -------
 
-    sorted_index_array : np.ndarray
-    sorted_values : np.ndarray
+    sorted_index_array : numpy.ndarray
+    sorted_values : numpy.ndarray
 
     Examples
     --------
@@ -150,7 +152,7 @@ def __build_csr_cls(nb_type):
 
             Returns
             -------
-            np.ndarray
+            numpy.ndarray
 
             """
             row_start = self.row_index[row]
@@ -167,7 +169,7 @@ def __build_csr_cls(nb_type):
 
             Returns
             -------
-            np.ndarray
+            numpy.ndarray
 
             """
             row_start = self.row_index[row]
@@ -198,9 +200,9 @@ def csr_prep(index_array, values, shape, unsorted=True):
 
     Parameters
     ----------
-    index_array : np.ndarray
+    index_array : numpy.ndarray
         uint32, 2D -  array with each row containing the indexes of nnz element
-    values : np.ndarray
+    values : numpy.ndarray
         any, 1D - array with corresponding value
     shape : tuple
         uint32 or uint64 ,shape of sparse matrix (rows, columns)
@@ -209,9 +211,9 @@ def csr_prep(index_array, values, shape, unsorted=True):
 
     Returns
     -------
-    values: np.ndarray
-    col: np.ndarray
-    row: np.ndarray
+    values: numpy.ndarray
+    col: numpy.ndarray
+    row: numpy.ndarray
 
     See Also
     --------
@@ -239,15 +241,15 @@ def _csr_format(index_array, number_of_rows):
 
     Parameters
     ----------
-    index_array : np.ndarray
+    index_array : numpy.ndarray
         uint32, 2D -  array with each row containing the indexes of nnz element
     number_of_rows : int
 
     Returns
     -------
 
-    col: np.ndarray
-    row: np.ndarray
+    col: numpy.ndarray
+    row: numpy.ndarray
 
     """
     # index_array with the position of the elements (i,j),
