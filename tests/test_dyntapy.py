@@ -97,7 +97,7 @@ def test_dial_b():
     demand = assignment.internal_demand
     method = 'dial_b'
     result = assignment.run(method)
-    show_network(graph, result)
+    show_network(graph, flows=result.flows)
     print(f'DUE {method=} ran successfully')
 
 
@@ -106,7 +106,7 @@ def test_msa():
     method = 'msa'
     res = loc_assignment.run(method)
     print(f'DUE {method=} ran successfully')
-    show_network(graph, res)
+    show_network(graph, res.flows)
 
 
 def test_node_model():

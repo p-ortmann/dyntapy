@@ -153,12 +153,14 @@ def show_network(
         float, 1D - flows to be visualized
     link_kwargs: dict, optional
         additional link information to be displayed
-        key: str, value: np.ndarray - additional link information to be displayed
+        key: str, value: numpy.ndarray - additional link information to be
+        displayed
     node_kwargs: dict, optional
-        key: str, value: np.ndarray - additional node information to be displayed
-    highlight_links: numpy.ndarray, optional
+        key: str, value: numpy.ndarray - additional node information to be
+        displayed
+    highlight_links: numpy.ndarray or list, optional
         int, 1D or 2D - links to highlight
-    highlight_nodes: numpy.ndarray, optional
+    highlight_nodes: numpy.ndarray or list, optional
         int, 1D or 2D - links to highlight
     toy_network: bool, optional
         set to True for toy networks. Toy network's coordinates are assumed to be
@@ -172,18 +174,20 @@ def show_network(
     Examples
     --------
 
-    >>> show_network(g, highlight_links=np.ndarray([[2,4],[3,6]]))
+    >>> show_network(g, highlight_links=[[2,4],[3,6]])
 
     will plot the network and highlight links [2,4] in neon pink,
-    and [3, 6] in cyan. The order of highlight colors can be seen below.
+    and [3, 6] in cyan. The order of highlight colors is neon pink, cyan, lime green,
+    light blue, orange, gray
 
-    neon pink, cyan, lime green, light blue, orange, gray
+    Node highlighting works analogously.
 
     >>> foo = np.arange(g.number_of_edges())
     >>> bar = np.arange(g.number_of_edges())
     >>> show_network(g, link_kwargs={'foo': foo, 'bar':bar})
 
-    Will generate a plot where my_attr can be inspected by hovering over the link.
+    will generate a plot where respective values for `foo` and `bar` can be inspected by
+    hovering over the link.
     Note that the string attribute names cannot contain spaces and that the arrays
     must have the correct dimension.
 
@@ -287,7 +291,23 @@ def show_network(
 
 
 def show_link_od_flows(g: nx.DiGraph, od_flows, **kwargs):
-    # same keyword arguments as show_network
+    """
+    Visualizing a network with origin destination flows for each link in a .html.
+
+    Parameters
+    ----------
+    g: networkx.DiGraph
+    od_flows: list
+        origin destination flows for each link
+    kwargs: any
+        all the arguments of `show_network` are valid, except for `flows`
+
+    See Also
+    --------
+
+    dyntapy.visualization.show_network
+
+    """
     formatted_od_flows = []
     tot_flows = np.zeros(len(od_flows), dtype=np.float64)
     for link in range(len(od_flows)):
@@ -324,13 +344,16 @@ def show_dynamic_network(
     Parameters
     ----------
     g: networkx.DiGraph
+    time: dyntapy.demand.SimulationTime
     flows: numpy.ndarray, optional
-        float, 1D - flows to be visualized
+        float, 2D - time-dependent flows to be visualized
     link_kwargs: dict, optional
-        additional link information to be displayed
-        key: str, value: np.ndarray - additional link information to be displayed
+        additional time-dependent link information to be displayed
+        key: str, value: np.ndarray - additional time-dependent link information to
+        be displayed
     node_kwargs: dict, optional
-        key: str, value: np.ndarray - additional node information to be displayed
+        key: str, value: np.ndarray - additional time-dependent node information to
+        be displayed
     highlight_links: numpy.ndarray, optional
         int, 1D or 2D - links to highlight
     highlight_nodes: numpy.ndarray, optional
@@ -346,19 +369,16 @@ def show_dynamic_network(
 
     Examples
     --------
+    highlighting works just as in `show_network` and is not time dependent.
 
-    >>> show_dynamic_network(g, highlight_links=np.ndarray([[2,4],[3,6]]))
+    >>> foo = np.arange((g.number_of_edges(), time.tot_time_steps))
+    >>> bar = np.arange((g.number_of_edges(), time.tot_time_steps))
+    >>> show_dynamic_network(g, link_kwargs={'foo': foo, 'bar':bar})
 
-    will plot the network and highlight links [2,4] in neon pink,
-    and [3, 6] in cyan. The order of highlight colors can be seen below.
+    Will generate a plot where respective values for `foo` and `bar` can be inspected by
+    hovering over the link.
+    The values are updated as the time slider is moved.
 
-    neon pink, cyan, lime green, light blue, orange, gray
-
-    >>> foo = np.arange(g.number_of_edges())
-    >>> bar = np.arange(g.number_of_edges())
-    >>> show_network(g, link_kwargs={'foo': foo, 'bar':bar})
-
-    Will generate a plot where my_attr can be inspected by hovering over the link.
     Note that the string attribute names cannot contain spaces and that the arrays
     must have the correct dimension.
 
