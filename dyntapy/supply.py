@@ -58,14 +58,21 @@ class Links(object):
     Parameters
     ----------
     length: numpy.ndarray
+        float, 1D
     from_node: numpy.ndarray
+        int, 1D
     to_node: numpy.ndarray
+        int, 1D
     capacity: numpy.ndarray
+        float, 1D
     free_speed: numpy.ndarray
-    out_turns: numpy.ndarray
-    in_turns: numpy.ndarray
+        float, 1D
+    out_turns: dyntapy.csr.UI32CSRMatrix
+    in_turns: dyntapy.csr.UI32CSRMatrix
     lanes: numpy.ndarray
+        int, 1D
     link_type: numpy.ndarray
+        int, 1D
 
     Notes
     -----
@@ -147,20 +154,34 @@ class Nodes(object):
 
     Parameters
     ----------
-    out_links: numpy.ndarray
-    in_links: numpy.ndarray
+    out_links: dyntapy.csr.UI32CSRMatrix
+    in_links: dyntapy.csr.UI32CSRMatrix
     tot_out_links: numpy.ndarray
+        int, 1D - number of outgoing links
     tot_in_links: numpy.ndarray
+        int, 1D - number of outgoing links
     control_type: numpy.ndarray
+        int, 1D
     capacity: numpy.ndarray
+        float, 1D
     is_centroid: numpy.ndarray
+        bool, 1D
     x_coord: numpy.ndarray
+        float, 1D
     y_coord: numpy.ndarray
-
+        float, 1D
     Notes
     -----
 
     should not be initialized by the user, use dyntapy.supply_data.build_network
+
+    out_links and in_links are sparse matrices in csr format that indicate
+    connected links and their nodes
+    both are nodes x links with f(i,link_id) = j and essentially carry the same
+    information. There's duplication to
+    avoid on-the-fly transformations.
+    out_links is fromNode x Link and in_links toNode x Link in dim with toNode
+    and fromNode as value, respectively.
 
     """
 
@@ -176,19 +197,11 @@ class Nodes(object):
         x_coord,
         y_coord,
     ):
-        # out_links and in_links are sparse matrices in csr format that indicate
-        #  connected links and their nodes
-        #  both are nodes x links with f(i,link_id) = j and essentially carry the same
-        #  information. There's duplication to
-        #  avoid on-the-fly transformations.
-        #  out_links is fromNode x Link and in_links toNode x Link in dim with toNode
-        #  and fromNode as val, respectively.
-        self.out_links: UI32CSRMatrix = out_links
+        self.out_links = out_links
         self.in_links: UI32CSRMatrix = in_links
         self.tot_out_links = tot_out_links
         self.tot_in_links = tot_in_links
-        # self.turn_fractions = turn_fractions  # node x turn_ids
-        self.control_type = control_type  #
+        self.control_type = control_type
         self.capacity = capacity
         self.is_centroid = is_centroid
         self.x_coord = x_coord
@@ -251,13 +264,21 @@ class Turns(object):
     Parameters
     ----------
     penalty: numpy.ndarray
+        float, 1D
     capacity: numpy.ndarray
+        float, 1D
     from_node: numpy.ndarray
+        int, 1D
     via_node: numpy.ndarray
+        int, 1D
     to_node: numpy.ndarray
+        int, 1D
     from_link: numpy.ndarray
+        int, 1D
     to_link: numpy.ndarray
+        int, 1D
     turn_type: numpy.ndarray
+        int, 1D
 
     Notes
     -----
@@ -356,4 +377,3 @@ class _UncompiledNetwork(object):
         self.tot_links = tot_links
         self.tot_nodes = tot_nodes
         self.tot_turns = tot_turns
-        # TODO: add lookup tables for name to index
