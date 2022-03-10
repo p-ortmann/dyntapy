@@ -14,8 +14,8 @@ import numpy as np
 from dyntapy.demand import InternalStaticDemand
 from dyntapy.graph_utils import (
     dijkstra_all,
-    make_in_links,
-    make_out_links,
+    _make_in_links,
+    _make_out_links,
 )
 from dyntapy.settings import parameters
 from dyntapy.supply import Network
@@ -61,10 +61,10 @@ def load_all_bushes(
     tot_origins = demand.to_destinations.get_nnz_rows().size
     bush_flows = np.zeros((tot_origins, tot_links))
     for bush_id, bush in enumerate(demand.to_destinations.get_nnz_rows()):
-        bush_out_links = make_out_links(
+        bush_out_links = _make_out_links(
             links_in_bush[bush_id], from_nodes, to_nodes, tot_nodes
         )
-        bush_in_links = make_in_links(
+        bush_in_links = _make_in_links(
             links_in_bush[bush_id], from_nodes, to_nodes, tot_nodes
         )
         destinations = demand.to_destinations.get_nnz(bush)

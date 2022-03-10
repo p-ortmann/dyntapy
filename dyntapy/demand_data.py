@@ -253,18 +253,16 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
     ----------
     g : networkx.Digraph
         road network graph, containing only road network edges and nodes
-    euclidean : bool, optional
-        set to True for toy networks that use the euclidean coordinate system
-    method : {'turns' , 'links'}
-        whether to add link or turn connectors
-    Y : numpy.ndarray
-        float, 1D - lat of centroids
     X : numpy.ndarray
         float, 1D - lon of centroids
+    Y : numpy.ndarray
+        float, 1D - lat of centroids
     k : int
         number of road network nodes to connect to per centroid.
-    g : nx.Digraph
-        containing only road network edges and nodes
+    method : {'turns' , 'links'}
+        whether to add link or turn connectors
+    euclidean : bool, optional
+        set to True for toy networks that use the euclidean coordinate system
     **kwargs : iterable, optional
         any keyword arguments are passed as additional attributes into the graph and
         appear as attributes of the centroids.
@@ -519,7 +517,7 @@ def add_connectors(x, y, u, k, g, new_g, euclidean):
         new_g.add_edge(v, u, **sink_data)
 
 
-def parse_demand(data: str, g: nx.DiGraph):
+def parse_demand(data: str, g):
     """
     Maps travel demand to existing closest centroids in g.
     The returned demand pattern is expressed as its own directed graph.
@@ -543,8 +541,8 @@ def parse_demand(data: str, g: nx.DiGraph):
     Notes
     -----
 
-    There's no checking on whether the data and the nx.Digraph
-    correspond to the same geo-coded region.
+    There's no checking on whether the data and `g` correspond to the same geo-coded
+    region.
 
     The corresponding OD table can be retrieved through calling
 

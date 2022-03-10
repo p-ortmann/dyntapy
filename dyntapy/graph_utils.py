@@ -19,33 +19,95 @@ from dyntapy.supply_data import build_network
 
 # store link_ids as tuple, infer from link_ids, to_node and from_node
 @njit
-def make_out_links(links_to_include, from_node, to_node, tot_nodes):
+def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
+    """
+
+    creates out_links as dictionary
+
+    Parameters
+    ----------
+    links_to_include: numpy.ndarray
+        bool, 1D
+    from_node: numpy.ndarray
+        int, 1D
+    to_node: numpy.ndarray
+        int, 1D
+    tot_nodes: int
+
+    Returns
+    -------
+    out_links: numba.typed.Dict
+
+    Notes
+    -----
+
+    It is more efficient to work with dyntapy's sparse matrices, however
+    for some algorithms like Dial's Algorithm B editable graph structures are required.
+
+    Examples
+    --------
+    the resulting dictionary gives access to the graph's structure as shown below
+
+    >>> out_links[node_id]
+    [node_id, link_id]
+
+    """
     # creates out_links as dictionary, outlink[node] = [node_id, link_id]
-    forward_star = Dict()
+    out_links = Dict()
+
     star_sizes = np.zeros(tot_nodes, dtype=np.int64)
     for i in range(tot_nodes):
-        forward_star[i] = np.empty(
+        out_links[i] = np.empty(
             (20, 2), dtype=np.int64
-        )  # In traffic networks nodes will never have more than 10 outgoing edges..
+        )  # In traffic networks nodes should never have more than 10 outgoing edges..
     for link, include in enumerate(links_to_include):
         if include:
             i = from_node[link]
             j = to_node[link]
-            forward_star[i][star_sizes[i]][0] = j
-            forward_star[i][star_sizes[i]][1] = link
+            out_links[i][star_sizes[i]][0] = j
+            out_links[i][star_sizes[i]][1] = link
             star_sizes[i] += 1
 
     for i in range(tot_nodes):
-        forward_star[i] = forward_star[i][: star_sizes[i]]
-    return forward_star
+        out_links[i] = out_links[i][: star_sizes[i]]
+    return out_links
 
 
 # store link_ids as tuple
 @njit
-def make_in_links(links_to_include, from_node, to_node, tot_nodes):
-    # creates in_links as dictionary, in_links[node] = [node_id, link_id]
-    # equivalent to make_out_links but with swapped from and to_nodes values
-    # left hear for clarity
+def _make_in_links(links_to_include, from_node, to_node, tot_nodes):
+    """
+
+    creates in_links as dictionary
+
+    Parameters
+    ----------
+    links_to_include: numpy.ndarray
+        bool, 1D
+    from_node: numpy.ndarray
+        int, 1D
+    to_node: numpy.ndarray
+        int, 1D
+    tot_nodes: int
+
+    Returns
+    -------
+    in_links: numba.typed.Dict
+
+    Notes
+    -----
+
+    It is more efficient to work with dyntapy's sparse matrices, however
+    for some algorithms like Dial's Algorithm B editable graph structures are required.
+
+    Examples
+    --------
+    the resulting dictionary gives access to the graph's structure as shown below
+
+    >>> in_links[node_id]
+    [node_id, link_id]
+
+    """
     backward_star = Dict()
     star_sizes = np.zeros(tot_nodes, dtype=np.int64)  # , dtype=int_dtype
     for i in range(tot_nodes):
@@ -73,7 +135,7 @@ def node_to_edge_path(node_path, edge_map):
 
 
 @njit()
-def get_link_id(from_node: int, to_node: int, out_links: UI32CSRMatrix):
+def _get_link_id(from_node: int, to_node: int, out_links: UI32CSRMatrix):
     # convenience function to get link ids from sparse matrices
     for _id, j in zip(out_links.get_nnz(from_node), out_links.get_row(from_node)):
         if j == to_node:
@@ -84,18 +146,35 @@ def get_link_id(from_node: int, to_node: int, out_links: UI32CSRMatrix):
 
 @njit(nogil=True)
 def pred_to_paths(predecessors, source, targets, out_links: UI32CSRMatrix):
+    """
+    converts optimal predecessor arrays to paths between source and targets
+
+    Parameters
+    ----------
+    predecessors : numpy.ndarray
+        int, 1D - predecessor of each node that is closest to `source`
+    source: int
+    targets: numpy.ndarray
+    out_links: dyntapy.csr.UI32CSRMatrix
+
+    Returns
+    -------
+
+    numba.typed.List
+
+    """
     for target in targets:
         assert target != source
     link_paths = List()
     for j in targets:
         path = List()
         i = predecessors[j]
-        path.append(get_link_id(i, j, out_links))
+        path.append(_get_link_id(i, j, out_links))
         j = predecessors[j]
 
         while j != source:
             i = predecessors[j]
-            path.append(get_link_id(i, j, out_links))
+            path.append(_get_link_id(i, j, out_links))
             j = predecessors[j]
         link_paths.append(path)
 
@@ -110,21 +189,32 @@ def dijkstra_all(
     is_centroid,
 ):
     """
-    typical dijkstra_with_targets implementation with heaps, fills the distances
-    array with the results
+    compiled one to all shortest path computation
+
     Parameters
     ----------
-    is_centroid : bool array, dim tot_nodes, true if node is centroid, false otherwise
-    costs : float32 vector
-    out_links : CSR matrix, fromNode x Link
+    costs: numpy.ndarray
+        float, 1D
+    out_links: dyntapy.csr.UI32CSRMatrix
+    source: int
+    is_centroid : numpy.ndarray
+        bool, 1D
+
     Returns
     -------
-    distances: array 1D, dim tot_nodes. Distances from all nodes to the target node
+
+    distances: numpy.ndarray
+        float, 1D
+    predecessors: numpy.ndarray
+        int, 1D - predecessor for each node that is closest to source.
+        Can be used to reconstruct paths.
+
+    See Also
+    --------
+
+    dyntapy.graph_utils.pred_to_paths
+
     """
-    # some minor adjustments from the static version to allow for the use of the csr
-    # structures
-    # also removed conditional checks/ functionality that are not needed when this is
-    # integrated into route choice
     tot_nodes = out_links.tot_rows
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
@@ -159,22 +249,35 @@ def dijkstra_with_targets(
     costs, out_links: UI32CSRMatrix, source, is_centroid, targets
 ):
     """
-    typical dijkstra_with_targets implementation with heaps, fills the distances
-    array with the results
+    compiled one to many shortest path computation, terminates once distance array
+    has been filled for all target nodes
+
     Parameters
     ----------
-    is_centroid : bool array, dim tot_nodes, true if node is centroid, false otherwise
-    costs : float32 vector
-    out_links : CSR matrix, fromNode x Link
-    target: integer ID of target node
+    costs: numpy.ndarray
+        float, 1D
+    out_links: dyntapy.csr.UI32CSRMatrix
+    source: int
+    is_centroid : numpy.ndarray
+        bool, 1D
+    targets: numpy.ndarray
+        int, 1D
+
     Returns
     -------
-    distances: array 1D, dim tot_nodes. Distances from all nodes to the target node
+
+    distances: numpy.ndarray
+        float, 1D
+    predecessors: numpy.ndarray
+        int, 1D - predecessor for each node that is closest to source.
+        Can be used to reconstruct paths.
+
+    See Also
+    --------
+
+    dyntapy.graph_utils.pred_to_paths
+
     """
-    # some minor adjustments from the static version to allow for the use of the csr
-    # structures
-    # also removed conditional checks/ functionality that are not needed when this is
-    # integrated into route choice
     tot_nodes = out_links.tot_rows
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
@@ -209,9 +312,34 @@ def dijkstra_with_targets(
     return distances, predecessors
 
 
-def get_all_shortest_paths(
-    g: nx.DiGraph, source: int, costs: np.ndarray = None
-) -> (np.ndarray, np.ndarray):
+def get_all_shortest_paths(g, source, costs=None):
+    """
+    one to all shortest path computation
+
+    Parameters
+    ----------
+    g: networkx.DiGraph
+        as specified for assignments
+    source: int
+        node id
+    costs: numpy.ndarray, optional
+        if not set, free flow travel times are used based on defined length and speed
+
+
+    Returns
+    -------
+    distances: numpy.ndarray
+        float, 1D
+    predecessors: numpy.ndarray
+        int, 1D - predecessor for each node that is closest to source.
+        Can be used to reconstruct paths.
+
+    Notes
+    -----
+
+    convenience function, the compiled functions cannot deal with branching on types
+
+    """
     if costs is not None:
         if not isinstance(costs, np.ndarray):
             raise TypeError
@@ -232,16 +360,32 @@ def get_all_shortest_paths(
 
 def get_shortest_paths(g, source, targets, costs=None, return_paths=False):
     """
+    one to many shortest path computation
 
     Parameters
     ----------
-    g :
-    source :
-    targets :
-    costs :
+    g: networkx.DiGraph
+        as specified for assignments
+    source: int
+        node id
+    targets: numpy.ndarray
+        int, 1D
+    costs: numpy.ndarray, optional
+        if not set, free flow travel times are used based on defined length and speed
+    return_paths: bool, optional
+        set to true to get paths to each target
 
     Returns
     -------
+    distances: numpy.ndarray
+        float, 1D - distance to each target
+    paths: list of list
+        path to each target
+
+    Notes
+    -----
+
+    convenience function, the compiled functions cannot deal with branching on types
 
     """
     if not isinstance(targets, (np.ndarray, list)):

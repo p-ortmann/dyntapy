@@ -12,7 +12,7 @@ from numba.typed import Dict
 
 from dyntapy.settings import parameters
 from dyntapy.sta.utilities import __bpr_cost_single, __bpr_derivative_single
-from dyntapy.graph_utils import get_link_id
+from dyntapy.graph_utils import _get_link_id
 
 epsilon = parameters.static_assignment.dial_b_cost_differences
 
@@ -168,7 +168,7 @@ def __update_path_flow(
     i = end_node
     while i != start_node:
         (i, j) = (predecessor_dict[i], i)
-        link_id = get_link_id(i, j, out_links)
+        link_id = _get_link_id(i, j, out_links)
         bush_flow[link_id] = bush_flow[link_id] + delta_f
         flows[link_id] = flows[link_id] + delta_f
         new_path_flow = min(new_path_flow, bush_flow[link_id])
@@ -378,10 +378,10 @@ def __get_branch_nodes(
         next_max_i = max_path_predecessors[next_max_i]
 
     # print(f'first divergence node found {next_max_i}')
-    next_min_link = get_link_id(
+    next_min_link = _get_link_id(
         min_path_predecessors[last_branch_node], last_branch_node, out_links
     )
-    next_max_link = get_link_id(
+    next_max_link = _get_link_id(
         max_path_predecessors[last_branch_node], last_branch_node, out_links
     )
     edges_on_max_path, edges_on_min_path = 1, 1
@@ -398,7 +398,7 @@ def __get_branch_nodes(
             #   print(f'following max, label is {label[next_max_i]}')
             j = next_max_i
             next_max_i = max_path_predecessors[next_max_i]
-            link_id = get_link_id(next_max_i, j, out_links)
+            link_id = _get_link_id(next_max_i, j, out_links)
             max_path_flow = min(max_path_flow, bush_flows[link_id])
             max_path_cost += costs[link_id]
 
@@ -408,7 +408,7 @@ def __get_branch_nodes(
             # print(f'following min, label is {label[next_min_i]}')
             j = next_min_i
             next_min_i = min_path_predecessors[next_min_i]
-            link_id = get_link_id(next_min_i, j, out_links)
+            link_id = _get_link_id(next_min_i, j, out_links)
             min_path_flow = min(min_path_flow, bush_flows[link_id])
             min_path_cost += costs[link_id]
             # min_path, costs are now {min_path_cost}  ')

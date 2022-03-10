@@ -20,8 +20,8 @@ from dyntapy._context import iteration_states
 from dyntapy.demand import InternalStaticDemand
 from dyntapy.graph_utils import (
     dijkstra_all,
-    make_in_links,
-    make_out_links,
+    _make_in_links,
+    _make_out_links,
     pred_to_paths,
 )
 from dyntapy.settings import parameters
@@ -82,13 +82,13 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
             # they cannot be changed once created
             bush_id = np.uint32(bush_id)
             bush = demand.to_destinations.get_nnz_rows()[bush_id]
-            bush_out_links = make_out_links(
+            bush_out_links = _make_out_links(
                 links_in_bush[bush_id],
                 from_nodes,
                 to_nodes,
                 tot_nodes=network.tot_nodes,
             )
-            bush_in_links = make_in_links(
+            bush_in_links = _make_in_links(
                 links_in_bush[bush_id],
                 from_nodes,
                 to_nodes,
