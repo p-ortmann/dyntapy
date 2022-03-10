@@ -127,7 +127,7 @@ def _check_centroid_connectivity(g: nx.DiGraph):
     verifies if each centroid has at least one connector
     Parameters
     ----------
-    g : nx.Digraph
+    g : networkx.Digraph
 
     """
     centroids = [u for u, data_dict in g.nodes(data=True) if "centroid" in data_dict]
@@ -246,11 +246,12 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
 
 def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
     """
+
     Adds centroids to g.
 
     Parameters
     ----------
-    g : nx.Digraph
+    g : networkx.Digraph
         road network graph, containing only road network edges and nodes
     euclidean : bool, optional
         set to True for toy networks that use the euclidean coordinate system
@@ -270,6 +271,11 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
         They are assumed to be iterable and of
         the same length as X.
 
+    Returns
+    -------
+    networkx.DiGraph
+        new graph with centroids and connectors
+
     Notes
     -----
     if method is 'link' k*2 connectors are added per centroid, one for each direction.
@@ -286,10 +292,6 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
     We add these dummy turns to keep the algorithms simpler.
 
 
-    Returns
-    -------
-    networkx.DiGraph
-        new graph with centroids and connectors
 
     See Also
     --------
@@ -404,6 +406,7 @@ def auto_configured_centroids(
     buffer_dist_extended: float
         width of the outer buffer
     inner_city_centroid_spacing: float, optional
+        distance between two adjacent centroids on the grid
 
     Returns
     -------
@@ -526,7 +529,7 @@ def parse_demand(data: str, g: nx.DiGraph):
     data : geojson
         that contains lineStrings (WGS84) as features,
         each line has an associated 'flow' stored in the properties dictionary
-    g : nx.Digraph
+    g : networkx.Digraph
 
 
     Returns
@@ -544,7 +547,8 @@ def parse_demand(data: str, g: nx.DiGraph):
     correspond to the same geo-coded region.
 
     The corresponding OD table can be retrieved through calling
-    nx.to_scipy_sparse_matrix(od_graph,weight='flow' )
+
+    >>> nx.to_scipy_sparse_matrix(od_graph,weight='flow')
 
     """
     od_graph = nx.MultiDiGraph()
@@ -612,7 +616,9 @@ def find_nearest_centroids(X, Y, centroid_graph: nx.DiGraph):
     Returns
     -------
     nearest_centroids, numpy.ndarray
+        int, 1D
     distances, numpy.ndarray
+        in meter
 
     """
     if centroid_graph.number_of_nodes() == 0:

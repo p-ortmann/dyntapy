@@ -68,7 +68,8 @@ def road_network_from_place(
 
     Returns
     -------
-    nx.DiGraph
+
+    networks.DiGraph
     """
 
     # TODO: provide default filters for network coarsity
@@ -220,7 +221,7 @@ def relabel_graph(g):
 
     Returns
     -------
-    new_g: nx.Digraph
+    new_g: networkx.Digraph
         with continuously labelled nodes, consistent with internal notation
 
 

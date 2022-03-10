@@ -52,21 +52,16 @@ def csr_sort(index_array, values, tot_columns):
 
     Examples
     --------
+
     example for sorting index_array.
+
     before:
 
-    array([[2, 3],
-           [1, 480640],
-           [2, 356104],
-           [0, 1], dtype=uint32)
-
+    array([[2, 3],[1, 480640], [2, 356104], [0, 1], dtype=uint32)
 
     after:
 
-    array([[0, 1],
-           [1, 480640],
-           [2, 3],
-           [2, 356104], dtype=uint32)
+    array([[0, 1], [1, 480640], [2, 3], [2, 356104], dtype=uint32)
 
     """
     # need to use reflected list here ([]) and not the faster typed List(), see ticket

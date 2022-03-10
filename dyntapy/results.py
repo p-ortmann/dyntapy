@@ -20,6 +20,10 @@ from dyntapy.dta.i_ltm_cls import ILTMState
 
 @dataclass
 class StaticResult:
+    """
+    Class for keeping all the outputs of a static assignment
+    """
+
     link_costs: numpy.ndarray
     flows: numpy.ndarray
     origins: numpy.ndarray
@@ -35,8 +39,8 @@ class StaticResult:
 @dataclass
 class DynamicResult:
     """
-    Parameters
-    ---------
+    Class for keeping all the outputs of a dynamic assignment
+
     """
 
     link_costs: numpy.ndarray
@@ -47,7 +51,7 @@ class DynamicResult:
     turning_fractions: numpy.ndarray
     turn_costs: numpy.ndarray
     flows: numpy.ndarray
-    commodity_type: str
+    commodity_type: str  # valid values are 'origin' or 'destination'
     origins: numpy.ndarray
     destinations: numpy.ndarray
     skim: numpy.ndarray = None
@@ -66,16 +70,24 @@ def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
     demand: InternalStaticDemand
     network: Network
 
-    Notes
-    -----
-    get skim matrices in dense format such that skim[0, 10] is the impedance between
-    the first and the eleventh zone corresponding to nodes demand.origins[0] and
-    demand.destinations[10] in the graph
-
     Returns
     -------
     skim: numpy.ndarray
         float, 2D
+
+    Examples
+    -----
+    get skim matrices in dense format such that
+
+    >>> skim[0, 10]
+
+    is the impedance between the first and the eleventh zone corresponding to nodes
+
+    >>> demand.origins[0]
+    >>> demand.destinations[10]
+
+    in the graph
+
     """
     is_centroid = network.nodes.is_centroid
     out_links = network.nodes.out_links

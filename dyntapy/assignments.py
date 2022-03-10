@@ -145,7 +145,7 @@ class DynamicAssignment:
 
         'i_ltm_aon' refers to a dynamic deterministic user equilibrium solution,
         note that for congested networks this is not guaranteed to converge below a
-        gap of $10^-2$.
+        gap of 0.01.
 
         'incremental_assignment' assigns the demands in chunks and updates the
         both costs and route choice after each DNL.
@@ -226,7 +226,7 @@ class StaticAssignment:
         Parameters
         ----------
 
-        method : str, ["dial_b","frank_wolfe", "msa", "sun"]
+        method : {'dial_b','frank_wolfe', 'msa', 'sun'}
         store_iterations : bool
             set to True to get information on the individual iterations
 
@@ -240,19 +240,19 @@ class StaticAssignment:
         Notes
         -----
 
-        "msa", "frank_wolfe" and "dial_b" all try to find the static deterministic
+        'msa', 'frank_wolfe' and 'dial_b' all try to find the static deterministic
         user equilibrium.
 
-        "msa" refers to the Method of Successive Averages, a well known method in
+        'msa' refers to the Method of Successive Averages, a well known method in
         Traffic Assignments that tends to zig-zag around equilibrium.
 
-        "frank_wolfe" refers to the Frank-Wolfe Algorithm.
+        'frank_wolfe' refers to the Frank-Wolfe Algorithm.
 
-        "dial_b" refers to Dial's Algorithm B, a bush-based assignment
+        'dial_b' refers to Dial's Algorithm B, a bush-based assignment
         algorithm. It alleviates the rather slow convergence of the Frank-Wolfe
         algorithm close to equilibrium, see [3]_.
 
-        "sun" returns a stochastic uncongested assignment of flows on the free-flow
+        'sun' returns a stochastic uncongested assignment of flows on the free-flow
         travel times that are determined by the lengths and speeds of the links. It
         is based on Dial's method, see [4]_. It does not consider the whole path set
         and rests the definition of 'efficient links' to allow for computations on an

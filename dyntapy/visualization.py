@@ -32,7 +32,6 @@ from shapely.geometry import LineString
 from dyntapy.demand import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.utilities import __create_green_to_red_cm
-from dyntapy.results import StaticResult
 
 traffic_cm = __create_green_to_red_cm()
 
@@ -134,7 +133,6 @@ def _process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_k
 
 def show_network(
     g,
-    result=None,
     flows=None,
     link_kwargs=dict(),
     node_kwargs=dict(),
@@ -146,17 +144,22 @@ def show_network(
     show_nodes=True,
 ):
     """
-    Visualizing the network as a .html.
+    Visualizing a network with static attributes in a .html.
 
     Parameters
     ----------
     g: networkx.DiGraph
-    result: StaticResult, optional
     flows: numpy.ndarray, optional
+        float, 1D - flows to be visualized
     link_kwargs: dict, optional
+        additional link information to be displayed
+        key: str, value: np.ndarray - additional link information to be displayed
     node_kwargs: dict, optional
+        key: str, value: np.ndarray - additional node information to be displayed
     highlight_links: numpy.ndarray, optional
+        int, 1D or 2D - links to highlight
     highlight_nodes: numpy.ndarray, optional
+        int, 1D or 2D - links to highlight
     toy_network: bool, optional
         set to True for toy networks. Toy network's coordinates are assumed to be
         euclidean, if false we assume lon lat.
@@ -164,6 +167,34 @@ def show_network(
     notebook: bool, optional
         set to True if the plot should be rendered in a notebook.
     show_nodes: bool, optional
+        whether to render nodes
+
+    Examples
+    --------
+
+    >>> show_network(g, highlight_links=np.ndarray([[2,4],[3,6]]))
+
+    will plot the network and highlight links [2,4] in neon pink,
+    and [3, 6] in cyan. The order of highlight colors can be seen below.
+
+    neon pink, cyan, lime green, light blue, orange, gray
+
+    >>> foo = np.arange(g.number_of_edges())
+    >>> bar = np.arange(g.number_of_edges())
+    >>> show_network(g, link_kwargs={'foo': foo, 'bar':bar})
+
+    Will generate a plot where my_attr can be inspected by hovering over the link.
+    Note that the string attribute names cannot contain spaces and that the arrays
+    must have the correct dimension.
+
+    node_kwargs can be passed on analogously.
+
+
+    Notes
+    -----
+
+    highlight colors can be altered in the settings and have been chosen to still offer
+    visibility in a graph with loaded traffic in a green-to-red color map.
 
     See Also
     -------------
@@ -171,14 +202,13 @@ def show_network(
     dyntapy.results.StaticResult
 
     """
+
     plot, tmp = _process_plot_arguments(
         g, title, notebook, toy_network, link_kwargs, node_kwargs
     )
     show_flows = True
     if flows is not None:
         pass
-    elif result is not None:
-        flows = result.flows
     else:
         flows = np.zeros(g.number_of_edges())
         show_flows = False
@@ -276,8 +306,8 @@ def show_link_od_flows(g: nx.DiGraph, od_flows, **kwargs):
 
 
 def show_dynamic_network(
-    g: nx.DiGraph,
-    time: SimulationTime,
+    g,
+    time,
     flows=None,
     link_kwargs=dict(),
     node_kwargs=dict(),
@@ -289,17 +319,62 @@ def show_dynamic_network(
     show_nodes=True,
 ):
     """
+    Visualizing a network with dynamic attributes in a .html.
 
     Parameters
     ----------
-    notebook
-    flows
-    g : nx.Digraph
-    title : str, plot title
-    plot_size : height and width measurement in pixel
+    g: networkx.DiGraph
+    flows: numpy.ndarray, optional
+        float, 1D - flows to be visualized
+    link_kwargs: dict, optional
+        additional link information to be displayed
+        key: str, value: np.ndarray - additional link information to be displayed
+    node_kwargs: dict, optional
+        key: str, value: np.ndarray - additional node information to be displayed
+    highlight_links: numpy.ndarray, optional
+        int, 1D or 2D - links to highlight
+    highlight_nodes: numpy.ndarray, optional
+        int, 1D or 2D - links to highlight
+    toy_network: bool, optional
+        set to True for toy networks. Toy network's coordinates are assumed to be
+        euclidean, if false we assume lon lat.
+    title: str, optional
+    notebook: bool, optional
+        set to True if the plot should be rendered in a notebook.
+    show_nodes: bool, optional
+        whether to render nodes
 
-    Returns
-    -------
+    Examples
+    --------
+
+    >>> show_dynamic_network(g, highlight_links=np.ndarray([[2,4],[3,6]]))
+
+    will plot the network and highlight links [2,4] in neon pink,
+    and [3, 6] in cyan. The order of highlight colors can be seen below.
+
+    neon pink, cyan, lime green, light blue, orange, gray
+
+    >>> foo = np.arange(g.number_of_edges())
+    >>> bar = np.arange(g.number_of_edges())
+    >>> show_network(g, link_kwargs={'foo': foo, 'bar':bar})
+
+    Will generate a plot where my_attr can be inspected by hovering over the link.
+    Note that the string attribute names cannot contain spaces and that the arrays
+    must have the correct dimension.
+
+    node_kwargs can be passed on analogously.
+
+
+    Notes
+    -----
+
+    highlight colors can be altered in the settings and have been chosen to still offer
+    visibility in a graph with loaded traffic in a green-to-red color map.
+
+    See Also
+    -------------
+
+    dyntapy.results.DynamicResult
 
     """
     plot, tmp = _process_plot_arguments(
