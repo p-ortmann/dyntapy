@@ -158,7 +158,7 @@ def test_node_model():
 def test_selected_link_analysis():
     link = 622
     od_flows = get_od_flows(assignment, result)
-    show_link_od_flows(graph, od_flows, result=result)
+    show_link_od_flows(graph, od_flows)
     sla_od_flows = get_selected_link_analysis(assignment, od_flows, link)
     show_link_od_flows(graph, sla_od_flows, highlight_links=[link])
 
@@ -167,7 +167,7 @@ def test_sun():
     loc_assignment = StaticAssignment(graph, od_graph)
     method = 'sun'
     res = loc_assignment.run(method)
-    show_network(graph, res)
+    show_network(graph, res.flows)
 
 
 def test_get_toy_networks():
