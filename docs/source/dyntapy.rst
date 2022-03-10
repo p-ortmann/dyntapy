@@ -48,6 +48,7 @@ dyntapy.csr
 
 .. automodule:: dyntapy.csr
     :members:
+
 dyntapy.visualization
 ----------------------------------------
 
