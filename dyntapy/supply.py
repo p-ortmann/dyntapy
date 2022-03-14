@@ -78,6 +78,12 @@ class Links(object):
     -----
 
     should not be initialized by the user, use dyntapy.supply_data.build_network
+
+    `out_turns` and `in_turns` are sparse matrices in CSR format that indicate
+    connected turns and their links.
+    Both have the same shape (`network.tot_turns`, `network.tot_links`) with the
+    indexes indicating the link_id and the values the to- and from_link, respectively.
+    There's duplication to avoid on-the-fly transformations.
     """
 
     def __init__(
@@ -175,13 +181,11 @@ class Nodes(object):
 
     should not be initialized by the user, use dyntapy.supply_data.build_network
 
-    out_links and in_links are sparse matrices in csr format that indicate
-    connected links and their nodes
-    both are nodes x links with f(i,link_id) = j and essentially carry the same
-    information. There's duplication to
-    avoid on-the-fly transformations.
-    out_links is fromNode x Link and in_links toNode x Link in dim with toNode
-    and fromNode as value, respectively.
+    `out_links` and `in_links` are sparse matrices in CSR format that indicate
+    connected links and their nodes.
+    Both have the same shape (`network.tot_nodes`, `network.tot_links`) with the
+    indexes indicating the link_id and the values the to- and from_node, respectively.
+    There's duplication to avoid on-the-fly transformations.
 
     """
 
