@@ -306,7 +306,7 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
             if len(val) != len(X):
                 raise ValueError(f"{key} has the wrong dimension")
     new_g = nx.DiGraph()
-    new_g.graph = g.graph
+    new_g.graph = g.graph.copy()
     last_intersection_node = max(g.nodes)
     attributes = {"x_coord": X, "y_coord": Y, **kwargs}
     new_centroids = [
@@ -373,7 +373,7 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
             )
             add_connectors(
                 data["x_coord"],
-                data["y_coord"] + delta_y,
+                data["y_coord"],
                 j0 + j,
                 k,
                 g,
