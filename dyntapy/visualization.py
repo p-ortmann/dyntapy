@@ -11,6 +11,7 @@
 #
 import datetime
 import os
+import warnings
 from inspect import signature
 from warnings import warn
 
@@ -211,8 +212,9 @@ def show_network(
 
     if toy_network:
         euclidean = toy_network
-        raise DeprecationWarning(
-            "use of toy_network argument is deprecated, " "use euclidean instead"
+        warnings.warn(
+            "use of toy_network arg is deprecated, use euclidean instead",
+            DeprecationWarning,
         )
 
     plot, tmp = _process_plot_arguments(
@@ -410,9 +412,11 @@ def show_dynamic_network(
 
     if toy_network:
         euclidean = toy_network
-        raise DeprecationWarning(
-            "use of toy_network argument is deprecated, " "use euclidean instead"
+        warnings.warn(
+            "use of toy_network arg is deprecated, use euclidean instead",
+            DeprecationWarning,
         )
+
     plot, tmp = _process_plot_arguments(
         g, title, notebook, euclidean, link_kwargs, node_kwargs
     )
@@ -647,8 +651,9 @@ def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=Fals
     """
     if toy_network:
         euclidean = toy_network
-        raise DeprecationWarning(
-            "use of toy_network argument is deprecated, " "use euclidean instead"
+        warnings.warn(
+            "use of toy_network arg is deprecated, use euclidean instead",
+            DeprecationWarning,
         )
 
     for _, _, data in g.edges.data():

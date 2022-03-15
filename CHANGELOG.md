@@ -1,6 +1,7 @@
 # Change log
 ## 0.2.2 (in progress)
 
+- toy_network argument in visualization is replaced with euclidean
 - remove result as argument for dynamic and static visualization
 - places_around_place became a private function e.g. _places_around_place and moved to
 dyntapy.demand_data
