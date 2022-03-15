@@ -182,7 +182,7 @@ def test_get_toy_networks():
         "birmingham"]:
         g = get_toy_network(name)
         g = relabel_graph(g)
-        show_network(g, toy_network=True)
+        show_network(g, euclidean=True)
         print(f'{name=}')
 
 
@@ -194,17 +194,17 @@ def test_dta():
     # also adds connectors automatically
     g = relabel_graph(g)  # adding link and node ids, connectors and centroids
     # are the first elements
-    show_network(g, toy_network=True)
+    show_network(g, euclidean=True)
     od_matrix = np.zeros(9).reshape((3, 3))
     od_matrix[0, 1] = 500
     od_matrix[2, 1] = 500
     od_graph = od_graph_from_matrix(od_matrix, centroid_x, centroid_y)
-    show_demand(od_graph, toy_network=True)
+    show_demand(od_graph, euclidean=True)
     dynamic_demand = DynamicDemand([od_graph], insertion_times=[0])
     # convert everything to internal representations and parse
     simulation_time = SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.25)
     assignment = DynamicAssignment(g, dynamic_demand, simulation_time)
     result = assignment.run()
-    show_dynamic_network(g, simulation_time, flows=result.flows, toy_network=True,
+    show_dynamic_network(g, simulation_time, flows=result.flows, euclidean=True,
                          link_kwargs={'costs': result.link_costs},
                          )

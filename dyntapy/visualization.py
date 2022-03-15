@@ -47,7 +47,7 @@ def _get_output_file(plot_name: str):
     return os.getcwd() + os.path.sep + f"{plot_name}_{dt_string}.html"
 
 
-def _process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_kwargs):
+def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwargs):
     # process all arguments that are shared between dynamic and static
     for _, _, data in g.edges.data():
         if "x_coord" in data:
@@ -74,7 +74,7 @@ def _process_plot_arguments(g, title, notebook, toy_network, link_kwargs, node_k
         )
         # they have got to be
         # starting at 0 & consecutively labelled integers
-    if not toy_network:
+    if not euclidean:
         plot = figure(
             plot_height=parameters.visualization.plot_size,
             plot_width=parameters.visualization.plot_size,
@@ -138,6 +138,7 @@ def show_network(
     node_kwargs=dict(),
     highlight_links=np.array([]),
     highlight_nodes=np.array([]),
+    euclidean=False,
     toy_network=False,
     title=None,
     notebook=False,
@@ -162,9 +163,10 @@ def show_network(
         int, 1D or 2D - links to highlight
     highlight_nodes: numpy.ndarray or list, optional
         int, 1D or 2D - links to highlight
+    euclidean: bool, optional
+        set to True if coordinates in graph are euclidean.
     toy_network: bool, optional
-        set to True for toy networks. Toy network's coordinates are assumed to be
-        euclidean, if false we assume lon lat.
+        deprecated, use euclidean instead.
     title: str, optional
     notebook: bool, optional
         set to True if the plot should be rendered in a notebook.
@@ -207,8 +209,14 @@ def show_network(
 
     """
 
+    if toy_network:
+        euclidean = toy_network
+        raise DeprecationWarning(
+            "use of toy_network argument is deprecated, " "use euclidean instead"
+        )
+
     plot, tmp = _process_plot_arguments(
-        g, title, notebook, toy_network, link_kwargs, node_kwargs
+        g, title, notebook, euclidean, link_kwargs, node_kwargs
     )
     show_flows = True
     if flows is not None:
@@ -332,6 +340,7 @@ def show_dynamic_network(
     link_kwargs=dict(),
     node_kwargs=dict(),
     toy_network=False,
+    euclidean=False,
     highlight_nodes=np.array([]),
     highlight_links=np.array([]),
     title=None,
@@ -358,9 +367,10 @@ def show_dynamic_network(
         int, 1D or 2D - links to highlight
     highlight_nodes: numpy.ndarray, optional
         int, 1D or 2D - links to highlight
+    euclidean: bool, optional
+        set to True if coordinates in graph are euclidean.
     toy_network: bool, optional
-        set to True for toy networks. Toy network's coordinates are assumed to be
-        euclidean, if false we assume lon lat.
+        deprecated, use euclidean instead.
     title: str, optional
     notebook: bool, optional
         set to True if the plot should be rendered in a notebook.
@@ -397,8 +407,14 @@ def show_dynamic_network(
     dyntapy.results.DynamicResult
 
     """
+
+    if toy_network:
+        euclidean = toy_network
+        raise DeprecationWarning(
+            "use of toy_network argument is deprecated, " "use euclidean instead"
+        )
     plot, tmp = _process_plot_arguments(
-        g, title, notebook, toy_network, link_kwargs, node_kwargs
+        g, title, notebook, euclidean, link_kwargs, node_kwargs
     )
     if flows is None:
         if "flows" not in list(link_kwargs.keys()):
@@ -611,7 +627,30 @@ def get_max_edge_width(g, scaling, plot_size):
     return max_width_bokeh, max_width_coords
 
 
-def show_demand(g, title=None, notebook=False, toy_network=False):
+def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=False):
+    """
+    visualize demand on a map
+
+    Parameters
+    ----------
+    g: networkx.DiGraph
+    title: str
+    notebook: bool, optional
+        set to True if the plot should be rendered in a notebook.
+    euclidean: bool, optional
+        set to True, if 'x_coord' and 'y_coord' in g are euclidean.
+    toy_network: bool, optional
+        deprecated, use euclidean instead
+    Returns
+    -------
+
+    """
+    if toy_network:
+        euclidean = toy_network
+        raise DeprecationWarning(
+            "use of toy_network argument is deprecated, " "use euclidean instead"
+        )
+
     for _, _, data in g.edges.data():
         if "x_coord" in data:
             data["x"] = data["x_coord"]
@@ -627,7 +666,7 @@ def show_demand(g, title=None, notebook=False, toy_network=False):
         output_notebook(hide_banner=True)
     else:
         output_file(filename=_get_output_file(title))
-    if not toy_network:
+    if not euclidean:
         g.graph["crs"] = "epsg:4326"
         tmp = nx.MultiDiGraph(g)
         tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
