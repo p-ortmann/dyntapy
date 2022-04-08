@@ -438,6 +438,9 @@ def auto_configured_centroids(
     merged_gdf = pd.concat([gdf_close, gdf_extended])
     G = merged_gdf["geometry"].apply(lambda geom: geom.wkb)
     merged_gdf = merged_gdf.loc[G.drop_duplicates().index]
+    merged_gdf = merged_gdf[
+        merged_gdf.geometry.type == "Point"
+    ]  # considering only points
     names = merged_gdf["name"].tolist()
     x_ext, y_ext = (
         merged_gdf.geometry.apply(lambda x: x.x).to_numpy(dtype=np.float64),
