@@ -63,7 +63,7 @@ def test_get_graph(city=city, k=1, connector_type='link'):
     g = add_centroids(g, x, y, k=k, method=connector_type,
                       name=names, place=place_tags)
     print('centroids added to graph')
-    g = relabel_graph(g)
+    g, inverse = relabel_graph(g, return_inverse=True)
     with open(file_path_network, 'wb') as network_file:
         dump(g, network_file)
         print(f'network saved at f{file_path_network}')

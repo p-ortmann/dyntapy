@@ -549,7 +549,7 @@ def parse_demand(data: str, g):
 
     The corresponding OD table can be retrieved through calling
 
-    >>> nx.to_scipy_sparse_matrix(od_graph,weight='flow')
+    >>> networkx.to_scipy_sparse_matrix(od_graph,weight='flow')
 
     """
     od_graph = nx.MultiDiGraph()

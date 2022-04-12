@@ -41,7 +41,7 @@
 
     optional are:
 
-    'connector': bool,
+    'centroid': bool,
         True if the node is a centroid
 
     The inclusion of the 'link_type', 'connector' and 'centroid' attributes are
@@ -49,6 +49,14 @@
 
     The graph's nodes and edges need to be labelled consecutively and starting
     from 0.
+    Many of the assignment algorithms also implicitly assume that the graph is strongly
+    connected.
+    This can be verified with networkx:
+
+    >>> networkx.strongly_connected_components(g)
+
+    If there is only a single element returned as the list of components, the graph
+    is strongly connected.
 
     All of these requirements are met if dyntapy's functions for extracting the network
     from OpenStreetMap are used.
@@ -63,6 +71,7 @@
     dyntapy.demand_data.add_connectors
 
     dyntapy.supply_data.relabel_graph
+
 
 
 """

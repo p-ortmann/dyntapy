@@ -203,7 +203,7 @@ def _convert_osm_to_gmns(g):
     return new_g
 
 
-def relabel_graph(g):
+def relabel_graph(g, return_inverse=False):
     """
     relabels graph's links and nodes consecutively starting from 0.
 
@@ -223,6 +223,8 @@ def relabel_graph(g):
     -------
     new_g: networkx.Digraph
         with continuously labelled nodes, consistent with internal notation
+    inverse: dict, optional
+        a dictionary which maps each of the old node ids to the new ones
 
 
     """
@@ -256,7 +258,14 @@ def relabel_graph(g):
             new_g.add_edge(_start_node, end_node, **data)
         # Note that the out_links of a given node always have consecutive ids
     log("graph relabeled")
-    return new_g
+
+    if return_inverse:
+        inverse = {}
+        for new, old in new_g.nodes.data("ext_id"):
+            inverse[old] = new
+        return new_g, inverse
+    else:
+        return new_g
 
 
 def __clean_up_data(g: nx.DiGraph):
