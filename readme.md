@@ -92,3 +92,6 @@ visualization capabilities within jupyter notebooks.
 Similar to other popular graph packages, such as [igraph](https://igraph.org/) and [networkx](https://networkx.org/), 
 we offer shortest path computations. Our implementations are more than twice as fast as igraph
 and more than 20x faster than networkx for road networks.
+# Acknowledgements
+
+ A part of the development of this package has been funded by DUET - [Digital Urban European Twins](https://www.digitalurbantwins.com/) as part of the Horizon 2020 funding program (Grant ID 870607).  
