@@ -233,6 +233,8 @@ def relabel_graph(g, return_inverse=False):
     intersection_nodes = [
         node for node, is_centroid in g.nodes.data("centroid") if not is_centroid
     ]
+    centroids.sort()
+    intersection_nodes.sort()
     new_g = nx.DiGraph()
     new_g.graph = g.graph
     link_counter = count(0)

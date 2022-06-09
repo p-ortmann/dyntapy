@@ -2,6 +2,7 @@
 ## 0.2.2 (in progress)
 
 - relabel_graph now optionally returns the node mapping as a dictionary
+- bugfix: relabel_graph now retains the order of the centroids and intersection nodes by their ids.
 - toy_network argument in visualization is replaced with euclidean
 - remove result as argument for dynamic and static visualization
 - places_around_place became a private function e.g. _places_around_place and moved to
