@@ -50,14 +50,14 @@ Bokeh powers the flexible visualization of static and dynamic^[Examples on the v
 
 ![Link and node attributes can be inspected by hovering. The user can define which attributes to display.\label{fig:link}](figures/od_flow_reconstruction.png)
 
-We provide a set of algorithms for solving the deterministic Traffic Assignment Problem, namely, Dial's Algorithm B [@dial_path-based_2006] and the Method of Successive Averages. For solving the stochastic uncongested Traffic Assignment Problem, we use Dial's Algorithm [@dial_probabilistic_1971].
-For the deterministic Dynamic Assignment Problem we utilize the iterative link transmission model[@himpe_efficient_2016], as dynamic network loading component, an iterative route choice component introduced in [@himpe_integrated_2016] relying on the concept of quasi reduced projection [@mahutComparisonAssignmentMethods2008] and travel time calculations of the MLI type as introduced in [@long_discretised_2011]. 
+We provide two algorithms for solving the deterministic Traffic Assignment Problem, namely, Dial's Algorithm B [@dial_path-based_2006] and the Method of Successive Averages. For solving the stochastic uncongested Traffic Assignment Problem, we use Dial's Algorithm [@dial_probabilistic_1971].
+For the deterministic Dynamic Assignment Problem we utilize the iterative link transmission model[@himpe_efficient_2016], as dynamic network loading component, an iterative route choice component introduced in [@himpe_integrated_2016] based on quasi-reduced projection [@mahutComparisonAssignmentMethods2008] and travel time calculations of the MLI type as introduced in [@long_discretised_2011]. 
 
 
 We welcome contributions by other authors to add to this selection.
 In the short term the stochastic Dynamic Traffic Assignment model that was introduced in [@verstraete_consistent_2021] will be added to the list of available algorithms.
 
-dyntapy is being used for scenario analysis as part of DUET [@raes_duet_2021]. A platform for digital twins of cities in which policy makers can explore the impact of road network changes on congestion and emissions. 
+dyntapy is being used for scenario analysis as part of DUET [@raes_duet_2021], a platform for digital twins of cities in which policy makers can explore the impact of road network changes on congestion and emissions. 
 
 For usage examples and tutorials we refer to our [documentation](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy).
 
@@ -65,7 +65,7 @@ For usage examples and tutorials we refer to our [documentation](https://gitlab.
 
 In its current state `dyntapy` is most interesting for assignment researchers, transport modellers and students that want to get hands-on experiments with assignments. 
 
-Macro- and mesoscopic commercial modelling software offer some functionalities that are beyond what `dyntapy` provides and make it less suitable for studies in which realism is of chief concern.  Namely, (i) support for specifying intersections in more details and calculating delays based on signals and priorities. (ii) calibration routines for supply and demand for both static and dynamic assignments^[note that in dynamic assignment, calibration remains an open research question]. 
+Macro- and mesoscopic commercial modelling software offer some functionalities that are beyond what `dyntapy` provides and make it less suitable for studies in which realism is of chief concern.  Namely, (i) support for specifying intersections in more details and calculating delays based on signals and priorities; (ii) calibration routines for supply and demand for both static and dynamic assignments^[note that in dynamic assignment, calibration remains an open research question]. 
 
 Support for intersection data both in the parser and as constraints in the models is a long term goal for dyntapy, however currently data for intersections is not widely available.
 OpenStreetMaps' encoding of intersections is not suitable for use in traffic models, partly because of its ambiguity, but also because it does not allow to specify signal timings.
