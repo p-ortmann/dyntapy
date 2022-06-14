@@ -8,9 +8,10 @@ tags:
   - car traffic modelling
 authors:
   - name: Paul Ortmann 
-    orcid: 00000-0002-1451-3662
+    orcid: 0000-0002-1451-3662
     affiliation: 1 # (Multiple affiliations must be quoted)
   - name: Chris Tampère^[Corresponding author]
+    orcid: 0000-0002-5489-7816
     affiliation: 1
 affiliations:
  - name: KU Leuven, Belgium
