@@ -645,9 +645,15 @@ def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=Fals
         set to True, if 'x_coord' and 'y_coord' in g are euclidean.
     toy_network: bool, optional
         deprecated, use euclidean instead
-    Returns
-    -------
 
+    Examples
+    --------
+
+    Given an 'od_matrix' and coordinates in longitude 'X' and latitude 'Y' it is
+    straightforward to visualize the travel pattern.
+
+    >>> od_graph_from_matrix(od_matrix, X, Y)
+    >>> show_demand(g)
     """
     if toy_network:
         euclidean = toy_network
