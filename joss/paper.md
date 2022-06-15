@@ -41,7 +41,7 @@ It also lends itself to educational use and has already been used in traffic eng
 The toolkit is designed to be extendable. The provided object-oriented specification of the road network, travel demand and results are generic and allow for other assignment algorithms to be added without much additional effort.
 Because there is a shared definition of the modelling results, visualization tools can be used without modification for different algorithms.
 
-Dyntapy utilizes Networkx [@hagberg_exploring_2008] for managing the road network graph. Numpy [@harris_array_2020] is used for fast array calculations and Numba [@lam_numba_2015] to accelerate computations that involve graph traversal via sparse matrices.
+Dyntapy utilizes Networkx [@SciPyProceedings_11] for managing the road network graph. Numpy [@harris_array_2020] is used for fast array calculations and Numba [@lam_numba_2015] to accelerate computations that involve graph traversal via sparse matrices.
 
 Bokeh powers the flexible visualization of static and dynamic^[Examples on the visualization of dynamic attributes can be found in the repository.] assignment results, see figure 
 \autoref{fig:tap} and \autoref{fig:link} below.
