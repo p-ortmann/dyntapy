@@ -650,7 +650,7 @@ def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=Fals
     Examples
     --------
 
-    Given an 'od_matrix' and coordinates in longitude 'X' and latitude 'Y' it is
+    Given an `od_matrix` and coordinates in longitude `X` and latitude `Y` it is
     straightforward to visualize the travel pattern.
 
     >>> od_graph_from_matrix(od_matrix, X, Y)
