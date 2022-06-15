@@ -633,6 +633,7 @@ def get_max_edge_width(g, scaling, plot_size):
 
 def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=False):
     """
+
     visualize demand on a map
 
     Parameters
@@ -654,6 +655,12 @@ def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=Fals
 
     >>> od_graph_from_matrix(od_matrix, X, Y)
     >>> show_demand(g)
+
+    See Also
+    --------
+
+    dyntapy.demand_data.od_graph_from_matrix
+
     """
     if toy_network:
         euclidean = toy_network
