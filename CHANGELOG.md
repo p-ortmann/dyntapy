@@ -1,5 +1,5 @@
 # Change log
-## 0.2.2 (in progress)
+## 0.2.2 (27.06.2022)
 
 - relabel_graph now optionally returns the node mapping as a dictionary
 - bugfix: relabel_graph now retains the order of the centroids and intersection nodes by their ids.
@@ -7,6 +7,9 @@
 - remove result as argument for dynamic and static visualization
 - places_around_place became a private function e.g. _places_around_place and moved to
 dyntapy.demand_data
+- added documentation on debugging
+- bugfix dial_B for severely congested cases
+- add function od_matrix_from_dataframes
 - moved get_toy_network function to dyntapy.supply_data
 - add_centroids_to_graph function has been renamed to add_centroids
 - replace nx.MultiDiGraph with nx.DiGraph where applicable

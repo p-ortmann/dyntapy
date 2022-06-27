@@ -540,22 +540,27 @@ def __remove_unused_edges(
             i = from_node[link]
             j = to_node[link]
             # print(f'edge under consideration ij: {i,j}')
-            if (
-                min_path_predecessors[j] != i
-            ):  # otherwise the edge is needed for connectivity
-                #    print(f'edge {(i,j)} with flow
-                #    {bush_flows[edge_map[(i,j)]]} removed ')
-                links_in_bush[link] = False
-                if bush_out_links[i].size == 2:
-                    bush_out_links[i] = np.empty((0, 2), dtype=np.int64)
-                else:
-                    bush_out_links[i] = bush_out_links[i][bush_out_links[i][:, 0] != j]
-                if bush_in_links[j].size == 2:
-                    bush_in_links[j] = np.empty((0, 2), dtype=np.int64)
-                else:
-                    bush_in_links[j] = bush_in_links[j][bush_in_links[j][:, 0] != i]
-                pruning_counter += 1
-                offset += 1
+            try:
+                if (
+                    min_path_predecessors[j] != i
+                ):  # otherwise the edge is needed for connectivity
+                    #    print(f'edge {(i,j)} with flow
+                    #    {bush_flows[edge_map[(i,j)]]} removed ')
+                    links_in_bush[link] = False
+                    if bush_out_links[i].size == 2:
+                        bush_out_links[i] = np.empty((0, 2), dtype=np.int64)
+                    else:
+                        bush_out_links[i] = bush_out_links[i][
+                            bush_out_links[i][:, 0] != j
+                        ]
+                    if bush_in_links[j].size == 2:
+                        bush_in_links[j] = np.empty((0, 2), dtype=np.int64)
+                    else:
+                        bush_in_links[j] = bush_in_links[j][bush_in_links[j][:, 0] != i]
+                    pruning_counter += 1
+                    offset += 1
+            except Exception:
+                print("hi")
     # print(f'there are {len(bush_edges)} edges
     # left after pruning the bush by {pruning_counter}')
     return links_in_bush

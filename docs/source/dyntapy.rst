@@ -54,3 +54,42 @@ dyntapy.visualization
 
 .. automodule:: dyntapy.visualization
     :members:
+
+Debugging Assignments
+======================
+
+By default most of dyntapy's assignment algorithms utilize `Numba`_ to accelerate
+computations. It is not possible to use breakpoints
+inside of code that bas been JIT-compiled. We first need to disable JIT compilation
+to do so:
+
+.. _Numba: https://numba.pydata.org/
+
+>>> from numba import config
+>>> config.DISABLE_JIT =1
+
+Make sure that the above is put on top of the script that you're running the
+assignment from, before all other imports.
+Importing numba and changing this variable after doing so yields rather confusing
+errors.
+
+For more details on other debug settings for Numba see https://numba.pydata.org/numba-doc/dev/reference/envvars.html .
+
+When working with breakpoints in the assignment algorithms it is advantageous to have
+access to
+the assignment object in order to visualize the network or get additional information
+that may not be available in the context where your breakpoint is set.
+From the debugger one can always import the latest instantiated assignment object as
+shown below:
+
+>>> from dyntapy._context import running_assignment
+
+The running_assignment object is either a dyntapy.StaticAssignment or a dyntapy
+.DynamicAssignment.
+
+>>> from dyntapy import show_network
+>>> g = running_assignment.network
+>>> show_network(g)
+
+For more details on how to visualize link and node attributes do check the
+documentation.

@@ -14,6 +14,8 @@ import networkx as nx
 import numpy as np
 import osmnx as ox
 import pandas as pd
+from warnings import warn
+from numba import njit, prange
 from geojson import Feature, FeatureCollection, dumps
 from osmnx.distance import euclidean_dist_vec, great_circle_vec
 from scipy.spatial import cKDTree
@@ -259,7 +261,7 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
         float, 1D - lat of centroids
     k : int
         number of road network nodes to connect to per centroid.
-    method : {'turns' , 'links'}
+    method : {'turn' , 'link'}
         whether to add link or turn connectors
     euclidean : bool, optional
         set to True for toy networks that use the euclidean coordinate system
@@ -518,6 +520,116 @@ def add_connectors(x, y, u, k, g, new_g, euclidean):
         }
         new_g.add_edge(u, v, **source_data)
         new_g.add_edge(v, u, **sink_data)
+
+
+def od_matrix_from_dataframes(
+    od_table: pd.DataFrame,
+    zoning: gpd.GeoDataFrame,
+    origin_column: str,
+    destination_column: str,
+    zone_column: str,
+    flow_column: str,
+    return_relabelling=False,
+):
+    """
+
+    extracts an OD matrix and X and Y coordinates as arrays from a pandas.DataFrame and
+    zoning provided as a geopandas.GeoDataFrame.
+
+    It is rather common to receive OD tables in the form of .csv files
+    and zoning in the form of .shp files. This function enables one to
+    extract the
+    full OD matrix after loading these files with pandas and geopandas,
+    respectively.
+
+    Parameters
+    ----------
+
+    od_table : pandas.DataFrame
+        each row should represent one entry in the OD matrix, with `origin_column`,
+        `destination_column` and `flow_column` as the relevant columns
+    zoning : gpd.GeoDataFrame
+        specifies geometries of the zoning, assumed to be in lon lat. The entries in
+        `zone_column` should correspond to the entries in `origin_column` and
+        `destination_column` in the `od_table`
+    origin_column: str
+    destination_column: str
+    zone_column: str
+    flow_column: str
+    return_relabelling: bool, optional
+        whether to return the mapping between the original zone labels in 'zone_column'
+        and the indexes in the returned OD matrix
+
+    Returns
+    -------
+
+    od_matrix: numpy.ndarray
+        float, 2D
+    X: np.ndarray
+        float, 1D, lon of centroids
+    Y: np.ndarray
+        float, 1D, lat of centroids
+    mapping: dict, optional
+
+    """
+
+    tot_zones = len(set(zoning[zone_column].to_list()))
+    assert len(set(zoning[zone_column].to_list())) == len(zoning[zone_column].to_list())
+    # no zone should have two conflicting geometries
+    mapping = dict(zip(zoning[zone_column], np.arange(tot_zones)))
+    od_table["_origin_idx"] = od_table[origin_column].apply(
+        lambda x: mapping.get(x, -1)
+    )
+    od_table["_destination_idx"] = od_table[destination_column].apply(
+        lambda x: mapping.get(x, -1)
+    )
+
+    od_matrix = np.zeros((tot_zones, tot_zones), dtype=np.float64)
+    try:
+        assert tot_zones > len(set(od_table[origin_column].to_list()))
+        assert tot_zones > len(set(od_table[destination_column].to_list()))
+    except AssertionError:
+        warn(
+            f"The values found in {zone_column=} do not fully contain all "
+            f"values found in "
+            f"{origin_column=} and/ or {destination_column=}. There are no "
+            f"geometries for some zones! The demand for those zones is omitted"
+            f"in the generated OD table."
+        )
+
+    flows = od_table[flow_column].to_numpy(dtype=np.float64, copy=True)
+    origins = od_table["_origin_idx"].to_numpy()
+    destinations = od_table["_destination_idx"].to_numpy()
+
+    @njit
+    def parse(_od_matrix, _origins, _destinations, _flows):
+        for idx in prange(len(_origins)):
+            i = _origins[idx]
+            j = _destinations[idx]
+            if i != j and i != -1 and j != -1:
+                # if either i or j do not have a geometry, we skip them.
+                # same for intra zonal traffic
+                _od_matrix[i][j] += _flows[idx]
+
+    # extracting centroid geometries from shapefile
+    zoning["centroid_x"] = zoning["geometry"].apply(lambda x: x.centroid.x)
+    zoning["centroid_y"] = zoning["geometry"].apply(lambda x: x.centroid.y)
+    parse(od_matrix, origins, destinations, flows)
+
+    if not return_relabelling:
+        return (
+            od_matrix,
+            zoning["centroid_x"].to_numpy(),
+            zoning["centroid_y"].to_numpy(),
+        )
+
+    else:
+        return (
+            od_matrix,
+            zoning["centroid_x"].to_numpy(),
+            zoning["centroid_y"].to_numpy(),
+            mapping,
+        )
 
 
 def parse_demand(data: str, g):

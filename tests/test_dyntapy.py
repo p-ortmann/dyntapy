@@ -29,7 +29,7 @@ from dyntapy.results import get_od_flows, get_selected_link_analysis
 from dyntapy.supply_data import road_network_from_place, relabel_graph
 from dyntapy.results import StaticResult
 
-city = 'Zinnowitz'
+_city = 'Leuven'
 graph = None
 result: [StaticResult] = None
 demand = None
@@ -38,10 +38,10 @@ assignment = None
 HERE = pathlib.Path(__file__).parent
 one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
-file_path_network = HERE.as_posix() + os.path.sep + city.lower() + '_road_network'
+file_path_network = HERE.as_posix() + os.path.sep + _city.lower() + '_road_network'
 
 
-def test_get_graph(city=city, k=1, connector_type='link'):
+def test_get_graph(city=_city, k=4, connector_type='link'):
     """
 
     Parameters
@@ -74,7 +74,7 @@ def test_get_graph(city=city, k=1, connector_type='link'):
 
 test_get_graph()
 seed = 1
-json_demand = generate_od_xy(30, city, seed=seed, max_flow=200)
+json_demand = generate_od_xy(40, _city, seed=seed, max_flow=900)
 od_graph = parse_demand(json_demand, graph)
 
 
