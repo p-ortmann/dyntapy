@@ -57,7 +57,7 @@ INSTALL_REQUIRES = [
 # now call setup
 setup(
     name="dyntapy",
-    version="0.2.1",
+    version="0.2.2",
     description=DESC,
     classifiers=CLASSIFIERS,
     url="https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy",

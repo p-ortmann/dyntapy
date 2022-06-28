@@ -6,11 +6,12 @@ import pathlib
 import sys
 from pickle import dump, load
 
-
 one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
 
+from pytest import mark
 from dyntapy.settings import parameters
+
 parameters.static_assignment.dial_b_cost_differences = 0.00001
 from dyntapy.demand_data import generate_od_xy, add_centroids, \
     auto_configured_centroids, parse_demand
@@ -29,9 +30,12 @@ seed_constant = 9
 tot_seeds_to_try = 10
 tot_od_pairs = 10
 max_flow_per_od_pair = 5000
+
+
 # should be run to explore if errors would occur under different queueing conditions
 
-if __name__ == '__main__':
+@mark.skip(reason='too computationally expensive')
+def stress_test_dial_b():
     city = 'Stralsund'
     HERE = pathlib.Path(__file__).parent
     one_up = pathlib.Path(__file__).parents[1]
@@ -79,3 +83,7 @@ if __name__ == '__main__':
         results = assignment.run(method='dial_b')
 
     print('dial passed successfully')
+
+
+if __name__ == '__main__':
+    stress_test_dial_b()
