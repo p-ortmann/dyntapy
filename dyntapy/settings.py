@@ -231,7 +231,8 @@ class _Static_Assignment:
     fw_max_iterations = 50
     fw_delta = 0.001
     dial_b_max_iterations = 100
-    dial_b_cost_differences = 0.01
+    dial_b_cost_differences = 0.001  # tested for as low as 0.00001, corresponds
+    # to 0.036s error
     logit_theta = 0.1
     gap_method = "relative"
 

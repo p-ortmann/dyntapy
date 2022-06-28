@@ -23,7 +23,7 @@ bpr_a = parameters.static_assignment.bpr_alpha
 @njit
 def __bpr_cost(flows, capacities, ff_tts):
     number_of_links = len(flows)
-    costs = np.empty(number_of_links, dtype=np.float32)
+    costs = np.empty(number_of_links, dtype=np.float64)
     for it, (f, c, ff_tt) in enumerate(zip(flows, capacities, ff_tts)):
         assert c != 0
         costs[it] = __bpr_cost_single(f, c, ff_tt)
@@ -38,7 +38,7 @@ def __bpr_cost_single(flow, capacity, ff_tt):
 @njit
 def __bpr_derivative(flows, capacities, ff_tts):
     number_of_links = len(flows)
-    derivatives = np.empty(number_of_links)
+    derivatives = np.empty(number_of_links, dtype=np.float64)
     for it, (f, c, ff_tt) in enumerate(zip(flows, capacities, ff_tts)):
         assert c != 0
         derivatives[it] = ff_tt * bpr_a * bpr_b * (1 / c) * pow(f / c, bpr_b - 1)

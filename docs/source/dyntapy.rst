@@ -73,7 +73,7 @@ assignment from, before all other imports.
 Importing numba and changing this variable after doing so yields rather confusing
 errors.
 
-For more details on other debug settings for Numba see https://numba.pydata.org/numba-doc/dev/reference/envvars.html .
+For more details on other debug settings for Numba see https://numba.readthedocs.io/en/stable/reference/envvars.html.
 
 When working with breakpoints in the assignment algorithms it is advantageous to have
 access to
@@ -84,8 +84,8 @@ shown below:
 
 >>> from dyntapy._context import running_assignment
 
-The running_assignment object is either a dyntapy.StaticAssignment or a dyntapy
-.DynamicAssignment.
+The running_assignment object is either a `dyntapy.StaticAssignment` or a `dyntapy
+.DynamicAssignment`, both share the `network` attribute.
 
 >>> from dyntapy import show_network
 >>> g = running_assignment.network

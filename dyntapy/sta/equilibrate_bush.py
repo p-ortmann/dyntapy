@@ -10,15 +10,17 @@ import numpy as np
 from numba import njit
 from numba.typed import Dict
 
-from dyntapy.settings import parameters
+from dyntapy.settings import parameters, debugging
 from dyntapy.sta.utilities import __bpr_cost_single, __bpr_derivative_single
 from dyntapy.graph_utils import _get_link_id
 
 epsilon = parameters.static_assignment.dial_b_cost_differences
+epsilon_2 = epsilon / 20  # Epsilon that is used on an alternatives basis, replaces
 
 
-# it should be possible to make this quite a bit faster still by
-# removing all the dictionaries used for the labels
+# the expansion factor in Dial's paper.
+# needs to be lower than epsilon to achieve an epsilon compliant gap across all
+# destinations
 
 
 @njit
@@ -32,7 +34,7 @@ def __equilibrate_bush(
     links_in_bush,
     capacities,
     ff_tts,
-    bust_out_links,
+    bush_out_links,
     bush_in_links,
     epsilon,
     global_out_links,
@@ -66,18 +68,30 @@ def __equilibrate_bush(
         bush_flows,
         bush_in_links,
     )
-    # print(f'________the remaining cost differences in this
-    # bush for origin {origin} are {max_delta_path_cost}______')
+
+    if debugging:
+        print(
+            f"________the remaining cost differences in this bush for origin {origin} "
+            f"are {max_delta_path_cost}______"
+        )
     for i in topological_order:
         assert i in L
 
     if epsilon > max_delta_path_cost:
         converged_without_shifts = True
-        # print(f'no shifts were ever necessary,
-        # delta: {max_delta_path_cost} smaller than epsilon {epsilon}')
+
+    if debugging:
+        print(
+            f"no shifts were ever necessary, delta: {max_delta_path_cost} smaller "
+            f"than epsilon {epsilon}"
+        )
     while epsilon < max_delta_path_cost:
-        # print(f'calling shift flow, cost differences are:
-        # {max_delta_path_cost} larger than {epsilon} ')
+        if debugging:
+            print(
+                f"calling shift flow, cost differences are:{max_delta_path_cost} "
+                f"larger "
+                f"than {epsilon} "
+            )
         lowest_order_node = __shift_flow(
             topological_order,
             L,
@@ -94,7 +108,8 @@ def __equilibrate_bush(
             ff_tts,
             bush_in_links,
         )
-        # print(f'updating trees, branch node is: {lowest_order_node}')
+        if debugging:
+            print(f"updating trees, branch node is: {lowest_order_node}")
         max_delta_path_cost, L, U = __update_trees(
             label[lowest_order_node],
             len(topological_order),
@@ -107,20 +122,22 @@ def __equilibrate_bush(
             bush_flows,
             bush_in_links,
         )
-        # print(f'max path delta in mainline: {max_delta_path_cost}')
+        if debugging:
+            print(f"max path delta in mainline: {max_delta_path_cost}")
     number_of_edges = len(links_in_bush)
     links_in_bush = __remove_unused_edges(
         links_in_bush=links_in_bush,
         bush_flows=bush_flows,
         to_node=to_node,
         from_node=from_node,
-        bush_out_links=bust_out_links,
+        bush_out_links=bush_out_links,
         bush_in_links=bush_in_links,
         min_path_predecessors=min_path_predecessors,
         tot_links=tot_links,
     )
     if len(links_in_bush) > number_of_edges:
-        # print('time for new labels, edges have been removed!')
+        if debugging:
+            print("time for new labels, edges have been removed!")
         max_delta_path_cost, L, U = __update_trees(
             1,
             len(topological_order),
@@ -143,7 +160,7 @@ def __equilibrate_bush(
         converged_without_shifts,
         L,
         U,
-        bust_out_links,
+        bush_out_links,
         bush_in_links,
     )
 
@@ -255,7 +272,7 @@ def __equalize_cost(
     )
     # print(f'delta cost is {delta_cost} with a shift of {delta_f}')
     assert abs(delta_f) < 100000
-    while abs(delta_cost) > epsilon / 10 and abs(delta_f) > 0:
+    while abs(delta_cost) > epsilon_2 and abs(delta_f) > 0:
         #   print(f'delta cost is {delta_cost}')
         min_path_flow, min_path_cost, min_path_derivative = __update_path_flow(
             delta_f,
@@ -284,7 +301,10 @@ def __equalize_cost(
             ff_tts,
             flows,
         )
-        assert total - (min_path_flow + max_path_flow) < epsilon
+        assert (
+            np.abs(total - (min_path_flow + max_path_flow)) < np.finfo(np.float32).eps
+        )
+        # bush flow
         # print('updated path flows')
         delta_f, delta_cost = __get_delta_flow_and_cost(
             min_path_flow,
@@ -328,14 +348,17 @@ def __update_trees(
         L[j], U[j] = 100000.0, -100000.0
         for i, link_id in bush_in_links[j]:
             if i not in L:
-                print("topological order broken for node i " + str(i))
-                print("supposed to be BEFORE node j " + str(j))
-                print(L)
+                raise AssertionError
+                if debugging:
+                    print("topological order broken for node i " + str(i))
+                    print("supposed to be BEFORE node j " + str(j))
+                    print(L)
+
             # assert i in L
             # assert j in L
             # assert i in U
             # assert j in U
-            # these asserts basically verify whether
+            # these assert statements verify whether
             # the topological order is still intact
             if L[i] + costs[link_id] < L[j]:
                 L[j] = L[i] + costs[link_id]
@@ -348,6 +371,7 @@ def __update_trees(
             assert max_delta_path_costs < 99999
         if U[j] > 0:
             assert L[j] <= U[j]
+    assert len(set(min_path_predecessors.keys())) == len(topological_order)
     return max_delta_path_costs, L, U
 
 
@@ -447,9 +471,10 @@ def __shift_flow(
     lowest_order_node = len(topological_order) - 1
     # print('new run in shift flow')
     for j in topological_order[::-1]:
-        if U[j] - L[j] > epsilon / 10:
-            # print(f'require shift for destination j {j} with label
-            # {label[j]}, cost differences are: {U[j] - L[j]}')
+        if U[j] - L[j] > epsilon_2:  # the shifts here need to be tighter so that
+            # the overall gap goes below the threshold
+            # print(f'require shift for destination j {j} with label {label[j]}, '
+            #       f'cost differences are: {U[j] - L[j]}')
             (
                 start_node,
                 end_node,
@@ -470,10 +495,11 @@ def __shift_flow(
                 derivatives,
             )
             total_flow = min_path_flow + max_path_flow
-            # print( f'the branch nodes are {start_node, end_node}
-            # with labels{label[start_node], label[end_node]},
-            # ost dif are{max_path_cost - min_path_cost}')
-            if abs(max_path_cost - min_path_cost) > epsilon / 10:
+            # print(f'the branch nodes are '
+            #       f'{start_node, end_node} with label'
+            #       f's{label[start_node], label[end_node]}, cost dif ar'
+            #       f'e{max_path_cost - min_path_cost}')
+            if abs(max_path_cost - min_path_cost) > 0:
                 __equalize_cost(
                     start_node,
                     end_node,
@@ -494,8 +520,8 @@ def __shift_flow(
                     flows,
                 )
                 assert total_flow == min_path_flow + max_path_flow
-                # print(f'updating tree between {start_node}
-                # and {j} with labels {label[start_node], label[j]}')
+                # print(f'updating tree between {start_node} and {j} with labels'
+                #       f' {label[start_node], label[j]}')
                 __update_trees(
                     label[start_node],
                     label[j] + 1,
@@ -508,7 +534,7 @@ def __shift_flow(
                     bush_flows,
                     bush_in_links,
                 )
-                # print(f'cost difs are now {U[j] - L[j]}')
+                # print(f'cost differences now {U[j] - L[j]}')
                 assert abs(U[j] - L[j]) < 99999
             else:
                 continue
@@ -528,10 +554,12 @@ def __remove_unused_edges(
     to_node,
     tot_links,
 ):
+    if debugging:
+        print("removing edges called")
     to_be_removed = np.full(tot_links, False)
     for link, in_bush in enumerate(links_in_bush):
         if in_bush:
-            if bush_flows[link] < epsilon / 10:
+            if bush_flows[link] < np.finfo(np.float32).eps:
                 to_be_removed[link] = True
     offset = 0
     pruning_counter = 0
@@ -539,10 +567,11 @@ def __remove_unused_edges(
         if remove:
             i = from_node[link]
             j = to_node[link]
-            # print(f'edge under consideration ij: {i,j}')
+            if debugging:
+                print(f"edge under consideration ij: {i, j}")
             try:
                 if (
-                    min_path_predecessors[j] != i
+                    len(bush_in_links[j]) > 1 and min_path_predecessors[j] != i
                 ):  # otherwise the edge is needed for connectivity
                     #    print(f'edge {(i,j)} with flow
                     #    {bush_flows[edge_map[(i,j)]]} removed ')
@@ -559,6 +588,9 @@ def __remove_unused_edges(
                         bush_in_links[j] = bush_in_links[j][bush_in_links[j][:, 0] != i]
                     pruning_counter += 1
                     offset += 1
+
+                    if debugging:
+                        print(f"removed edge ij: {i, j}, link {link}")
             except Exception:
                 print("hi")
     # print(f'there are {len(bush_edges)} edges

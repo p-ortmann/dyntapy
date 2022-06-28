@@ -1,5 +1,5 @@
-from numba import config
-config.DISABLE_JIT = 1
+# from numba import config
+# config.DISABLE_JIT = 1
 
 import os
 import pathlib
@@ -10,6 +10,8 @@ from pickle import dump, load
 one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
 
+from dyntapy.settings import parameters
+parameters.static_assignment.dial_b_cost_differences = 0.00001
 from dyntapy.demand_data import generate_od_xy, add_centroids, \
     auto_configured_centroids, parse_demand
 from dyntapy import StaticAssignment
@@ -18,10 +20,13 @@ from dyntapy.supply_data import road_network_from_place, relabel_graph
 
 # this file stress-tests the DIAL B implementation with more demand, a bigger network
 # and multiple connectors per centroid.
-method = 'constant'  # 'constant' or 'iterated' if multiple demand scenarios
+method = 'iterated'  # 'constant' or 'iterated' if multiple demand scenarios
 # should be explored, you can run this until failure to identify seeds that trigger
 # an error.
-seed_constant = 1
+# stress tested for epsilon up to 0.00001, not lower
+#
+seed_constant = 9
+tot_seeds_to_try = 10
 tot_od_pairs = 10
 max_flow_per_od_pair = 5000
 # should be run to explore if errors would occur under different queueing conditions
@@ -56,7 +61,7 @@ if __name__ == '__main__':
 
     if method == 'iterated':
         # we iterate
-        for seed in range(100):
+        for seed in range(tot_seeds_to_try):
             print(f'testing for demand from {seed=}')
             json_demand = generate_od_xy(tot_od_pairs, city, seed=seed,
                                          max_flow=max_flow_per_od_pair)
@@ -73,5 +78,4 @@ if __name__ == '__main__':
         assignment = StaticAssignment(g, od_graph)
         results = assignment.run(method='dial_b')
 
-    show_network(g, flows=results.flows)
     print('dial passed successfully')

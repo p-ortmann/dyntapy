@@ -23,8 +23,9 @@ from dyntapy.graph_utils import (
     _make_in_links,
     _make_out_links,
     pred_to_paths,
+    _get_link_id,
 )
-from dyntapy.settings import parameters
+from dyntapy.settings import parameters, debugging
 from dyntapy.sta.equilibrate_bush import __equilibrate_bush
 from dyntapy.sta.utilities import __bpr_cost, __bpr_derivative
 from dyntapy.supply import Network
@@ -32,7 +33,6 @@ from dyntapy.results import StaticResult
 
 epsilon = parameters.static_assignment.dial_b_cost_differences
 dial_b_max_iterations = parameters.static_assignment.dial_b_max_iterations
-
 commodity_type = "origin"  # returned multi commodity flow is origin based
 gap_definition = (
     f"{epsilon=} converged origin - bushes divided by total origins, "
@@ -56,9 +56,12 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
         flows=flows, capacities=network.links.capacity, ff_tts=link_ff_times
     )
     iteration = 0
-    print("Dial equilibration started")
+    if debugging:
+        print("Dial equilibration started")
     while iteration < dial_b_max_iterations:
         convergence_counter = 0
+        if debugging:
+            print(f" convergence counter : {convergence_counter}")
         if store_iterations:
             arr_gap = np.zeros(len(gaps))
             for idx, val in enumerate(gaps):
@@ -82,6 +85,11 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
             # they cannot be changed once created
             bush_id = np.uint32(bush_id)
             bush = demand.to_destinations.get_nnz_rows()[bush_id]
+            if debugging:
+                print(
+                    f"IN ITERATION: {convergence_counter} with bush= {bush} and"
+                    f" bush_id = {bush_id}"
+                )
             bush_out_links = _make_out_links(
                 links_in_bush[bush_id],
                 from_nodes,
@@ -96,7 +104,8 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
             )
             token = 0
             while True:
-                # print(f'equilibrating bush {bush}')
+                if debugging:
+                    print(f"equilibrating bush {bush}")
                 (
                     flows,
                     bush_flows[bush_id],
@@ -116,7 +125,7 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
                     links_in_bush=links_in_bush[bush_id],
                     capacities=network.links.capacity,
                     ff_tts=link_ff_times,
-                    bust_out_links=bush_out_links,
+                    bush_out_links=bush_out_links,
                     bush_in_links=bush_in_links,
                     epsilon=epsilon,
                     global_out_links=network.nodes.out_links,
@@ -128,8 +137,12 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
                     if token >= 1:
                         if token == 1:
                             convergence_counter += 1
-                        # print(f' no shifts after edges added for bush {bush},
-                        # moving on')
+
+                        if debugging:
+                            print(
+                                f" no shifts after edges added for bush {bush},"
+                                f"moving on"
+                            )
                         break
 
                 for k in topological_orders[bush_id]:
@@ -145,16 +158,23 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations):
                     bush_flows=bush_flows[bush_id],
                     tot_nodes=network.tot_nodes,
                     origin=bush,
+                    global_out_links_csr=network.nodes.out_links,
                 )
+                assert len(set(topological_orders[bush_id])) == network.tot_nodes
                 if not edges_added:
                     if converged_without_shifts and token == 0:
                         convergence_counter += 1
-                    # print(f' bush {bush} is converged and no edges were added,
-                    # moving on')
+                        if debugging:
+                            print(
+                                f" bush {bush} is converged and no edges were added, "
+                                f"moving on"
+                            )
                     break
                 else:
+                    if debugging:
+                        print("edges added")
                     pass
-                    # print('edges added')
+
                 token += 1
         # print(f'number of converged bushes {convergence_counter} out of {len(
         # demand_dict)}')
@@ -183,24 +203,35 @@ def __update_bush(
     bush_flows,
     tot_nodes,
     origin,
+    global_out_links_csr,
 ):
     new_edges_added = False
     for link_id, link_tuple in enumerate(zip(from_node, to_node)):
         i, j = link_tuple[0], link_tuple[1]
         if L[i] + costs[link_id] < L[j] - epsilon:
+            # current edges is a shortcut edge
             # pos2 = np.argwhere(topological_order == j)[0][0]
             # pos1 = np.argwhere(topological_order == i)[0][0]
             # assert pos2>pos1
             # if pos1 > pos2:
             #    print('something wrong with labels or shifting')
-            flow_opposite_edge = bush_flows[link_id]
-            if flow_opposite_edge > epsilon:
-                # cannot remove this edge, it's loaded! adding the opposite would
-                # yield a graph that cannot be topologically sorted this may
-                # happen with very short links and comparatively large epsilon
-                # values
-                continue
+            opposite_exists = False
+            try:
+                opposite_link = _get_link_id(j, i, global_out_links_csr)
+                opposite_exists = True
+            except Exception:
+                pass
+
+            if opposite_exists:
+                flow_opposite_edge = bush_flows[opposite_link]
+                if flow_opposite_edge > 0:
+                    # cannot remove this edge, it's loaded! adding the opposite would
+                    # yield a graph that cannot be topologically sorted this may
+                    # happen with very short links and comparatively large epsilon
+                    # values
+                    continue
             bush_edges[link_id] = True
+            # adding an in_link i to j
             in_links_j = np.empty(
                 (bush_in_links[j].shape[0] + 1, bush_in_links[j].shape[1]),
                 dtype=np.int64,
@@ -208,15 +239,43 @@ def __update_bush(
             in_links_j[:-1] = bush_in_links[j]
             in_links_j[-1] = np.int64(i), link_id
             bush_in_links[j] = in_links_j
-            out_links_j = np.empty(
+
+            # adding an out_link j to i
+            out_links_i = np.empty(
                 (bush_out_links[i].shape[0] + 1, bush_out_links[i].shape[1]),
                 dtype=np.int64,
             )
-            out_links_j[:-1] = bush_out_links[i]
-            out_links_j[-1] = np.int64(j), link_id
-            bush_out_links[i] = out_links_j
+            out_links_i[:-1] = bush_out_links[i]
+            out_links_i[-1] = np.int64(j), link_id
+            bush_out_links[i] = out_links_i
             new_edges_added = True
 
+            if opposite_exists:
+                if bush_edges[opposite_link]:
+                    bush_edges[opposite_link] = False
+                    # removing an in_link j from i
+                    in_links_i = np.empty(
+                        (bush_in_links[i].shape[0] - 1, bush_in_links[i].shape[1]),
+                        dtype=np.int64,
+                    )
+                    idx = 0
+                    for _j, _link_id in bush_in_links[i]:
+                        if _j != j:
+                            in_links_i[idx] = _j, _link_id
+                            idx += 1
+                    bush_in_links[i] = in_links_i
+
+                    # removing an out_link i from j
+                    out_links_j = np.empty(
+                        (bush_out_links[i].shape[0] - 1, bush_out_links[i].shape[1]),
+                        dtype=np.int64,
+                    )
+                    idx = 0
+                    for _i, _link_id in bush_out_links[j]:
+                        if _i != i:
+                            out_links_j[idx] = _i, _link_id
+                            idx += 1
+                    bush_out_links[j] = out_links_j
     return new_edges_added, topological_sort(
         bush_out_links, bush_in_links, tot_nodes, origin
     )
@@ -250,6 +309,8 @@ def topological_sort(forward_star, backward_star, tot_nodes, origin):
             if visited_all_nodes_in_backward_star:
                 pos_count += 1
                 heappush(my_heap, (np.uint32(pos_count), np.uint32(j)))
+    assert len(set(order)) == tot_nodes  # if this fails forward and backward stars do
+    # not form DAG
     return order
 
 
@@ -265,7 +326,7 @@ def __initial_loading(network: Network, demand: InternalStaticDemand):
     is_centroid = network.nodes.is_centroid
     tot_origins = demand.to_destinations.get_nnz_rows().size
     tot_nodes = network.tot_nodes
-    bush_flows = np.zeros((tot_origins, tot_links), dtype=np.float32)
+    bush_flows = np.zeros((tot_origins, tot_links), dtype=np.float64)
     topological_orders = np.empty((tot_origins, tot_nodes), dtype=np.uint32)
     links_in_bush = np.full(
         (demand.to_destinations.get_nnz_rows().size, tot_links), False
