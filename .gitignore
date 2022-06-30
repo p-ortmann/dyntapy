@@ -20,7 +20,6 @@ __pycache__/
 
 # Distribution / packaging
 push_pypi.sh
-push_conda_forge.sh
 .Python
 build/
 develop-eggs/

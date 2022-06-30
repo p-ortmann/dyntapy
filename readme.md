@@ -3,7 +3,6 @@
 [![Documentation Status](https://readthedocs.org/projects/dyntapy/badge/?version=latest)](https://dyntapy.readthedocs.io/en/latest/?badge=latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![conda verson](https://anaconda.org/conda-forge/dyntapy/badges/version.svg)](https://anaconda.org/conda-forge/dyntapy)
-[![status](https://joss.theoj.org/papers/e35f54090c93bebeba060a8c19ae3d89/status.svg)](https://joss.theoj.org/papers/e35f54090c93bebeba060a8c19ae3d89)
 
 dyntapy is a macroscopic car traffic modelling toolkit that offers both Static and Dynamic
 assignment algorithms and support for visualizing assignment results in 
