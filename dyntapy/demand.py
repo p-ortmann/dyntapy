@@ -99,7 +99,12 @@ def build_internal_static_demand(od_graph: nx.DiGraph):
     dyntapy.demand.InternalStaticDemand
 
     """
-    lil_demand = nx.to_scipy_sparse_matrix(od_graph, weight="flow", format="lil")
+    try:
+        # available since networkx version 2.7.0, February 2022
+        lil_demand = nx.to_scipy_sparse_array(od_graph, weight="flow", format="lil")
+    except AttributeError:
+        # will be deprecated for networkx 3.0
+        lil_demand = nx.to_scipy_sparse_matrix(od_graph, weight="flow", format="lil")
     tot_centroids = od_graph.number_of_nodes()
     row = np.asarray(lil_demand.nonzero()[0])
     col = np.asarray(lil_demand.nonzero()[1])

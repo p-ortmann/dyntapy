@@ -17,7 +17,8 @@ from dyntapy.csr import UI32CSRMatrix
 @njit(cache=True)
 def dijkstra(costs, in_links: UI32CSRMatrix, target, tot_nodes, is_centroid):
     """
-    typical dijkstra_with_targets implementation with heaps, fills the distances array with the results
+    typical dijkstra_with_targets implementation with heaps, fills the distances
+    array with the results
     Parameters
     ----------
     is_centroid : bool array, dim tot_nodes, true if node is centroid, false otherwise
@@ -29,8 +30,10 @@ def dijkstra(costs, in_links: UI32CSRMatrix, target, tot_nodes, is_centroid):
     -------
     distances: array 1D, dim tot_nodes. Distances from all nodes to the target node
     """
-    # some minor adjustments from the static version to allow for the use of the csr structures
-    # also removed conditional checks/ functionality that are not needed when this is integrated into route choice
+    # some minor adjustments from the static version to allow for the use of the csr
+    # structures
+    # also removed conditional checks/ functionality that are not needed when this is
+    # integrated into route choice
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     seen = np.copy(distances)
     my_heap = []
