@@ -96,3 +96,82 @@ def __valid_edges(from_node, to_node, label):
         if label[j] > label[i]:
             edges.append((i, j))
     return edges
+
+
+@njit
+def generate_bushes(
+    link_ff_times, from_nodes, to_nodes, out_links, demand, tot_links, is_centroid
+):
+    tot_nodes = out_links.get_nnz_rows().size
+    tot_origins = demand.to_destinations.get_nnz_rows().size
+    topological_orders = np.empty((tot_origins, tot_nodes), dtype=np.int64)
+    distances = np.empty((tot_origins, tot_nodes), np.float64)
+    links_in_bush = np.full((tot_origins, tot_links), False)
+    assert demand.to_destinations.get_nnz_rows().size > 0
+    for origin_id, origin in enumerate(demand.to_destinations.get_nnz_rows()):
+        distances[origin_id], pred = dijkstra_all(
+            costs=link_ff_times,
+            out_links=out_links,
+            source=origin,
+            is_centroid=is_centroid,
+        )
+        topological_orders[origin_id] = np.argsort(distances[origin_id])
+        label = np.argsort(topological_orders[origin_id])
+        for link_id, (i, j) in enumerate(zip(from_nodes, to_nodes)):
+            if label[j] > label[i]:
+                links_in_bush[origin_id][link_id] = True
+    return topological_orders, links_in_bush, distances
+
+
+@njit
+def generate_bushes_line_graph(
+    turn_cost,
+    from_link,
+    to_link,
+    in_turns,
+    destination_links,
+    tot_links,
+):
+    tot_destinations = destination_links.size
+    topological_orders = np.empty((tot_destinations, tot_links), dtype=np.int64)
+    distances = np.empty((tot_destinations, tot_links), np.float64)
+    tot_turns = from_link.size
+    turns_in_bush = np.full((tot_destinations, tot_turns), False)
+    is_centroid = np.full(tot_links, False)
+    is_centroid[destination_links] = True
+    for destination_id, destination_link in enumerate(destination_links):
+        distances[destination_id], pred = dijkstra_all(
+            costs=turn_cost,
+            out_links=in_turns,
+            source=destination_link,
+            is_centroid=is_centroid,
+        )
+        topological_orders[destination_id] = np.argsort(distances[destination_id])
+        label = np.argsort(topological_orders[destination_id])
+        for turn, (i, j) in enumerate(zip(from_link, to_link)):
+            if label[j] < label[i]:
+                turns_in_bush[destination_id][turn] = True
+    return topological_orders, turns_in_bush, distances
+
+
+@njit
+def __link_to_turn_cost_static(
+    tot_turns, from_links, link_cost, turn_restriction, restricted_turn_cost=300 / 3600
+):
+    turn_costs = np.zeros(tot_turns, dtype=np.float64)
+    for turn in range(tot_turns):
+        from_link = from_links[turn]
+        if not turn_restriction[turn]:
+            turn_costs[turn] = link_cost[from_link]
+        else:
+            turn_costs[turn] = restricted_turn_cost  # large penalty for u turns
+    return turn_costs
+
+
+@njit
+def __get_u_turn_turn_restrictions(tot_turns, from_node, to_node):
+    turn_restrictions = np.full(tot_turns, False)
+    for turn in range(tot_turns):
+        if from_node[turn] == to_node[turn]:
+            turn_restrictions[turn] = True
+    return turn_restrictions

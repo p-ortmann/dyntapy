@@ -14,13 +14,13 @@ from dyntapy.settings import parameters, debugging
 from dyntapy.sta.utilities import __bpr_cost_single, __bpr_derivative_single
 from dyntapy.graph_utils import _get_link_id
 
+# sub modules for Dial's Algorithm B.
+
 epsilon = parameters.static_assignment.dial_b_cost_differences
 epsilon_2 = epsilon / 20  # Epsilon that is used on an alternatives basis, replaces
-
-
 # the expansion factor in Dial's paper.
 # needs to be lower than epsilon to achieve an epsilon compliant gap across all
-# destinations
+# destinations.
 
 
 @njit

@@ -8,16 +8,15 @@
 #
 from math import exp
 
-from numba import njit
 import numpy as np
 
 from dyntapy.demand import InternalStaticDemand
 from dyntapy.graph_utils import (
-    dijkstra_all,
     _make_in_links,
     _make_out_links,
 )
 from dyntapy.settings import parameters
+from dyntapy.sta.utilities import generate_bushes
 from dyntapy.supply import Network
 
 
@@ -88,31 +87,6 @@ def load_all_bushes(
         )
 
     return np.sum(bush_flows, axis=0), bush_flows
-
-
-@njit
-def generate_bushes(
-    link_ff_times, from_nodes, to_nodes, out_links, demand, tot_links, is_centroid
-):
-    tot_nodes = out_links.get_nnz_rows().size
-    tot_origins = demand.to_destinations.get_nnz_rows().size
-    topological_orders = np.empty((tot_origins, tot_nodes), dtype=np.int64)
-    distances = np.empty((tot_origins, tot_nodes), np.float64)
-    links_in_bush = np.full((tot_origins, tot_links), False)
-    assert demand.to_destinations.get_nnz_rows().size > 0
-    for origin_id, origin in enumerate(demand.to_destinations.get_nnz_rows()):
-        distances[origin_id], pred = dijkstra_all(
-            costs=link_ff_times,
-            out_links=out_links,
-            source=origin,
-            is_centroid=is_centroid,
-        )
-        topological_orders[origin_id] = np.argsort(distances[origin_id])
-        label = np.argsort(topological_orders[origin_id])
-        for link_id, (i, j) in enumerate(zip(from_nodes, to_nodes)):
-            if label[j] > label[i]:
-                links_in_bush[origin_id][link_id] = True
-    return topological_orders, links_in_bush, distances
 
 
 # @njit()

@@ -228,12 +228,15 @@ class _Static_Assignment:
     bpr_beta = np.double(4)
     msa_max_iterations = 200
     msa_delta = 0.001
+    sue_dial_max_iterations = 100
+    sue_dial_gap = 0.01
     fw_max_iterations = 50
     fw_delta = 0.001
     dial_b_max_iterations = 100
     dial_b_cost_differences = 0.001  # tested for as low as 0.00001, corresponds
     # to 0.036s error
     logit_theta = 0.1
+    mu = 0.8  # used in SUE
     gap_method = "relative"
 
 

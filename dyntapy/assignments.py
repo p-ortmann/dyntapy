@@ -88,6 +88,7 @@ from dyntapy.demand_data import _check_centroid_connectivity
 from dyntapy.dta.aon import aon
 from dyntapy.dta.i_ltm_aon import i_ltm_aon
 from dyntapy.dta.incremental_assignment import incremental
+from dyntapy.sta.dial_stochastic_assignment import dial_sue
 from dyntapy.sta.dial_b import dial_b
 from dyntapy.sta.msa import msa_flow_averaging
 from dyntapy.sta.uncongested_dial import sun
@@ -229,13 +230,13 @@ class StaticAssignment:
         log("Assignment object initialized!")
         print("init passed successfully")
 
-    def run(self, method, store_iterations=False):
+    def run(self, method, store_iterations=False, **kwargs):
         """
 
         Parameters
         ----------
 
-        method : {'dial_b','frank_wolfe', 'msa', 'sun'}
+        method : {'dial_b','frank_wolfe', 'msa', 'sun', 'sue'}
         store_iterations : bool
             set to True to get information on the individual iterations
 
@@ -333,6 +334,22 @@ class StaticAssignment:
                 skim=get_skim(costs, self.internal_demand, self.internal_network),
                 origin_flows=origin_flows,
             )
+        elif method == "sue":
+            assert not store_iterations  # not supported for SUE yet
+            # check for turn connectors, they are required since this algorithm
+            # is defined on the line graph
+            assert _turn_connectors(self.internal_network, self.internal_demand)
+            costs, flows, destination_flows = dial_sue(
+                network=self.internal_network, demand=self.internal_demand, **kwargs
+            )
+            result = StaticResult(
+                costs,
+                flows,
+                self.internal_demand.origins,
+                self.internal_demand.destinations,
+                skim=get_skim(costs, self.internal_demand, self.internal_network),
+                destination_flows=destination_flows,
+            )
 
         else:
             raise NotImplementedError(f"{method=} is not defined ")
@@ -340,3 +357,14 @@ class StaticAssignment:
             return result
         else:
             return result, dyntapy._context.iteration_states
+
+
+def _turn_connectors(network, demand):
+    # whether the network has turn connectors
+    # just a basic check for a single centroid/ connector combo
+    origin = demand.origins[0]
+    link = network.nodes.out_links.get_nnz(origin)[0]
+    if network.links.link_type[link] == 1:
+        return True
+    else:
+        return False

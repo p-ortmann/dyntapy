@@ -7,7 +7,7 @@
 import os
 import pathlib
 import sys
-from pickle import dump
+from pickle import dump, load
 
 import numpy as np
 
@@ -41,7 +41,7 @@ sys.path.append(one_up.as_posix())
 file_path_network = HERE.as_posix() + os.path.sep + _city.lower() + '_road_network'
 
 
-def test_get_graph(city=_city, k=4, connector_type='link'):
+def test_get_graph(city=_city, k=1, connector_type='turn'):
     """
 
     Parameters
@@ -72,7 +72,11 @@ def test_get_graph(city=_city, k=4, connector_type='link'):
     graph = g
 
 
-test_get_graph()
+try:
+    with open(file_path_network, 'rb') as my_file:
+        graph = load(my_file)
+except FileNotFoundError:
+    test_get_graph()
 seed = 1
 json_demand = generate_od_xy(40, _city, seed=seed, max_flow=900)
 od_graph = parse_demand(json_demand, graph)
@@ -98,14 +102,28 @@ def test_dial_b():
     method = 'dial_b'
     result = assignment.run(method)
     show_network(graph, flows=result.flows)
-    print(f'DUE {method=} ran successfully')
+    print(f'static assignment method {method=} ran successfully')
+
+
+def test_sue():
+    global assignment
+    assignment = StaticAssignment(graph, od_graph)
+    global network
+    global demand
+    global result
+    network = assignment.internal_network
+    demand = assignment.internal_demand
+    method = 'sue'
+    result = assignment.run(method, max_iterations = 10, max_gap = 0.00001)
+    show_network(graph, flows=result.flows)
+    print(f'static assignment method {method=} ran successfully')
 
 
 def test_msa():
     loc_assignment = StaticAssignment(graph, od_graph)
     method = 'msa'
     res = loc_assignment.run(method)
-    print(f'DUE {method=} ran successfully')
+    print(f'static assignment method {method=} ran successfully')
     show_network(graph, res.flows)
 
 
