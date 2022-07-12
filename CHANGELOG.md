@@ -1,4 +1,10 @@
 # Change log
+
+## 0.2.3 (in progress)
+- adding SUE assignment
+- node highlighting for demand plots
+- all show_* functions now optionally return the plot element for further processing 
+ 
 ## 0.2.2 (27.06.2022)
 
 - relabel_graph now optionally returns the node mapping as a dictionary

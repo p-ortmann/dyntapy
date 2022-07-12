@@ -133,18 +133,18 @@ def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwa
 
 
 def show_network(
-        g,
-        flows=None,
-        link_kwargs=dict(),
-        node_kwargs=dict(),
-        highlight_links=np.array([]),
-        highlight_nodes=np.array([]),
-        euclidean=False,
-        toy_network=False,
-        title=None,
-        notebook=False,
-        show_nodes=True,
-        return_plot=False,
+    g,
+    flows=None,
+    link_kwargs=dict(),
+    node_kwargs=dict(),
+    highlight_links=np.array([]),
+    highlight_nodes=np.array([]),
+    euclidean=False,
+    toy_network=False,
+    title=None,
+    notebook=False,
+    show_nodes=True,
+    return_plot=False,
 ):
     """
     Visualizing a network with static attributes in a .html.
@@ -635,8 +635,15 @@ def get_max_edge_width(g, scaling, plot_size):
     return max_width_bokeh, max_width_coords
 
 
-def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=False,
-                highlight_nodes = [], return_plot = False):
+def show_demand(
+    g,
+    title=None,
+    notebook=False,
+    euclidean=False,
+    toy_network=False,
+    highlight_nodes=[],
+    return_plot=False,
+):
     """
 
     visualize demand on a map
@@ -745,16 +752,17 @@ def show_demand(g, title=None, notebook=False, euclidean=False, toy_network=Fals
             x_list.append(list(x))
             y_list.append(list(y))
 
-
     nodes_to_highlight = np.full(tmp.number_of_nodes(), False)
-    nodes_to_highlight[highlight_nodes] =True
-    node_colors = [node_highlight_color if nodes_to_highlight[idx] else node_color
-                   for idx in list(tmp.nodes.keys())]
+    nodes_to_highlight[highlight_nodes] = True
+    node_colors = [
+        node_highlight_color if nodes_to_highlight[idx] else node_color
+        for idx in list(tmp.nodes.keys())
+    ]
 
     node_source = ColumnDataSource(
         data=dict(
             color=node_colors,
-            x=[ x for _, x in tmp.nodes.data("x")],
+            x=[x for _, x in tmp.nodes.data("x")],
             y=[y for _, y in tmp.nodes.data("y")],
             centroid_id=list(tmp.nodes.keys()),
         )
@@ -848,13 +856,13 @@ def _edge_cds(g, color, flow, x, y, step_size=1.0, **kwargs):
 
 
 def _get_colors_and_coords(
-        g,
-        max_width_coords,
-        max_flow,
-        flows,
-        time_step,
-        highlight_links: object = np.array([]),
-        patch_ratio=parameters.visualization.link_width_min_max_ratio,
+    g,
+    max_width_coords,
+    max_flow,
+    flows,
+    time_step,
+    highlight_links: object = np.array([]),
+    patch_ratio=parameters.visualization.link_width_min_max_ratio,
 ):
     nr_of_colors = len(traffic_cm)
     min_width_coords = max_width_coords * patch_ratio

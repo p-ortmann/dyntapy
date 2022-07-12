@@ -189,8 +189,9 @@ def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
 default_centroid_spacing = parameters.demand.default_centroid_spacing
 
 
-def get_centroid_grid_coords(name: str, buffer_dist=0,
-                             spacing=default_centroid_spacing):
+def get_centroid_grid_coords(
+    name: str, buffer_dist=0, spacing=default_centroid_spacing
+):
     """
 
     creates centroids on a grid that overlap with the polygon
