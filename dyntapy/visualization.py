@@ -164,7 +164,7 @@ def show_network(
     highlight_links: numpy.ndarray or list, optional
         int, 1D or 2D - links to highlight
     highlight_nodes: numpy.ndarray or list, optional
-        int, 1D or 2D - links to highlight
+        int, 1D or 2D - nodes to highlight
     euclidean: bool, optional
         set to True if coordinates in graph are euclidean.
     toy_network: bool, optional
@@ -174,6 +174,8 @@ def show_network(
         set to True if the plot should be rendered in a notebook.
     show_nodes: bool, optional
         whether to render nodes
+    return_plot: bool, optional
+        set to True if the plot object should be returned instead of showing it.
 
     Examples
     --------
@@ -352,6 +354,7 @@ def show_dynamic_network(
     title=None,
     notebook=False,
     show_nodes=True,
+    return_plot = False,
 ):
     """
     Visualizing a network with dynamic attributes in a .html.
@@ -372,7 +375,7 @@ def show_dynamic_network(
     highlight_links: numpy.ndarray, optional
         int, 1D or 2D - links to highlight
     highlight_nodes: numpy.ndarray, optional
-        int, 1D or 2D - links to highlight
+        int, 1D or 2D - nodes to highlight
     euclidean: bool, optional
         set to True if coordinates in graph are euclidean.
     toy_network: bool, optional
@@ -382,6 +385,8 @@ def show_dynamic_network(
         set to True if the plot should be rendered in a notebook.
     show_nodes: bool, optional
         whether to render nodes
+    return_plot: bool, optional
+        set to True if the plot object should be returned instead of showing it.
 
     Examples
     --------
@@ -623,7 +628,10 @@ def show_dynamic_network(
     if show_nodes:
         time_slider.js_on_change("value", node_call_back)
     layout = row(plot, column(text_input, Spacer(height=40), time_slider))
-    show(layout)
+    if return_plot:
+        return layout
+    else:
+        show(layout)
 
 
 def get_max_edge_width(g, scaling, plot_size):
@@ -658,6 +666,8 @@ def show_demand(
         set to True, if 'x_coord' and 'y_coord' in g are euclidean.
     toy_network: bool, optional
         deprecated, use euclidean instead
+    highlight_nodes: numpy.ndarray or list, optional
+        int, 1D - nodes to highlight
     return_plot: bool, optional
         set to True if the plot object should be returned instead of showing it.
 
