@@ -106,7 +106,6 @@ def road_network_from_place(
 
         return g
 
-    log(f"city {place} could not be found in data folder, loading from osm", level=50)
     g = acquire_graph()
 
     # osmnx generates MultiDiGraphs, meaning there can

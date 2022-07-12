@@ -56,7 +56,7 @@ def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
     star_sizes = np.zeros(tot_nodes, dtype=np.int64)
     for i in range(tot_nodes):
         out_links[i] = np.empty(
-            (20, 2), dtype=np.int64
+            (500, 2), dtype=np.int64
         )  # In traffic networks nodes should never have more than 10 outgoing edges..
     for link, include in enumerate(links_to_include):
         if include:
@@ -110,7 +110,7 @@ def _make_in_links(links_to_include, from_node, to_node, tot_nodes):
     star_sizes = np.zeros(tot_nodes, dtype=np.int64)  # , dtype=int_dtype
     for i in range(tot_nodes):
         backward_star[i] = np.empty(
-            (20, 2), dtype=np.int64
+            (500, 2), dtype=np.int64
         )  # nodes in traffic networks have less than 10 outgoing edges..
     for link, include in enumerate(links_to_include):
         if include:

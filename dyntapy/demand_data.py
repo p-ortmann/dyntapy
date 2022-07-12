@@ -189,7 +189,8 @@ def od_graph_from_matrix(od_matrix: np.ndarray, X, Y):
 default_centroid_spacing = parameters.demand.default_centroid_spacing
 
 
-def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
+def get_centroid_grid_coords(name: str, buffer_dist=0,
+                             spacing=default_centroid_spacing):
     """
 
     creates centroids on a grid that overlap with the polygon
@@ -200,6 +201,7 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
     ----------
     name : str,
         name of the city to be used as reference polygon
+    buffer_dist: float, optional
     spacing : float, optional
         distance between two adjacent centroids on the grid
 
@@ -212,7 +214,7 @@ def get_centroid_grid_coords(name: str, spacing=default_centroid_spacing):
         float, 1D
         lat of centroid locations
     """
-    my_gdf = ox.geocode_to_gdf(name)
+    my_gdf = ox.geocode_to_gdf(name, buffer_dist=buffer_dist)
     range_ns_meters = great_circle_vec(
         my_gdf.bbox_north[0],
         my_gdf.bbox_east[0],
