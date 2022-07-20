@@ -94,9 +94,9 @@ Similar to other popular graph packages, such as [igraph](https://igraph.org/) a
 we offer shortest path computations. Our implementations are more than twice as fast as igraph
 and more than 20x faster than networkx for road networks.
 
-# Contributing
+# Contributing and Support
 
-See [CONTRIBUTING.md](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/blob/master/CONTRIBUTING.md)
+Take a look at the [community guidelines](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/blob/master/CONTRIBUTING.md).
 
 # Acknowledgements
 
