@@ -1,5 +1,4 @@
-from numba import njit, prange, float64
-
+from numba import njit, prange
 from dyntapy.sta.utilities import (
     generate_bushes_line_graph,
     __link_to_turn_cost_static,
@@ -61,10 +60,10 @@ def _set_labels(
     # numerical issue.
     # only the turn costs vary when using this for iterative schemes.
 
-    turn_utility = np.zeros(turn_costs.size, dtype=float64)
-    link_weights = np.zeros(distances.size, dtype=float64)
+    turn_utility = np.zeros(turn_costs.size, dtype=np.float64)
+    link_weights = np.zeros(distances.size, dtype=np.float64)
     link_weights[destination] = 1.0
-    turn_weights = np.zeros(turn_costs.size, dtype=float64)
+    turn_weights = np.zeros(turn_costs.size, dtype=np.float64)
     for turn, (in_bush, i, j) in enumerate(zip(turns_in_bush, from_links, to_links)):
         # larger theta leads to AON behavior
         if in_bush:
@@ -122,7 +121,7 @@ def _get_tf(
             for out_link, turn in bush_out_turns[j]:
                 # assert link_weights[j] > 0
                 turning_fractions[d_id, turn] = turn_weights[d_id, turn] / max(
-                    link_weights[d_id][j], np.finfo(float64).eps
+                    link_weights[d_id][j], np.finfo(np.float64).eps
                 )  #
                 # avoiding NANs here
 
@@ -156,8 +155,8 @@ def _dial_sue(network, demand, topo_costs, mu, max_it, max_gap):
     )
 
     # initial state with no flows in the network and free flow travel times
-    c2 = np.copy(link_ff_tt).astype(float64)
-    f1 = np.zeros(tot_links, dtype=float64)
+    c2 = np.copy(link_ff_tt).astype(np.float64)
+    f1 = np.zeros(tot_links, dtype=np.float64)
     gap = np.inf
     k = 0
     while gap > max_gap and k < max_it + 1:

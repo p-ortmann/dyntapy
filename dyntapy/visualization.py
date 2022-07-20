@@ -12,6 +12,7 @@
 import datetime
 import os
 import warnings
+from itertools import chain
 from inspect import signature
 from warnings import warn
 
@@ -22,15 +23,14 @@ from bokeh.io import output_file, output_notebook, show
 from bokeh.layouts import Spacer, column, row
 from bokeh.models import HoverTool, OpenURL, TapTool
 from bokeh.models.callbacks import CustomJS
-from bokeh.models.glyphs import Patches
+from bokeh.models.glyphs import Patches, MultiPolygons
 from bokeh.models.markers import Circle
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.tile_providers import Vendors, get_provider
 from pyproj import CRS
-from shapely.geometry import LineString
+from shapely.geometry import LineString, MultiPolygon
 
-from dyntapy.demand import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.utilities import __create_green_to_red_cm
 
@@ -354,7 +354,7 @@ def show_dynamic_network(
     title=None,
     notebook=False,
     show_nodes=True,
-    return_plot = False,
+    return_plot=False,
 ):
     """
     Visualizing a network with dynamic attributes in a .html.
@@ -749,18 +749,16 @@ def show_demand(
             width_coords = min_width_coords + (max_width_coords - min_width_coords) * (
                 flow / max_flow
             )
-            ls, para_ls = __linestring_from_node_cords(
-                [
-                    [tmp.nodes[u]["x"], tmp.nodes[u]["y"]],
-                    [tmp.nodes[v]["x"], tmp.nodes[v]["y"]],
-                ],
+            x, y = __build_patch_buffered(
+                tmp.nodes[u]["x"],
+                tmp.nodes[u]["y"],
+                tmp.nodes[v]["x"],
+                tmp.nodes[v]["y"],
+                data,
                 width_coords,
             )
-            (x1, y1, x2, y2) = ls.xy + para_ls.xy
-            x = x2 + x1
-            y = y2 + y1
-            x_list.append(list(x))
-            y_list.append(list(y))
+            x_list.append(x)
+            y_list.append(y)
 
     nodes_to_highlight = np.full(tmp.number_of_nodes(), False)
     nodes_to_highlight[highlight_nodes] = True
@@ -903,7 +901,6 @@ def _get_colors_and_coords(
             color = traffic_cm[0]
             flow = 0
         colors.append(color)
-        loaded = 0
         try:
             if flow > 0:
                 loaded = 1
@@ -922,47 +919,16 @@ def _get_colors_and_coords(
             width_coords = min_width_coords
             # width_bokeh = min_width_bokeh
         # edge_dict['width'].append(width_bokeh)
-        if "geometry" in data:
-            ls = data["geometry"]
-            assert isinstance(ls, LineString)
-            para_ls = ls.parallel_offset(width_coords * 1)
-        else:
-            ls, para_ls = __linestring_from_node_cords(
-                [
-                    [g.nodes[u]["x"], g.nodes[u]["y"]],
-                    [g.nodes[v]["x"], g.nodes[v]["y"]],
-                ],
-                width_coords,
-            )
 
-        try:
-            (x1, y1, x2, y2) = ls.xy + para_ls.xy
-            x = x2 + x1
-            y = y2 + y1
-        except (
-            AttributeError,
-            NotImplementedError,
-        ):  # Attributeerror: weird error due to i'll defined line
-            # string .. - dig deeper if I have more time on my hands - probably an
-            # error in osmnx line string
-            # creation
-            # Notimplemented Error - original Linestring is cut into multiple pieces
-            # by parallel offset -
-            # hence ls is MultiLineString - if the line string has very sharp corners
-            # the offset will stop working
-            # properly, we just use a straight Line connection in that case
-            ls, para_ls = __linestring_from_node_cords(
-                [
-                    [g.nodes[u]["x"], g.nodes[u]["y"]],
-                    [g.nodes[v]["x"], g.nodes[v]["y"]],
-                ],
-                width_coords,
-            )
-            (x1, y1, x2, y2) = ls.xy + para_ls.xy
-            x = x1 + x2
-            y = y1 + y2
-        x_list.append(list(x))
-        y_list.append(list(y))
+        x1, y1, x2, y2 = (
+            g.nodes[u]["x"],
+            g.nodes[u]["y"],
+            g.nodes[v]["x"],
+            g.nodes[v]["y"],
+        )
+        x, y = __build_patch_buffered(x1, y1, x2, y2, data, width_coords)
+        x_list.append(x)
+        y_list.append(y)
 
     if type(highlight_links) == np.ndarray or (
         type(highlight_links) == list
@@ -991,6 +957,20 @@ def _get_colors_and_coords(
     return colors, x_list, y_list
 
 
-def __linestring_from_node_cords(coord_list, width_coords):
-    ls = LineString(coord_list)
-    return ls, ls.parallel_offset(1 * width_coords)
+def __build_patch_buffered(x1, y1, x2, y2, data, width_coords):
+    # buffers around the line in one direction.
+    # returns a list of x and y coordinates that form the boundary of the generated
+    # polygon.
+
+    if "geometry" in data:
+        ls = data["geometry"]
+    else:
+        ls = LineString([[x1, y1], [x2, y2]])
+    poly = ls.buffer(-width_coords, single_sided=True)
+    if isinstance(poly, MultiPolygon) or len(poly.interiors) > 0:  # Lines with very
+        # steep curves or self-intersections yield either multiple polygons or
+        # polygons with holes, in either case we take the straight line instead.
+        # TODO: investigate support for MultiPolygons with holes in Bokeh
+        ls = LineString([[x1, y1], [x2, y2]])
+        poly = ls.buffer(width_coords, single_sided=True)
+    return poly.exterior.xy[0].tolist(), poly.exterior.xy[1].tolist()

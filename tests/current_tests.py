@@ -9,14 +9,16 @@ from numba import config
 # config.DISABLE_JIT=1
 import numpy as np
 #np.seterr(all='raise')
-from test_dyntapy import test_sue
+from test_dyntapy import *
 
 if __name__ == '__main__':
-    # test_get_graph()
+    test_get_graph()
+    test_dial_b()
+    test_dta()
     #test_dta()
     # test_shortest_path()
     # test_dial_b()
     # test_sun()
     # test_selected_link_analysis()
-    test_sue()
+    #test_sue()
 
