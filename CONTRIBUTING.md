@@ -29,6 +29,7 @@ More information on pre-commit hooks can be found on their [website](https://pre
 Now you are ready to propose your changes!
 
 Once you are happy with the changes you've made, verify if the tests pass
+
 ```shell
 pytest
 ```
