@@ -1,0 +1,26 @@
+name: dyntapy-dev
+channels:
+  - https://conda.anaconda.org/conda-forge/
+  - https://conda.anaconda.org/anaconda
+  - anaconda
+  - numba
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numba>=0.54.1
+  - matplotlib
+  - osmnx
+  - numpy
+  - scipy
+  - pip
+  - jupyter
+  - python-igraph
+  - bokeh
+  - pyproj
+  - geojson
+  - pandas
+  - shapely
+  - networkx
+  - pre-commit
+  - pytest
