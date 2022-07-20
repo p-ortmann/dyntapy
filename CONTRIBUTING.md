@@ -14,7 +14,7 @@ This may not always be possible because some data files are required to run your
 ## Extending the codebase
 
 There are detailed instructions for how to make a fork and submit merge requests [here](https://docs.gitlab.com/ee/user/project/repository/forking_workflow.html).
-Follow the installation instructions in the README.md to create a new environment using the environment-dev.yml
+Follow the installation instructions in the [README.md](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy) to create a new environment using the environment-dev.yml
 with an editable version of dyntapy based on your forked repository via pip.
 
 We use pre-commit hooks to ensure consistent formatting (Black) and compliance with PEP8 (Flake8). 

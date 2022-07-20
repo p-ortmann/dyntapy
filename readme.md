@@ -96,7 +96,8 @@ and more than 20x faster than networkx for road networks.
 
 # Contributing
 
-See CONTRIBUTING.md
+See [CONTRIBUTING.md](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/blob/master/CONTRIBUTING.md)
+
 # Acknowledgements
 
  A part of the development of this package has been funded by DUET - [Digital Urban European Twins](https://www.digitalurbantwins.com/) as part of the Horizon 2020 funding program (Grant ID 870607).  
