@@ -9,4 +9,4 @@ test:
     - conda run -n dyntapy-tests python -m pytest
   only:
     changes:
-    - /*.py # ... only run the pipeline if .py files have changed.
+    - *.py # ... only run the pipeline if .py files have changed.
