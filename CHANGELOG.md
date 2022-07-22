@@ -1,6 +1,7 @@
 # Change log
 
 ## 0.2.3 (in progress)
+- bugfix polygon creation 
 - adding SUE assignment
 - node highlighting for demand plots
 - all show_* functions now optionally return the plot element for further processing 

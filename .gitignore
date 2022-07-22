@@ -1,6 +1,10 @@
-# some local folders related to dyntapy itself
+# data and plotting files
 demand_plot_*
 network_plot_*
+*.html
+*_road_network*
+*.pickle
+# some local folders related to dyntapy itself
 **/data
 **/results
 **/cache
