@@ -20,6 +20,7 @@ dependencies:
   - pydocstyle
   - coverage
   - pre-commit
+  - sphinx-autobuild
   - sphinx
   - sphinx_rtd_theme
   - conda-build
