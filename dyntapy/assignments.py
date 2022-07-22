@@ -258,7 +258,7 @@ class StaticAssignment:
 
 
         'dial_b' refers to Dial's Algorithm B, a bush-based assignment
-        algorithm. 
+        algorithm [3]_. 
 
         'sun' returns a stochastic uncongested assignment of flows on the free-flow
         travel times that are determined by the lengths and speeds of the links. It

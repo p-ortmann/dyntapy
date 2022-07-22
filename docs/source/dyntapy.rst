@@ -56,7 +56,7 @@ dyntapy.visualization
     :members:
 
 Debugging Assignments
-======================
+----------------------------------------
 
 By default most of dyntapy's assignment algorithms utilize `Numba`_ to accelerate
 computations. It is not possible to use breakpoints
@@ -94,12 +94,16 @@ The running_assignment object is either a `dyntapy.StaticAssignment` or a `dynta
 For more details on how to visualize link and node attributes do check the
 documentation.
 
-Adding Algorithms
-======================
+
+
+Adding Assignments
+----------------------------------------
+
 
 Instances of dyntapy's internal demand and supply objects, specified in `dyntapy.supply` and `dyntapy.demand`, are made available for both static and dynamic assignment instances.
 
 If we have a `dyntapy.StaticAssignment` object given we can access the `internal_network` and `demand` attributes.
+
 >>> from dyntapy import StaticAssignment
 >>> assignment: Static Assignment
 >>> def my_assignment_algorithm(network, demand):
@@ -108,5 +112,12 @@ If we have a `dyntapy.StaticAssignment` object given we can access the `internal
 >>>     destination_nodes = demand.destinations
 >>>     ...     
 
->>> my_assignment_algo(assignment.internal_network, assignment.demand)
+>>> my_assignment_algorithm(assignment.internal_network, assignment.demand)
 
+Note that assignment algorithms that are implemented using the internal demand and supply objects can be accelerated using `Numba`_, which is not possible for generic python objects.
+
+.. _Numba: https://numba.pydata.org/
+
+You can always visualize the network and any link and node attributes that are generated during computations. 
+
+Once your algorithm runs there is still some boilerplate code needed to fully integrate in dyntapy. For details do take a look at the existing assignments in `dyntapy.assignments`. The structure will essentially be the same for all static and dynamic assignments, respectively. Your compiled assignment routine returns all the arrays needed to fill the `dyntapy.results.StaticResults` or `dyntapy.results.DynamicResults`. The outer shell function creates the result object and returns it. 
