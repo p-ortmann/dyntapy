@@ -93,3 +93,20 @@ The running_assignment object is either a `dyntapy.StaticAssignment` or a `dynta
 
 For more details on how to visualize link and node attributes do check the
 documentation.
+
+Adding Algorithms
+======================
+
+Instances of dyntapy's internal demand and supply objects, specified in `dyntapy.supply` and `dyntapy.demand`, are made available for both static and dynamic assignment instances.
+
+If we have a `dyntapy.StaticAssignment` object given we can access the `internal_network` and `demand` attributes.
+>>> from dyntapy import StaticAssignment
+>>> assignment: Static Assignment
+>>> def my_assignment_algorithm(network, demand):
+>>>     tot_links = network.tot_links
+>>>     free_flow_travel_times = network.links.length/network.links.free_speed
+>>>     destination_nodes = demand.destinations
+>>>     ...     
+
+>>> my_assignment_algo(assignment.internal_network, assignment.demand)
+

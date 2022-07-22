@@ -99,7 +99,7 @@ and more than 20x faster than networkx for road networks.
 # Contributing and Support
 
 Take a look at the [community guidelines](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy/-/blob/master/CONTRIBUTING.md).
-
+Note that the repository that is hosted on KU Leuven premises is not the place for filing issues as an external, you should submit both issues and pull requests on the [GitHub mirror](https://github.com/p-ortmann/dyntapy).
 # Acknowledgements
 
  A part of the development of this package has been funded by DUET - [Digital Urban European Twins](https://www.digitalurbantwins.com/) as part of the Horizon 2020 funding program (Grant ID 870607).  
