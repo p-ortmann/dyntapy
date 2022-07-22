@@ -7,3 +7,6 @@ test:
     # The repository files are available in the home directory of the container,
     # so the current status of dyntapy on the given branch is being tested against.
     - conda run -n dyntapy-tests python -m pytest
+   rules:
+     changes:
+      - /*.{py} # ... only run the pipeline if .py files have changed.
