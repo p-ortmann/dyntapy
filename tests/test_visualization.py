@@ -14,7 +14,7 @@ parameters.visualization.link_width_scaling = 0.05
 
 
 @mark.skip(reason='only for visual inspection')
-def test_visualization()
+def test_visualization():
     g = nx.DiGraph()
     ebunch_of_nodes = [
         (1, {"x_coord": 12, "y_coord": 20}),
