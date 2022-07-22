@@ -236,7 +236,7 @@ class StaticAssignment:
         Parameters
         ----------
 
-        method : {'dial_b','frank_wolfe', 'msa', 'sun', 'sue'}
+        method : {'dial_b', 'msa', 'sun', 'sue'}
         store_iterations : bool
             set to True to get information on the individual iterations
 
@@ -250,17 +250,15 @@ class StaticAssignment:
         Notes
         -----
 
-        'msa', 'frank_wolfe' and 'dial_b' all try to find the static deterministic
+        'msa' and 'dial_b' try to find the static deterministic
         user equilibrium.
 
         'msa' refers to the Method of Successive Averages, a well known method in
         Traffic Assignments that tends to zig-zag around equilibrium.
 
-        'frank_wolfe' refers to the Frank-Wolfe Algorithm.
 
         'dial_b' refers to Dial's Algorithm B, a bush-based assignment
-        algorithm. It alleviates the rather slow convergence of the Frank-Wolfe
-        algorithm close to equilibrium, see [3]_.
+        algorithm. 
 
         'sun' returns a stochastic uncongested assignment of flows on the free-flow
         travel times that are determined by the lengths and speeds of the links. It
@@ -268,7 +266,7 @@ class StaticAssignment:
         and rests the definition of 'efficient links' to allow for computations on an
         acyclic graph.
 
-        'sun', 'frank_wolfe' and 'msa' are included for educational use.
+        'sun' and 'msa' are included for educational use.
 
         'dial_b' has been optimized and converges quickly even for
         large networks with thousands of links.
