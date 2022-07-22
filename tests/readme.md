@@ -6,7 +6,7 @@ This folder contains all the integration tests for dyntapy.
 `pytest` will find all files of the form test_\*.py and collect all functions of the form test\* within them for testing.
 
 ```shell
-pytest \path\to\repo 
+pytest /path/to/repo 
 ```
 
 will trigger the collection and execution of all tests that are not explicitly skipped.
