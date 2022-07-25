@@ -53,7 +53,7 @@ conda env create environment.yml
 ```
 This will sort out dyntapy's dependencies using conda. Activate the environment.
 
-From within the same folder containing the `setup.py`, we now can install the package with
+From within the same folder containing the `setup.py` file, we now can install the package with
 ```shell
 python -m pip install -e .
 ```
