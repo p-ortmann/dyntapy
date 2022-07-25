@@ -51,13 +51,13 @@ Navigate to the folder containing the environment.yml or pass on the full path.
 ```shell
 conda env create environment.yml 
 ```
-This will sort out dyntapy's dependencies using conda.
+This will sort out dyntapy's dependencies using conda. Activate the environment.
 
-we now can install the package with
+From within the same folder containing the `setup.py`, we now can install the package with
 ```shell
-python -m pip install -e path-to-folder
+python -m pip install -e .
 ```
-Using -e makes the repository editable.
+using -e makes the repository editable.
 
 # Visualization of Networks and Assignment Results
 
