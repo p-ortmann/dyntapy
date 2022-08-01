@@ -78,17 +78,17 @@ def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
     np.random.seed(seed)
     my_gdf: gpd.geodataframe.GeoDataFrame = ox.geocode_to_gdf(name)
     tot_points = (
-        20 * tot_ods
+            20 * tot_ods
     )  # could be improved by using the area ratio between bbox and polygon for scaling
     X = (
-        np.random.random(tot_points) * (my_gdf.bbox_east[0] - my_gdf.bbox_west[0])
-        + my_gdf.bbox_west[0]
+            np.random.random(tot_points) * (my_gdf.bbox_east[0] - my_gdf.bbox_west[0])
+            + my_gdf.bbox_west[0]
     )
     # np.normal.normal means uniform distribution between 0 and 1
     # , can easily be replaced (gumbel, gaussian..)
     Y = (
-        np.random.random(tot_points) * (my_gdf.bbox_north[0] - my_gdf.bbox_south[0])
-        + my_gdf.bbox_south[0]
+            np.random.random(tot_points) * (my_gdf.bbox_north[0] - my_gdf.bbox_south[0])
+            + my_gdf.bbox_south[0]
     )
     points = [Point(x, y) for x, y in zip(X, Y)]
     my_points = gpd.geoseries.GeoSeries(points, crs=4326)
@@ -190,7 +190,7 @@ default_centroid_spacing = parameters.demand.default_centroid_spacing
 
 
 def get_centroid_grid_coords(
-    name: str, buffer_dist=0, spacing=default_centroid_spacing
+        name: str, buffer_dist=0, spacing=default_centroid_spacing
 ):
     """
 
@@ -346,7 +346,7 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
                 delta_y = 0.1  # assuming that toy networks work with unit lengths
             else:
                 delta_y = (
-                    (100 / 6378137) * 180 / np.pi
+                        (100 / 6378137) * 180 / np.pi
                 )  # placing the artificial connecting node approx. 100 meters north
             new_g.add_node(
                 j0 + j,
@@ -390,10 +390,10 @@ def add_centroids(g, X, Y, k=1, method="turn", euclidean=False, **kwargs):
 
 
 def auto_configured_centroids(
-    place,
-    buffer_dist_close,
-    buffer_dist_extended,
-    inner_city_centroid_spacing=default_centroid_spacing,
+        place,
+        buffer_dist_close,
+        buffer_dist_extended,
+        inner_city_centroid_spacing=default_centroid_spacing,
 ):
     """
     generates centroids for the inner and extended study area from OpenStreetMap.
@@ -445,7 +445,7 @@ def auto_configured_centroids(
     merged_gdf = merged_gdf.loc[G.drop_duplicates().index]
     merged_gdf = merged_gdf[
         merged_gdf.geometry.type == "Point"
-    ]  # considering only points
+        ]  # considering only points
     names = merged_gdf["name"].tolist()
     x_ext, y_ext = (
         merged_gdf.geometry.apply(lambda x: x.x).to_numpy(dtype=np.float64),
@@ -526,13 +526,13 @@ def add_connectors(x, y, u, k, g, new_g, euclidean):
 
 
 def od_matrix_from_dataframes(
-    od_table: pd.DataFrame,
-    zoning: gpd.GeoDataFrame,
-    origin_column: str,
-    destination_column: str,
-    zone_column: str,
-    flow_column: str,
-    return_relabelling=False,
+        od_table: pd.DataFrame,
+        zoning: gpd.GeoDataFrame,
+        origin_column: str,
+        destination_column: str,
+        zone_column: str,
+        flow_column: str,
+        return_relabelling=False,
 ):
     """
 
@@ -580,11 +580,14 @@ def od_matrix_from_dataframes(
     assert len(set(zoning[zone_column].to_list())) == len(zoning[zone_column].to_list())
     # no zone should have two conflicting geometries
     mapping = dict(zip(zoning[zone_column], np.arange(tot_zones)))
+    # the mapping will always work in string space, otherwise we need to rely on
+    # consistent types between the different columns
+    str_mapping = {str(key):item for key,item in mapping.items()}
     od_table["_origin_idx"] = od_table[origin_column].apply(
-        lambda x: mapping.get(x, -1)
+        lambda x: str_mapping.get(str(x), -1)
     )
     od_table["_destination_idx"] = od_table[destination_column].apply(
-        lambda x: mapping.get(x, -1)
+        lambda x: str_mapping.get(str(x), -1)
     )
 
     od_matrix = np.zeros((tot_zones, tot_zones), dtype=np.float64)
@@ -620,19 +623,12 @@ def od_matrix_from_dataframes(
     parse(od_matrix, origins, destinations, flows)
 
     if not return_relabelling:
-        return (
-            od_matrix,
-            zoning["centroid_x"].to_numpy(),
-            zoning["centroid_y"].to_numpy(),
-        )
+        return od_matrix, zoning["centroid_x"].to_numpy(), zoning[
+            "centroid_y"].to_numpy(),
 
     else:
-        return (
-            od_matrix,
-            zoning["centroid_x"].to_numpy(),
-            zoning["centroid_y"].to_numpy(),
-            mapping,
-        )
+        return od_matrix, zoning["centroid_x"].to_numpy(), zoning[
+            "centroid_y"].to_numpy(), mapping
 
 
 def parse_demand(data: str, g):
@@ -856,7 +852,7 @@ default_connector_lanes = parameters.demand.default_connector_lanes
 
 
 def _places_around_place(
-    place, buffer_dist=default_buffer_dist, tags=["city", "town", "village"]
+        place, buffer_dist=default_buffer_dist, tags=["city", "town", "village"]
 ):
     gdf = ox.geometries_from_place(place, {"place": tags}, buffer_dist=buffer_dist)
     names = gdf["name"].tolist()

@@ -24,9 +24,7 @@ There are demo tutorials available that you can run in Binder. [![Binder](https:
 
 These tutorials are running with the latest released version of dyntapy. 
 
-For the development version based on this repository, go [here](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy/HEAD?urlpath=/tree/tutorials).
-
-All the user facing functions also have [documentation](https://dyntapy.readthedocs.io/en/latest/?badge=latest) available. 
+All the user-facing functions also have [documentation](https://dyntapy.readthedocs.io/en/latest/?badge=latest) available. 
 
 # How to install
 
@@ -42,7 +40,7 @@ Note that dyntapy is also available on pip, however we don't recommend installin
 it this way since some geo-dependencies, namely shapely, pyproj and fiona, rely on 
 C-based libraries that cannot be installed via pip.
 
-## from this repository 
+## From this repository 
 
 This is only for those who want to have the latest state of development of dyntapy.
 

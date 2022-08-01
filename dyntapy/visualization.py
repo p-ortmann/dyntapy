@@ -972,5 +972,5 @@ def __build_patch_buffered(x1, y1, x2, y2, data, width_coords):
         # polygons with holes, in either case we take the straight line instead.
         # TODO: investigate support for MultiPolygons with holes in Bokeh
         ls = LineString([[x1, y1], [x2, y2]])
-        poly = ls.buffer(width_coords, single_sided=True)
+        poly = ls.buffer(-width_coords, single_sided=True)
     return poly.exterior.xy[0].tolist(), poly.exterior.xy[1].tolist()
