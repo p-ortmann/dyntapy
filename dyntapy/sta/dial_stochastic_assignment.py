@@ -13,7 +13,7 @@ import numpy as np
 
 @njit
 def _dial_network_loading(
-    topological_orders, turning_fractions, out_turns, demand, node_destinations
+        topological_orders, turning_fractions, out_turns, demand, node_destinations
 ):
     tot_links = topological_orders.shape[1]
     destination_flows = np.zeros((demand.destinations.size, tot_links))
@@ -28,14 +28,14 @@ def _dial_network_loading(
                         demand.to_destinations.get_nnz(j) == node_destination
                     ).flatten()[0]
                     destination_flows[d_id, j] = (
-                        destination_flows[d_id, j]
-                        + demand.to_destinations.get_row(j)[_id]
+                            destination_flows[d_id, j]
+                            + demand.to_destinations.get_row(j)[_id]
                     )
 
             for out_link, turn in zip(out_turns.get_row(j), out_turns.get_nnz(j)):
                 destination_flows[d_id, out_link] = (
-                    destination_flows[d_id, out_link]
-                    + turning_fractions[d_id, turn] * destination_flows[d_id, j]
+                        destination_flows[d_id, out_link]
+                        + turning_fractions[d_id, turn] * destination_flows[d_id, j]
                 )
 
     # hence the workaround below
@@ -45,16 +45,16 @@ def _dial_network_loading(
 
 @njit()
 def _set_labels(
-    destination,
-    out_turns,
-    in_turns,
-    turns_in_bush,
-    distances,
-    topological_order,
-    from_links,
-    to_links,
-    turn_costs,
-    mu,
+        destination,
+        out_turns,
+        in_turns,
+        turns_in_bush,
+        distances,
+        topological_order,
+        from_links,
+        to_links,
+        turn_costs,
+        mu,
 ):
     # the distances here are kept steady between iterations, they just resolve a
     # numerical issue.
@@ -64,6 +64,8 @@ def _set_labels(
     link_weights = np.zeros(distances.size, dtype=np.float64)
     link_weights[destination] = 1.0
     turn_weights = np.zeros(turn_costs.size, dtype=np.float64)
+    if np.exp(-turn_costs.max() * 1 / mu) == 0:
+        raise ValueError('mu too small for the max cost in the given network')
     for turn, (in_bush, i, j) in enumerate(zip(turns_in_bush, from_links, to_links)):
         # larger theta leads to AON behavior
         if in_bush:
@@ -81,16 +83,16 @@ def _set_labels(
 
 @njit
 def _get_tf(
-    tot_links,
-    from_links,
-    to_links,
-    link_destinations,
-    tot_turns,
-    turns_in_bush,
-    distances,
-    turn_costs,
-    topological_orders,
-    mu,
+        tot_links,
+        from_links,
+        to_links,
+        link_destinations,
+        tot_turns,
+        turns_in_bush,
+        distances,
+        turn_costs,
+        topological_orders,
+        mu,
 ):
     tot_destinations = link_destinations.size
     turning_fractions = np.zeros((tot_destinations, tot_turns))
@@ -118,12 +120,12 @@ def _get_tf(
             mu,
         )
         for j in topological_orders[d_id]:
+            if link_weights[d_id][j]==0:
+                continue # no path from this link, or all existing paths have a
+                # prohibitively large cost
             for out_link, turn in bush_out_turns[j]:
-                # assert link_weights[j] > 0
-                turning_fractions[d_id, turn] = turn_weights[d_id, turn] / max(
-                    link_weights[d_id][j], np.finfo(np.float64).eps
-                )  #
-                # avoiding NANs here
+                turning_fractions[d_id, turn] = turn_weights[d_id, turn] / \
+                                                link_weights[d_id][j]
 
     return link_weights, turn_weights, turning_fractions
 
@@ -204,12 +206,12 @@ def _dial_sue(network, demand, topo_costs, mu, max_it, max_gap):
 
 
 def dial_sue(
-    network,
-    demand,
-    link_costs=None,
-    mu=parameters.static_assignment.mu,
-    max_iterations=parameters.static_assignment.sue_dial_max_iterations,
-    max_gap=parameters.static_assignment.sue_dial_gap,
+        network,
+        demand,
+        link_costs=None,
+        mu=parameters.static_assignment.mu,
+        max_iterations=parameters.static_assignment.sue_dial_max_iterations,
+        max_gap=parameters.static_assignment.sue_dial_gap,
 ):
     """
     A stochastic static traffic assignment routine using Dial's Algorithm relying on

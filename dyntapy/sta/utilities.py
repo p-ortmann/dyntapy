@@ -156,7 +156,8 @@ def generate_bushes_line_graph(
 
 @njit
 def __link_to_turn_cost_static(
-    tot_turns, from_links, link_cost, turn_restriction, restricted_turn_cost=300 / 3600
+    tot_turns, from_links, link_cost, turn_restriction, restricted_turn_cost=3600 /
+                                                                             3600
 ):
     turn_costs = np.zeros(tot_turns, dtype=np.float64)
     for turn in range(tot_turns):
@@ -164,7 +165,8 @@ def __link_to_turn_cost_static(
         if not turn_restriction[turn]:
             turn_costs[turn] = link_cost[from_link]
         else:
-            turn_costs[turn] = restricted_turn_cost  # large penalty for u turns
+            turn_costs[turn] = max(restricted_turn_cost, link_cost[from_link])  #
+            # large penalty for u turns
     return turn_costs
 
 
