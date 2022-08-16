@@ -194,7 +194,8 @@ def _dial_sue(network, demand, topo_costs, mu, max_it, max_gap):
         # print(f'iteration k ={float(k)} and gap = {float(gap)}')
         if k > 1:
             f2 = 0.5 * f2 + 0.5 * f1
-            gap = np.nanmax(np.abs(f2 - f1) / f1)
+            gap = np.nanmax(np.abs(f2 - f1) / f1) # value warning for true_divide is
+            # normal here
             # from dyntapy._context import running_assignment
             # show_network(running_assignment.network, flows=f2, link_kwargs={
             #     'cur_costs': c1, 'new_costs': c2}, title=f'iteration_{k=}_and_{gap=}')
