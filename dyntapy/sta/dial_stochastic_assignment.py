@@ -93,6 +93,8 @@ def _get_tf(
         turn_costs,
         topological_orders,
         mu,
+        all_bush_in_turns,
+        all_bush_out_turns
 ):
     tot_destinations = link_destinations.size
     turning_fractions = np.zeros((tot_destinations, tot_turns))
@@ -100,12 +102,8 @@ def _get_tf(
     link_weights = np.zeros((tot_destinations, tot_links))
     for d_id in prange(link_destinations.size):
         destination = link_destinations[d_id]
-        bush_out_turns = _make_out_links(
-            turns_in_bush[d_id], from_links, to_links, tot_links
-        )
-        bush_in_turns = _make_in_links(
-            turns_in_bush[d_id], from_links, to_links, tot_links
-        )
+        bush_out_turns = all_bush_out_turns[d_id]
+        bush_in_turns = all_bush_in_turns[d_id]
 
         turn_weights[d_id], link_weights[d_id] = _set_labels(
             destination,
@@ -120,8 +118,8 @@ def _get_tf(
             mu,
         )
         for j in topological_orders[d_id]:
-            if link_weights[d_id][j]==0:
-                continue # no path from this link, or all existing paths have a
+            if link_weights[d_id][j] == 0:
+                continue  # no path from this link, or all existing paths have a
                 # prohibitively large cost
             for out_link, turn in bush_out_turns[j]:
                 turning_fractions[d_id, turn] = turn_weights[d_id, turn] / \
@@ -147,14 +145,16 @@ def _dial_sue(network, demand, topo_costs, mu, max_it, max_gap):
     turn_costs = __link_to_turn_cost_static(
         tot_turns, turns.from_link, topo_costs, turn_restr
     )
-    topological_orders, turns_in_bush, topo_distances = generate_bushes_line_graph(
-        turn_costs,
-        turns.from_link,
-        turns.to_link,
-        links.in_turns,
-        destination_links,
-        tot_links,
-    )
+    topological_orders, turns_in_bush, topo_distances, all_bush_in_turns, \
+    all_bush_out_turns = \
+        generate_bushes_line_graph(
+            turn_costs,
+            turns.from_link,
+            turns.to_link,
+            links.in_turns,
+            destination_links,
+            tot_links,
+        )
 
     # initial state with no flows in the network and free flow travel times
     c2 = np.copy(link_ff_tt).astype(np.float64)
@@ -180,6 +180,8 @@ def _dial_sue(network, demand, topo_costs, mu, max_it, max_gap):
             turn_costs,
             topological_orders,
             mu,
+            all_bush_in_turns,
+            all_bush_out_turns
         )
         destination_flows, f2 = _dial_network_loading(
             topological_orders,
@@ -194,7 +196,7 @@ def _dial_sue(network, demand, topo_costs, mu, max_it, max_gap):
         # print(f'iteration k ={float(k)} and gap = {float(gap)}')
         if k > 1:
             f2 = 0.5 * f2 + 0.5 * f1
-            gap = np.nanmax(np.abs(f2 - f1) / f1) # value warning for true_divide is
+            gap = np.nanmax(np.abs(f2 - f1) / f1)  # value warning for true_divide is
             # normal here
             # from dyntapy._context import running_assignment
             # show_network(running_assignment.network, flows=f2, link_kwargs={

@@ -12,7 +12,7 @@ from numba import njit
 from numba.typed import List
 
 from dyntapy.demand import InternalStaticDemand
-from dyntapy.graph_utils import dijkstra_all, pred_to_paths
+from dyntapy.graph_utils import dijkstra_all, pred_to_paths, _make_out_links, _make_in_links
 from dyntapy.settings import parameters
 from dyntapy.supply import Network
 
@@ -139,6 +139,8 @@ def generate_bushes_line_graph(
     turns_in_bush = np.full((tot_destinations, tot_turns), False)
     is_centroid = np.full(tot_links, False)
     is_centroid[destination_links] = True
+    all_bush_in_turns=  List()
+    all_bush_out_turns=  List()
     for destination_id, destination_link in enumerate(destination_links):
         distances[destination_id], pred = dijkstra_all(
             costs=turn_cost,
@@ -151,7 +153,16 @@ def generate_bushes_line_graph(
         for turn, (i, j) in enumerate(zip(from_link, to_link)):
             if label[j] < label[i]:
                 turns_in_bush[destination_id][turn] = True
-    return topological_orders, turns_in_bush, distances
+
+        bush_out_turns = _make_out_links(
+            turns_in_bush[destination_id], from_link, to_link, tot_links
+        )
+        bush_in_turns = _make_in_links(
+            turns_in_bush[destination_id], from_link, to_link, tot_links
+        )
+        all_bush_out_turns.append(bush_out_turns)
+        all_bush_in_turns.append(bush_in_turns)
+    return topological_orders, turns_in_bush, distances,all_bush_in_turns, all_bush_out_turns
 
 
 @njit

@@ -14,6 +14,8 @@ from numba.typed import Dict, List
 from dyntapy.csr import UI32CSRMatrix
 from dyntapy.supply_data import build_network
 
+from dyntapy.settings import parameters
+
 
 # store link_ids as tuple, infer from link_ids, to_node and from_node
 @njit
@@ -54,9 +56,18 @@ def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
     out_links = Dict()
 
     star_sizes = np.zeros(tot_nodes, dtype=np.int64)
+
+    for link, include in enumerate(links_to_include):
+        i = from_node[link]
+        j = to_node[link]
+        star_sizes[i] += 1
+
+    max_out_links = np.max(star_sizes) # getting the max out_degree of nodes to limit
+    # memory usage in creation
+    star_sizes = np.zeros(tot_nodes, dtype=np.int64)
     for i in range(tot_nodes):
         out_links[i] = np.empty(
-            (500, 2), dtype=np.int64
+            (max_out_links, 2), dtype=np.int64
         )  # In traffic networks nodes should never have more than 10 outgoing edges..
     for link, include in enumerate(links_to_include):
         if include:
@@ -107,11 +118,19 @@ def _make_in_links(links_to_include, from_node, to_node, tot_nodes):
 
     """
     backward_star = Dict()
-    star_sizes = np.zeros(tot_nodes, dtype=np.int64)  # , dtype=int_dtype
+    star_sizes = np.zeros(tot_nodes, dtype=np.int64)
+    for link, include in enumerate(links_to_include):
+        i = from_node[link]
+        j = to_node[link]
+        star_sizes[j] += 1
+    max_in_links = np.max(star_sizes) # getting the max in_degree of nodes to limit
+    # memory usage in creation
     for i in range(tot_nodes):
         backward_star[i] = np.empty(
-            (500, 2), dtype=np.int64
-        )  # nodes in traffic networks have less than 10 outgoing edges..
+            (max_in_links, 2), dtype=np.int64
+        )
+
+    star_sizes = np.zeros(tot_nodes, dtype=np.int64)  # , dtype=int_dtype
     for link, include in enumerate(links_to_include):
         if include:
             i = from_node[link]
