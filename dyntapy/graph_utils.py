@@ -14,7 +14,6 @@ from numba.typed import Dict, List
 from dyntapy.csr import UI32CSRMatrix
 from dyntapy.supply_data import build_network
 
-from dyntapy.settings import parameters
 
 
 # store link_ids as tuple, infer from link_ids, to_node and from_node

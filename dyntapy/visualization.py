@@ -896,7 +896,7 @@ def _get_colors_and_coords(
             ]
         except IndexError:
             color = traffic_cm[-1]  # flow larger than capacity!
-            flow = 0
+            flow = data['capacity']
         except KeyError:  # capacity or flow not defined
             color = traffic_cm[0]
             flow = 0

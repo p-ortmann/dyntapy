@@ -381,7 +381,8 @@ def build_internal_dynamic_demand(
     ]
 
     if not np.all(
-        insertion_times[1:] - insertion_times[:-1] > simulation_time.step_size
+        dynamic_demand.insertion_times[1:] - dynamic_demand.insertion_times[:-1] >=
+        simulation_time.step_size
     ):
         raise ValueError(
             "insertion times are assumed to be monotonously increasing."
@@ -389,7 +390,7 @@ def build_internal_dynamic_demand(
             "two "
             "insertions is the internal simulation time step"
         )
-    if max(insertion_times > 24):
+    if max(dynamic_demand.insertion_times > 24):
         raise ValueError("internally time is restricted to 24 hours")
 
     static_demands = List()

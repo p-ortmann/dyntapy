@@ -43,9 +43,6 @@ class _Supply:
     turn_penalty_default = np.float32(0)
     node_capacity_default = np.float32(9999)
     node_control_default = np.uint8(0)
-    max_out_links = 10 # max number of outlinks that are considered for a given node
-    # increasing this number will hamper performance but can be useful if working
-    # with hypergraphs where a single node may have many outgoing links
     default_access = ""
     close_surroundings_filter = (
         # exclude everything but highway:[trunk, motorway, primary]
