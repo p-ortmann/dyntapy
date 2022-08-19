@@ -85,7 +85,6 @@ from dyntapy.demand import (
     build_internal_dynamic_demand,
 )
 from dyntapy.demand_data import _check_centroid_connectivity
-from dyntapy.dta.aon import aon
 from dyntapy.dta.i_ltm_aon import i_ltm_aon
 from dyntapy.dta.incremental_assignment import incremental
 from dyntapy.sta.dial_stochastic_assignment import dial_sue
@@ -138,7 +137,7 @@ class DynamicAssignment:
         Parameters
         ----------
 
-        method: {'i_ltm_aon','incremental_assignment', 'aon'}
+        method: {'i_ltm_aon','incremental_assignment'}
 
         Returns
         -------
@@ -160,7 +159,6 @@ class DynamicAssignment:
         'incremental_assignment' assigns the demands in chunks and updates the
         both costs and route choice after each DNL.
 
-        'aon' simply assigns all demand at free flow costs and executes one DNL.
 
         References
         ----------
@@ -186,7 +184,6 @@ class DynamicAssignment:
         methods = {
             "i_ltm_aon": i_ltm_aon,
             "incremental_assignment": incremental,
-            "aon": aon,
         }
         if method in methods:
             result = methods[method](

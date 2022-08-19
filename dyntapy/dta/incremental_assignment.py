@@ -14,12 +14,30 @@ from dyntapy.supply import Network
 from dyntapy.utilities import _log
 
 
+def incremental(network, dynamic_demand, time):
+    vals = _incremental(network, dynamic_demand, time)
+    attr = [
+        "link_costs",
+        "cvn_up",
+        "cvn_down",
+        "con_up",
+        "con_down",
+        "commodity_type",
+        "turning_fractions",
+        "turn_costs",
+        "flows",
+        "origins",
+        "destinations",
+    ]
+    return {k: v for k, v in zip(attr, vals)}
+
+
 @njit(cache=True)
-def incremental(
-    network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime
+def _incremental(
+        network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime
 ):
     iltm_state, network = i_ltm_aon_setup(network, time, dynamic_demand)
-    incremental_loading(network, time, dynamic_demand, 20, iltm_state)
+    aon_state = incremental_loading(network, time, dynamic_demand, 20, iltm_state)
     link_costs = cvn_to_travel_times(
         cvn_up=np.sum(iltm_state.cvn_up, axis=2),
         cvn_down=np.sum(iltm_state.cvn_down, axis=2),
@@ -28,16 +46,29 @@ def incremental(
         con_down=iltm_state.con_down,
     )
     flows = _cvn_to_flows(iltm_state.cvn_down)
-    return flows, link_costs
+
+    return (
+        link_costs,
+        iltm_state.cvn_up,
+        iltm_state.cvn_down,
+        iltm_state.con_up,
+        iltm_state.con_down,
+        'destination',
+        iltm_state.turning_fractions,
+        aon_state.turn_costs,
+        flows,
+        dynamic_demand.all_active_origins,
+        dynamic_demand.all_active_destinations,
+    )
 
 
 @njit(cache=True)
 def incremental_loading(
-    network: Network,
-    time: SimulationTime,
-    dynamic_demand: InternalDynamicDemand,
-    K,
-    iltm_state: ILTMState,
+        network: Network,
+        time: SimulationTime,
+        dynamic_demand: InternalDynamicDemand,
+        K,
+        iltm_state: ILTMState,
 ):
     """
     Parameters
@@ -63,7 +94,7 @@ def incremental_loading(
             demand_factor = np.float32(k / (k - 1))
         for demand in dynamic_demand.demands:
             demand.to_destinations.values = (
-                demand.to_destinations.values * demand_factor
+                    demand.to_destinations.values * demand_factor
             )
             demand.to_origins.values = demand.to_origins.values * demand_factor
         # network loading and route choice are calculated

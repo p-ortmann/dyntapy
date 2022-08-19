@@ -222,7 +222,9 @@ def test_dta():
     # convert everything to internal representations and parse
     simulation_time = SimulationTime(np.float32(0.0), np.float32(2.0), step_size=0.25)
     assignment = DynamicAssignment(g, dynamic_demand, simulation_time)
-    result = assignment.run()
+    methods = ['incremental_assignment', 'i_ltm_aon']
+    for method in methods:
+        result = assignment.run(method=method)
     show_dynamic_network(g, simulation_time, flows=result.flows, euclidean=True,
                          link_kwargs={'costs': result.link_costs},
                          )
