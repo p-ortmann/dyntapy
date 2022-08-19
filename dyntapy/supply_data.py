@@ -375,7 +375,7 @@ def __speed(highway_val):
             return default_speed
 
 
-def build_network(g):
+def build_network(g, u_turns = False):
     """
     creates internal network representation
 
@@ -440,7 +440,7 @@ def build_network(g):
     link_type = np.array(
         [np.int8(d.get("link_type", 0)) for (_, _, d) in sorted_edges], dtype=np.int8
     )
-    turns = _build_turns(tot_nodes, nodes, link_type)
+    turns = _build_turns(tot_nodes, nodes, link_type, u_turns = False)
     log("turns passed")
 
     link_capacity = np.array(
@@ -522,7 +522,7 @@ def _build_nodes(
     )
 
 
-def _build_turns(tot_nodes, nodes: Nodes, link_types):
+def _build_turns(tot_nodes, nodes: Nodes, link_types, u_turns =False):
     to_nodes = List()
     from_nodes = List()
     from_links = List()
@@ -542,9 +542,11 @@ def _build_turns(tot_nodes, nodes: Nodes, link_types):
         for from_node, from_link in zip(_from_nodes, _from_links):
             for to_node, to_link in zip(_to_nodes, _to_links):
                 if not (link_types[from_link] == -1 and link_types[to_link] == 1):
-                    # u turns are allowed
-                    # excluding turns that go from sink to source connectors
+                    # always excluding turns that go from sink to source connectors
                     # and vice versa
+                    if not u_turns:
+                        if to_node==from_node:
+                            continue
                     via_nodes.append(via_node)
                     to_nodes.append(to_node)
                     from_nodes.append(from_node)
