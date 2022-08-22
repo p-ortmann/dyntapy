@@ -18,11 +18,11 @@ epsilon = parameters.dynamic_assignment.network_loading.epsilon
 
 @njit(cache=True, parallel=True)
 def cvn_to_travel_times(
-    cvn_up: np.ndarray,
-    cvn_down: np.ndarray,
-    con_down: np.ndarray,
-    time: SimulationTime,
-    network: Network,
+        cvn_up: np.ndarray,
+        cvn_down: np.ndarray,
+        con_down: np.ndarray,
+        time: SimulationTime,
+        network: Network,
 ):
     """
     Calculates travel times per link based on
@@ -68,6 +68,13 @@ def cvn_to_travel_times(
                     else:
                         first_vehicle_to_enter = cvn_up[t - 1, link]
                     delta_cvn = last_vehicle_to_enter - first_vehicle_to_enter
+                    if delta_cvn == 0:
+                        # no vehicle entered during the time period, but there was
+                        # congestion downstream
+                        # we take the solution of the last time period
+                        travel_times[t, link] = travel_times[t - 1, link]
+                        continue
+
                     last_exit_time = find_exit_time(
                         last_vehicle_to_enter, cvn_down[:, link], t, time.tot_time_steps
                     )
@@ -85,7 +92,8 @@ def cvn_to_travel_times(
                         if cvn_down[k, link] > first_vehicle_to_enter_in_k:
                             if cvn_down[k, link] > last_vehicle_to_enter:
                                 vehicles_in_flow_packet = (
-                                    last_vehicle_to_enter - first_vehicle_to_enter_in_k
+                                        last_vehicle_to_enter -
+                                        first_vehicle_to_enter_in_k
                                 )
                                 vehicle_entry = t + 1
                                 if not con_down[k, link]:
@@ -94,10 +102,10 @@ def cvn_to_travel_times(
                                     # interpolation, we apply capacity discharge
                                     current_interval_vehicle_travel_time = max(
                                         (
-                                            k
-                                            + vehicles_in_flow_packet
-                                            / network.links.capacity[link]
-                                            - vehicle_entry
+                                                k
+                                                + vehicles_in_flow_packet
+                                                / network.links.capacity[link]
+                                                - vehicle_entry
                                         )
                                         * time.step_size,
                                         ff_tt,
@@ -105,13 +113,13 @@ def cvn_to_travel_times(
                                 else:
                                     current_interval_vehicle_travel_time = max(
                                         (
-                                            k
-                                            + vehicles_in_flow_packet
-                                            / (
-                                                cvn_down[k, link]
-                                                - cvn_down[k - 1, link]
-                                            )
-                                            - vehicle_entry
+                                                k
+                                                + vehicles_in_flow_packet
+                                                / (
+                                                        cvn_down[k, link]
+                                                        - cvn_down[k - 1, link]
+                                                )
+                                                - vehicle_entry
                                         )
                                         * time.step_size,
                                         ff_tt,
@@ -119,7 +127,7 @@ def cvn_to_travel_times(
 
                             else:
                                 vehicles_in_flow_packet = (
-                                    cvn_down[k, link] - first_vehicle_to_enter_in_k
+                                        cvn_down[k, link] - first_vehicle_to_enter_in_k
                                 )
                                 vehicle_entry = find_entry_time(
                                     cvn_down[k, link], cvn_up[:, link], k
@@ -128,13 +136,13 @@ def cvn_to_travel_times(
                                     (k + 1 - vehicle_entry) * time.step_size, ff_tt
                                 )
                             travel_time_average += (
-                                vehicles_in_flow_packet
-                                / delta_cvn
-                                * (
-                                    current_interval_vehicle_travel_time
-                                    + previous_interval_vehicle_travel_time
-                                )
-                                / 2
+                                    vehicles_in_flow_packet
+                                    / delta_cvn
+                                    * (
+                                            current_interval_vehicle_travel_time
+                                            + previous_interval_vehicle_travel_time
+                                    )
+                                    / 2
                             )
                             first_vehicle_to_enter_in_k = cvn_down[
                                 k, link
@@ -163,10 +171,10 @@ def find_entry_time(cvn: float, cvn_up: np.ndarray, k: int):
         entry_time = cvn / cvn_up[0]
     else:
         entry_time = (
-            (cvn - cvn_up[interval_before_entry])
-            / (cvn_up[interval_before_entry + 1] - cvn_up[interval_before_entry])
-            + interval_before_entry
-            + 1
+                (cvn - cvn_up[interval_before_entry])
+                / (cvn_up[interval_before_entry + 1] - cvn_up[interval_before_entry])
+                + interval_before_entry
+                + 1
         )
     return entry_time
 
@@ -189,6 +197,6 @@ def find_exit_time(cvn: np.float32, cvn_down: np.ndarray, k: int, T: int):
         return np.float32(T)  # needs to be float, consistent return type with below
     else:
         exit_time = exit_interval + (cvn - cvn_down[exit_interval - 1]) / (
-            cvn_down[exit_interval] - cvn_down[exit_interval - 1]
+                cvn_down[exit_interval] - cvn_down[exit_interval - 1]
         )
         return exit_time
