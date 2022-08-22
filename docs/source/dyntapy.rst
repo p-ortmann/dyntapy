@@ -121,3 +121,28 @@ Note that assignment algorithms that are implemented using the internal demand a
 You can always visualize the network and any link and node attributes that are generated during computations. 
 
 Once your algorithm runs there is still some boilerplate code needed to fully integrate in dyntapy. For details do take a look at the existing assignments in `dyntapy.assignments`. The structure will essentially be the same for all static and dynamic assignments, respectively. Your compiled assignment routine returns all the arrays needed to fill the `dyntapy.results.StaticResults` or `dyntapy.results.DynamicResults`. The outer shell function creates the result object and returns it. 
+
+Dynamic Assignments - Known Pitfalls
+----------------------------------------
+
+The dynamic assignment routines presented here work for the shown example(s) in the
+tutorials, however they are not guaranteed to produce reliable result or fail
+gracefully for any arbitrary network, travel demand and time configuration. If the
+demand that you feed exceeds the local infrastructure and there is spillback into the
+origin do not expect reasonable outputs. The same holds for demand that cannot leave
+the network during the simulation,
+there should always be some time periods in the dynamic assignment in which all the
+queues can resolve and all vehicles can reach their destination. This
+is very much following the principle of garbage-in-garbage-out.
+
+It is best practice to first explore a small example and build some intuition for DTA
+before moving on to more complex scenarios which slow you down because of their
+larger computation time.
+
+The complexity in DTA is mainly driven by the number of OD pairs, their intensity and
+induced congestion, the
+network's size
+(in number of links and nodes) and the number of time steps. Ideally, your example to
+experiment with should be low in complexity in all of those metrics.
+
+
