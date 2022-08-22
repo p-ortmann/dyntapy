@@ -186,6 +186,9 @@ class DynamicAssignment:
             "incremental_assignment": incremental,
         }
         if method in methods:
+            # check for turn connectors, they are required since this algorithm
+            # is defined on the line graph
+            assert _turn_connectors(self.internal_network)
             result = methods[method](
                 self.internal_network, self.internal_dynamic_demand, self.time
             )
@@ -333,7 +336,7 @@ class StaticAssignment:
             assert not store_iterations  # not supported for SUE yet
             # check for turn connectors, they are required since this algorithm
             # is defined on the line graph
-            assert _turn_connectors(self.internal_network, self.internal_demand)
+            assert _turn_connectors(self.internal_network)
             costs, flows, destination_flows = dial_sue(
                 network=self.internal_network, demand=self.internal_demand, **kwargs
             )
@@ -354,12 +357,13 @@ class StaticAssignment:
             return result, dyntapy._context.iteration_states
 
 
-def _turn_connectors(network, demand):
+def _turn_connectors(network):
     # whether the network has turn connectors
     # just a basic check for a single centroid/ connector combo
-    origin = demand.origins[0]
+    origin = 0
     link = network.nodes.out_links.get_nnz(origin)[0]
-    if network.links.link_type[link] == 1:
+    next_link = network.links.out_turns.get_row(link)[0]
+    if network.links.link_type[next_link] == 1:
         return True
     else:
         return False
