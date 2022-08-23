@@ -61,6 +61,14 @@ In the short term the stochastic Dynamic Traffic Assignment model that was intro
 
 For usage examples and tutorials we refer the reader to the [dyntapy documentation](https://dyntapy.readthedocs.io).
 
+# Related packages
+
+[AequilibraE](http://aequilibrae.com/python/latest/)
+is a traffic modelling toolkit that offers a set of static assignments (Method of Successive Averages and different variants of the Frank-Wolfe Algorithm) paired with OpenStreetMap parsing. It is an open source alternative to commercial transport modelling software and provides comprehensive visualization and network management capabilities in QGIS.
+`dyntapy` differs from AequilibraE in functionality by its inclusion of dynamic models and command-driven visualization capabilities within Jupyter notebooks.
+
+Similar to other popular graph packages, such as igraph [@igraph_2006] and NetworkX, we offer shortest path computations. Our implementations are more than twice as fast as igraph and more than 20x faster than Networkx for road networks.
+
 # Outlook and use cases
 
 In its current state `dyntapy` is most interesting for assignment researchers, transport modellers and students that want to get hands-on experiments with assignments. 
