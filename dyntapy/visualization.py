@@ -93,7 +93,10 @@ def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwa
             tmp, CRS.from_user_input(3857)
         )  # from lan lot to web mercator
 
+        link_width_scaling = parameters.visualization.link_width_scaling
     else:
+
+        link_width_scaling = parameters.visualization.link_width_scaling_euclidean
         plot = figure(
             plot_height=parameters.visualization.plot_size,
             plot_width=parameters.visualization.plot_size,
@@ -131,7 +134,7 @@ def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwa
                 )
             else:
                 node_kwargs[key] = item.tolist()
-    return plot, tmp
+    return plot, tmp, link_width_scaling
 
 
 def show_network(
@@ -221,8 +224,7 @@ def show_network(
             "use of toy_network arg is deprecated, use euclidean instead",
             DeprecationWarning,
         )
-
-    plot, tmp = _process_plot_arguments(
+    plot, tmp, link_width_scaling = _process_plot_arguments(
         g, title, notebook, euclidean, link_kwargs, node_kwargs
     )
     show_flows = True
@@ -235,7 +237,7 @@ def show_network(
 
     max_width_bokeh, max_width_coords = get_max_edge_width(
         tmp,
-        parameters.visualization.link_width_scaling,
+        link_width_scaling,
         parameters.visualization.plot_size,
     )
 
@@ -428,7 +430,7 @@ def show_dynamic_network(
             DeprecationWarning,
         )
 
-    plot, tmp = _process_plot_arguments(
+    plot, tmp, link_width_scaling = _process_plot_arguments(
         g, title, notebook, euclidean, link_kwargs, node_kwargs
     )
     if flows is None:
@@ -478,7 +480,7 @@ def show_dynamic_network(
     max_flow = min(np.max(flows), 8000)  # weeding out numerical errors
     max_width_bokeh, max_width_coords = get_max_edge_width(
         tmp,
-        parameters.visualization.link_width_scaling,
+        link_width_scaling,
         parameters.visualization.plot_size,
     )
     # calculate all colors and coordinates for the different time dependent flows
@@ -724,6 +726,7 @@ def show_demand(
         )
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
+        link_width_scaling = parameters.visualization.link_width_scaling
     else:
         tmp = (
             g  # projection not needed for toy networks, coordinates are plain
@@ -735,10 +738,11 @@ def show_demand(
             aspect_ratio=1,
             toolbar_location="below",
         )
+        link_width_scaling = parameters.visualization.link_width_scaling_euclidean
     plot.title.text = title
     max_width_bokeh, max_width_coords = get_max_edge_width(
         tmp,
-        parameters.visualization.link_width_scaling,
+        link_width_scaling,
         parameters.visualization.plot_size,
     )
     min_width_coords = max_width_coords / 10

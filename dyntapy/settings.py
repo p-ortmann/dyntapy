@@ -176,6 +176,7 @@ class _Visualization:
         "place",
     ]
     link_width_scaling = 0.0025  # scales the maximum link width
+    link_width_scaling_euclidean = 0.025  # scales the maximum link width for euclidean
     link_width_min_max_ratio = 0.15  # ratio of min/max width of the links
     link_transparency = 0.8  # 1 is opaque, 0 transparent
     node_size = 6

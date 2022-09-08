@@ -8,6 +8,7 @@
 - od_matrix_from_dataframes bugfix inconsistent column types
 - debugging for static assignments
 - docs for adding assignments 
+- different scaling for link width in networks using euclidean coordinates vs web mercator
  
 ## 0.2.2 (27.06.2022)
 
