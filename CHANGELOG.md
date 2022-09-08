@@ -1,6 +1,6 @@
 # Change log
 
-## 0.2.3 (in progress)
+## 0.2.3 (08.09.2022)
 - bugfix polygon creation 
 - adding SUE assignment
 - node highlighting for demand plots
