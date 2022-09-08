@@ -6,6 +6,8 @@
 - node highlighting for demand plots
 - all show_* functions now optionally return the plot element for further processing 
 - od_matrix_from_dataframes bugfix inconsistent column types
+- debugging for static assignments
+- docs for adding assignments 
  
 ## 0.2.2 (27.06.2022)
 

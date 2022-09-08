@@ -43,6 +43,8 @@ centroid_color = parameters.visualization.centroid_color
 node_size = parameters.visualization.node_size
 
 
+# TODO: investigate reactions on layout width changes,
+#  https://github.com/bokeh/bokeh/pull/6021
 def _get_output_file(plot_name: str):
     dt_string = datetime.datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
     return os.getcwd() + os.path.sep + f"{plot_name}_{dt_string}.html"
@@ -896,7 +898,7 @@ def _get_colors_and_coords(
             ]
         except IndexError:
             color = traffic_cm[-1]  # flow larger than capacity!
-            flow = data['capacity']
+            flow = data["capacity"]
         except KeyError:  # capacity or flow not defined
             color = traffic_cm[0]
             flow = 0

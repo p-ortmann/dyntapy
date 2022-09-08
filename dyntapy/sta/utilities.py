@@ -12,7 +12,12 @@ from numba import njit
 from numba.typed import List
 
 from dyntapy.demand import InternalStaticDemand
-from dyntapy.graph_utils import dijkstra_all, pred_to_paths, _make_out_links, _make_in_links
+from dyntapy.graph_utils import (
+    dijkstra_all,
+    pred_to_paths,
+    _make_out_links,
+    _make_in_links,
+)
 from dyntapy.settings import parameters
 from dyntapy.supply import Network
 
@@ -79,26 +84,6 @@ def aon(demand: InternalStaticDemand, costs, network: Network):
 
 
 @njit
-def __valid_edges(from_node, to_node, label):
-    """
-
-    Parameters
-    ----------
-    edge_map : dictionary keyed by (i,j) with edge index as value
-    distances : dictionary of distances keyed by node ids
-
-    Returns
-    -------
-
-    """
-    edges = List()
-    for (i, j) in zip(from_node, to_node):
-        if label[j] > label[i]:
-            edges.append((i, j))
-    return edges
-
-
-@njit
 def generate_bushes(
     link_ff_times, from_nodes, to_nodes, out_links, demand, tot_links, is_centroid
 ):
@@ -139,8 +124,8 @@ def generate_bushes_line_graph(
     turns_in_bush = np.full((tot_destinations, tot_turns), False)
     is_centroid = np.full(tot_links, False)
     is_centroid[destination_links] = True
-    all_bush_in_turns=  List()
-    all_bush_out_turns=  List()
+    all_bush_in_turns = List()
+    all_bush_out_turns = List()
     for destination_id, destination_link in enumerate(destination_links):
         distances[destination_id], pred = dijkstra_all(
             costs=turn_cost,
@@ -162,13 +147,19 @@ def generate_bushes_line_graph(
         )
         all_bush_out_turns.append(bush_out_turns)
         all_bush_in_turns.append(bush_in_turns)
-    return topological_orders, turns_in_bush, distances,all_bush_in_turns, all_bush_out_turns
+
+    return (
+        topological_orders,
+        turns_in_bush,
+        distances,
+        all_bush_in_turns,
+        all_bush_out_turns,
+    )
 
 
 @njit
 def __link_to_turn_cost_static(
-    tot_turns, from_links, link_cost, turn_restriction, restricted_turn_cost=3600 /
-                                                                             3600
+    tot_turns, from_links, link_cost, turn_restriction, restricted_turn_cost=3600 / 3600
 ):
     turn_costs = np.zeros(tot_turns, dtype=np.float64)
     for turn in range(tot_turns):

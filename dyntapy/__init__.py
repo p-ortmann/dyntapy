@@ -7,7 +7,8 @@
 #
 #
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
+
 # expose major functionality in dyntapy namespace such
 # that dyntapy.function() can be called directly
 from .assignments import DynamicAssignment, StaticAssignment
@@ -19,6 +20,8 @@ from .demand_data import (
     generate_random_od_graph,
     get_centroid_grid_coords,
     _places_around_place,
+    od_graph_from_matrix,
+    od_matrix_from_dataframes,
 )
 from .graph_utils import get_shortest_paths, get_all_shortest_paths
 from .results import StaticResult, DynamicResult
