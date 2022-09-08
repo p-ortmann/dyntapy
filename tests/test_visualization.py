@@ -10,8 +10,6 @@ from dyntapy.settings import parameters
 from dyntapy.demand import build_internal_static_demand, \
     build_internal_dynamic_demand, DynamicDemand, SimulationTime
 
-parameters.visualization.link_width_scaling = 0.05
-
 
 @mark.skip(reason='only for visual inspection')
 def test_visualization():
@@ -52,8 +50,4 @@ def test_visualization():
     # also adds connectors automatically
     g = relabel_graph(g)  # adding link and node ids, connectors and centroids
     # are the first elements
-    network = build_network(g)
-    return g
-if __name__ == "__main__":
-    g = test_visualization() 
     show_network(g, euclidean=True)
