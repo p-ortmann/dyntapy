@@ -1,5 +1,5 @@
 ---
-title: 'dyntapy: dynamic and static traffic assignment in python'
+title: 'dyntapy: dynamic and static traffic assignment in Python'
 tags:
   - Python
   - dynamic traffic assignment
@@ -10,7 +10,7 @@ authors:
   - name: Paul Ortmann^[Corresponding author]
     orcid: 0000-0002-1451-3662
     affiliation: 1 # (Multiple affiliations must be quoted)
-  - name: Chris Tampère
+  - name: Chris M.J. Tampère
     orcid: 0000-0002-5489-7816
     affiliation: 1
 affiliations:
