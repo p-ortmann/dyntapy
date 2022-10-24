@@ -154,7 +154,8 @@ def _get_link_id(from_node: int, to_node: int, out_links: UI32CSRMatrix):
 
 
 @njit(nogil=True)
-def pred_to_paths(predecessors, source, targets, out_links: UI32CSRMatrix):
+def pred_to_paths(predecessors, source, targets, out_links: UI32CSRMatrix, reverse =
+True):
     """
     converts optimal predecessor arrays to paths between source and targets
 
@@ -165,6 +166,9 @@ def pred_to_paths(predecessors, source, targets, out_links: UI32CSRMatrix):
     source: int
     targets: numpy.ndarray
     out_links: dyntapy.csr.UI32CSRMatrix
+    reverse: bool, default True
+        if predecessors array is a successor array.
+
 
     Returns
     -------
@@ -178,48 +182,23 @@ def pred_to_paths(predecessors, source, targets, out_links: UI32CSRMatrix):
     for j in targets:
         path = List()
         i = predecessors[j]
-        path.append(_get_link_id(i, j, out_links))
+        if not reverse:
+            path.append(_get_link_id(i, j, out_links))
+        else:
+            path.append(_get_link_id(j, i, out_links))
         j = predecessors[j]
 
         while j != source:
             i = predecessors[j]
-            path.append(_get_link_id(i, j, out_links))
+            if not reverse:
+                path.append(_get_link_id(i, j, out_links))
+            else:
+                path.append(_get_link_id(j, i, out_links))
             j = predecessors[j]
         link_paths.append(path)
 
     return link_paths
 
-@njit(nogil=True)
-def pred_to_path(predecessors, source, target, out_links: UI32CSRMatrix):
-    """
-    converts optimal predecessor arrays to path between source and target
-
-    Parameters
-    ----------
-    predecessors : numpy.ndarray
-        int, 1D - predecessor of each node that is closest to `source`
-    source: int
-    target: int
-    out_links: dyntapy.csr.UI32CSRMatrix
-
-    Returns
-    -------
-
-    numba.typed.List
-
-    """
-    j =target
-    path = List()
-    i = predecessors[j]
-    path.append(_get_link_id(i, j, out_links))
-    j = predecessors[j]
-
-    while j != source:
-        i = predecessors[j]
-        path.append(_get_link_id(i, j, out_links))
-        j = predecessors[j]
-
-    return path
 
 @njit(cache=True)
 def dijkstra_all(

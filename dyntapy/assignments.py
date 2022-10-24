@@ -290,9 +290,10 @@ class StaticAssignment:
         )
         # assignment needs to return at least link_cost and flows, ideally also
         # multi-commodity (origin, destination or origin-destination)
+        tolls = kwargs.get('tolls', np.zeros(self.internal_network.tot_links))
         if method == "dial_b":
             costs, origin_flows, gap_definition, gap = dial_b(
-                self.internal_network, self.internal_demand, store_iterations
+                self.internal_network, self.internal_demand, store_iterations, tolls
             )
             flows = np.sum(origin_flows, axis=0)
             result = StaticResult(

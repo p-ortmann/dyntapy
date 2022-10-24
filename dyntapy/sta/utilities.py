@@ -25,6 +25,16 @@ bpr_b = parameters.static_assignment.bpr_beta
 bpr_a = parameters.static_assignment.bpr_alpha
 
 
+
+@njit
+def __bpr_cost_tolls(flows, capacities, ff_tts, tolls):
+    number_of_links = len(flows)
+    costs = np.empty(number_of_links, dtype=np.float64)
+    for it, (f, c, ff_tt, toll) in enumerate(zip(flows, capacities, ff_tts, tolls)):
+        assert c != 0
+        costs[it] = __bpr_cost_single_toll(f, c, ff_tt, toll)
+    return costs
+
 @njit
 def __bpr_cost(flows, capacities, ff_tts):
     number_of_links = len(flows)
@@ -35,6 +45,10 @@ def __bpr_cost(flows, capacities, ff_tts):
     return costs
 
 
+
+@njit
+def __bpr_cost_single_toll(flow, capacity, ff_tt, toll):
+    return toll+1.0 * ff_tt + np.multiply(bpr_a, pow(flow / capacity, bpr_b)) * ff_tt
 @njit
 def __bpr_cost_single(flow, capacity, ff_tt):
     return 1.0 * ff_tt + np.multiply(bpr_a, pow(flow / capacity, bpr_b)) * ff_tt

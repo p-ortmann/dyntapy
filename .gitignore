@@ -56,6 +56,7 @@ pip-delete-this-directory.txt
 #local dockerfile
 *Dockerfile
 # Unit test / coverage reports
+*tmp_test*
 htmlcov/
 .tox/
 .nox/
