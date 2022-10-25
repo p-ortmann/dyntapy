@@ -22,7 +22,7 @@ log_level = 20
 # debugging
 log_numba = False  # this will affect performance dramatically,
 # and should only be set to true for debugging
-debugging = False  # whether to run various consistency checks during the computation
+debugging = True  # whether to run various consistency checks during the computation
 
 default_dynamic_city = "Zinnowitz"
 default_static_city = "Leuven"

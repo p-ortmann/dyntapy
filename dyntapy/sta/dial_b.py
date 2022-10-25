@@ -27,7 +27,7 @@ from dyntapy.graph_utils import (
 from dyntapy.settings import parameters, debugging
 from dyntapy.sta.equilibrate_bush import __equilibrate_bush
 from dyntapy.sta.utilities import __bpr_cost_tolls, __bpr_derivative, \
-    __link_to_turn_cost_static
+    __link_to_turn_cost_static, __bpr_cost_single_toll
 from dyntapy.supply import Network
 from dyntapy.results import StaticResult
 
@@ -51,20 +51,25 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
     from_links = network.turns.from_link
     to_links = network.turns.to_link
     link_ff_times = network.links.length / network.links.free_speed
-    turn_costs = __link_to_turn_cost_static(network.tot_turns, from_links,link_ff_times,
-                                            turn_restriction=np.full(network.tot_turns,
-                                                                     False))
-    flows, bush_flows, topological_orders, turns_in_bush = __initial_loading(
-        network, demand, tolls
-    )
-    costs = cost_function(
+    flows, bush_flows, topological_orders, turns_in_bush, last_indices = \
+        __initial_loading(
+            network, demand, tolls
+        )
+    link_costs = cost_function(
         capacities=network.links.capacity, ff_tts=link_ff_times, flows=flows,
         tolls=tolls
     )
+    turn_costs = __link_to_turn_cost_static(network.tot_turns, from_links, link_costs,
+                                            turn_restriction=np.full(network.tot_turns,
+                                                                     False))
     derivatives = derivative_function(
         flows=flows, capacities=network.links.capacity, ff_tts=link_ff_times
     )
     iteration = 0
+
+    destination_links = np.empty_like(demand.destinations)
+    for _id, dest in enumerate(demand.destinations):
+        destination_links[_id] = network.nodes.in_links.get_nnz(dest)[0]
     if debugging:
         print("Dial equilibration started")
     while iteration < dial_b_max_iterations:
@@ -79,7 +84,7 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                 print("storing iterations")
                 iteration_states.append(
                     StaticResult(
-                        costs,
+                        link_costs,
                         flows,
                         demand.origins,
                         demand.destinations,
@@ -88,28 +93,29 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                         origin_flows=bush_flows,
                     )
                 )
+
         for d_id in range(demand.destinations.size):
             # creating a bush for each origin
             # we're not using the sparse matrices here
             # they cannot be changed once created
             d_id = np.uint32(d_id)
-            dest = demand.to_destinations.get_nnz_rows()[d_id]
+            dest = destination_links[d_id]
             if debugging:
                 print(
                     f"IN ITERATION: {convergence_counter} with dest= {dest} and"
                     f" d_id = {d_id}"
                 )
-            bush_out_links = _make_out_links(
+            bush_out_turns = _make_out_links(
                 turns_in_bush[d_id],
                 from_links,
                 to_links,
                 tot_nodes=network.tot_links,
             )
-            bush_in_links = _make_in_links(
+            bush_in_turns = _make_in_links(
                 turns_in_bush[d_id],
                 from_links,
                 to_links,
-                tot_nodes=network.tot_turns,
+                tot_nodes=network.tot_links,
             )
             token = 0
             while True:
@@ -125,22 +131,24 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                     bush_out_turns,
                     bush_in_turns,
                 ) = __equilibrate_bush(
-                    costs,
+                    turn_costs,
                     bush_flows=bush_flows[d_id],
-                    origin=dest,
+                    destination=dest,
                     flows=flows,
-                    topological_order=topological_orders[d_id],
+                    topological_order=topological_orders[d_id][:last_indices[d_id]],
                     derivatives=derivatives,
-                    links_in_bush=turns_in_bush[d_id],
+                    turns_in_bush=turns_in_bush[d_id],
                     capacities=network.links.capacity,
                     ff_tts=link_ff_times,
-                    bush_out_links=bush_out_links,
-                    bush_in_links=bush_in_links,
+                    bush_out_turns=bush_out_turns,
+                    bush_in_turns=bush_in_turns,
                     epsilon=epsilon,
-                    global_out_links=network.nodes.out_links,
+                    global_out_turns=network.links.out_turns,
                     tot_links=network.tot_links,
-                    to_node=network.links.to_node,
-                    from_node=network.links.from_node,
+                    tot_turns=network.tot_turns,
+                    to_links=network.turns.to_link,
+                    from_links=network.turns.from_link,
+                    tolls=tolls
                 )
                 if converged_without_shifts:
                     if token >= 1:
@@ -154,23 +162,26 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                             )
                         break
 
-                for k in topological_orders[d_id]:
-                    assert k in L
-                edges_added, topological_orders[d_id] = __update_bush(
+                for k in topological_orders[d_id][:last_indices[d_id]]:
+                    assert L[k] != np.inf
+                turns_added, topological_orders[d_id][:last_indices[d_id]] = \
+                    __update_bush(
                     L=L,
-                    bush_edges=turns_in_bush[d_id],
-                    costs=costs,
-                    from_node=network.links.from_node,
-                    to_node=network.links.to_node,
-                    bush_out_links=bush_out_links,
-                    bush_in_links=bush_in_links,
+                    bush_turns=turns_in_bush[d_id],
+                    turn_costs=turn_costs,
+                    from_link=network.turns.from_link,
+                    to_link=network.turns.to_link,
+                    bush_out_turns=bush_out_turns,
+                    bush_in_turns= bush_in_turns,
                     bush_flows=bush_flows[d_id],
-                    tot_nodes=network.tot_nodes,
-                    origin=dest,
-                    global_out_links_csr=network.nodes.out_links,
+                    destination=dest,
+                    global_out_turns=network.links.out_turns,
+                    tot_reachable_links=last_indices[d_id],
+                    tot_links=network.tot_links
+
                 )
-                assert len(set(topological_orders[d_id])) == network.tot_nodes
-                if not edges_added:
+                assert len(set(topological_orders[d_id])) == network.tot_links
+                if not turns_added:
                     if converged_without_shifts and token == 0:
                         convergence_counter += 1
                         if debugging:
@@ -197,27 +208,29 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
     gap_arr = np.empty(len(gaps), dtype=np.float64)
     for _id, val in enumerate(gaps):
         gap_arr[_id] = val
+    costs = __bpr_cost_tolls(flows, network.links.capacity, link_ff_times, tolls)
     return costs, bush_flows, gap_definition, gap_arr
 
 
 @njit
 def __update_bush(
         L,
-        bush_edges,
-        costs,
-        from_node,
-        to_node,
-        bush_out_links,
-        bush_in_links,
+        bush_turns,
+        turn_costs,
+        from_link,
+        to_link,
+        bush_out_turns,
+        bush_in_turns,
         bush_flows,
-        tot_nodes,
         destination,
-        global_out_links_csr,
+        global_out_turns,
+        tot_reachable_links,
+        tot_links
 ):
     new_turns_added = False
-    for link_id, link_tuple in enumerate(zip(from_node, to_node)):
+    for turn_id, link_tuple in enumerate(zip(from_link, to_link)):
         i, j = link_tuple[0], link_tuple[1]
-        if L[i] + costs[link_id] < L[j] - epsilon:
+        if L[i] -epsilon> turn_costs[turn_id] + L[j] :
             # current edges is a shortcut edge
             # pos2 = np.argwhere(topological_order == j)[0][0]
             # pos1 = np.argwhere(topological_order == i)[0][0]
@@ -226,7 +239,8 @@ def __update_bush(
             #    print('something wrong with labels or shifting')
             opposite_exists = False
             try:
-                opposite_link = _get_link_id(j, i, global_out_links_csr)
+                # never the case on the link turn graph if u-turns are omitted
+                opposite_link = _get_link_id(j, i, global_out_turns)
                 opposite_exists = True
             except Exception:
                 pass
@@ -239,62 +253,65 @@ def __update_bush(
                     # happen with very short links and comparatively large epsilon
                     # values
                     continue
-            bush_edges[link_id] = True
+            bush_turns[turn_id] = True
+            print(f'adding turn {turn_id} with {i=} and {j=}')
             # adding an in_link i to j
             in_links_j = np.empty(
-                (bush_in_links[j].shape[0] + 1, bush_in_links[j].shape[1]),
+                (bush_in_turns[j].shape[0] + 1, bush_in_turns[j].shape[1]),
                 dtype=np.int64,
             )
-            in_links_j[:-1] = bush_in_links[j]
-            in_links_j[-1] = np.int64(i), link_id
-            bush_in_links[j] = in_links_j
+            in_links_j[:-1] = bush_in_turns[j]
+            in_links_j[-1] = np.int64(i), turn_id
+            bush_in_turns[j] = in_links_j
 
             # adding an out_link j to i
             out_links_i = np.empty(
-                (bush_out_links[i].shape[0] + 1, bush_out_links[i].shape[1]),
+                (bush_out_turns[i].shape[0] + 1, bush_out_turns[i].shape[1]),
                 dtype=np.int64,
             )
-            out_links_i[:-1] = bush_out_links[i]
-            out_links_i[-1] = np.int64(j), link_id
-            bush_out_links[i] = out_links_i
-            new_edges_added = True
+            out_links_i[:-1] = bush_out_turns[i]
+            out_links_i[-1] = np.int64(j), turn_id
+            bush_out_turns[i] = out_links_i
+            new_turns_added = True
 
             if opposite_exists:
-                if bush_edges[opposite_link]:
-                    bush_edges[opposite_link] = False
+                if bush_out_turns[opposite_link]:
+                    bush_turns[opposite_link] = False
                     # removing an in_link j from i
                     in_links_i = np.empty(
-                        (bush_in_links[i].shape[0] - 1, bush_in_links[i].shape[1]),
+                        (bush_in_turns[i].shape[0] - 1, bush_in_turns[i].shape[1]),
                         dtype=np.int64,
                     )
                     idx = 0
-                    for _j, _link_id in bush_in_links[i]:
+                    for _j, _link_id in bush_in_turns[i]:
                         if _j != j:
                             in_links_i[idx] = _j, _link_id
                             idx += 1
-                    bush_in_links[i] = in_links_i
+                    bush_in_turns[i] = in_links_i
 
                     # removing an out_link i from j
                     out_links_j = np.empty(
-                        (bush_out_links[i].shape[0] - 1, bush_out_links[i].shape[1]),
+                        (bush_out_turns[i].shape[0] - 1, bush_out_turns[i].shape[1]),
                         dtype=np.int64,
                     )
                     idx = 0
-                    for _i, _link_id in bush_out_links[j]:
+                    for _i, _link_id in bush_out_turns[j]:
                         if _i != i:
                             out_links_j[idx] = _i, _link_id
                             idx += 1
-                    bush_out_links[j] = out_links_j
-    return new_edges_added, topological_sort(
-        bush_out_links, bush_in_links, tot_nodes, origin
+                    bush_out_turns[j] = out_links_j
+    return new_turns_added, topological_sort(
+        bush_in_turns, bush_out_turns,tot_reachable_links ,tot_links, destination
     )
 
 
 @njit
-def topological_sort(forward_star, backward_star, tot_nodes, origin):
+def topological_sort(forward_star, backward_star, tot_reachable_nodes, tot_nodes,
+                     origin):
     # topological sort on a graph assuming that backward and forward stars form
     # a connected DAG, (Directed Acyclic Graph)
-    order = np.zeros(tot_nodes, dtype=np.uint32)
+    # origin forms the root
+    order = np.zeros(tot_reachable_nodes, dtype=np.uint32)
     order[0] = origin
     my_heap = []
     my_heap.append((np.uint32(0), np.uint32(origin)))
@@ -318,7 +335,7 @@ def topological_sort(forward_star, backward_star, tot_nodes, origin):
             if visited_all_nodes_in_backward_star:
                 pos_count += 1
                 heappush(my_heap, (np.uint32(pos_count), np.uint32(j)))
-    assert len(set(order)) == tot_nodes  # if this fails forward and backward stars do
+    assert len(set(order)) == tot_reachable_nodes  # if this fails forward and backward stars do
     # not form DAG
     return order
 
@@ -341,6 +358,7 @@ def __initial_loading(network: Network, demand: InternalStaticDemand, tolls):
     for _id, dest in enumerate(demand.destinations):
         destination_links[_id] = network.nodes.in_links.get_nnz(dest)[0]
     tot_destinations = demand.destinations.size
+    last_indices = np.empty(tot_destinations, np.uint32)
     bush_flows = np.zeros((tot_destinations, tot_turns), dtype=np.float64)
     topological_orders = np.empty((tot_destinations, tot_links), dtype=np.uint32)
     turns_in_bush = np.full(
@@ -348,18 +366,18 @@ def __initial_loading(network: Network, demand: InternalStaticDemand, tolls):
 
     )
 
-
     costs = cost_function(
         capacities=network.links.capacity, ff_tts=link_ff_times, flows=flows,
-        tolls = tolls
+        tolls=tolls
     )
     turn_costs = __link_to_turn_cost_static(network.tot_turns, network.turns.from_link,
                                             costs, turn_restriction=np.full(
-        network.tot_turns,
-                                                                     False))
+            network.tot_turns,
+            False))
 
     for d_id in prange(destination_links.size):
         destination_link = destination_links[d_id]
+        dest = demand.destinations[d_id]
         distances, pred = dijkstra_all(
             costs=turn_costs, out_links=in_turns, source=destination_link,
             is_centroid=is_centroid
@@ -367,15 +385,17 @@ def __initial_loading(network: Network, demand: InternalStaticDemand, tolls):
         paths = pred_to_paths(pred, destination_link, origin_links,
                               network.links.out_turns)
         topological_orders[d_id] = np.argsort(distances)
+        sorted_dist = np.sort(distances)
+        last_index = np.argwhere(sorted_dist == np.inf).flatten()[0]
+        last_indices[d_id] = last_index
         label = np.argsort(topological_orders[d_id])
         for turn, (i, j) in enumerate(zip(from_link, to_link)):
-            if label[j] < label[i]:
+            if label[j] < label[i] < last_index:  # don't include turns
+                # that start from links that cannot reach the destination
                 turns_in_bush[d_id][turn] = True
-        for path, path_flow in zip(paths, demand.to_origins.get_row(d_id)):
+        for path, path_flow in zip(paths, demand.to_origins.get_row(dest)):
             for turn_id in path:
                 flows[from_link[turn_id]] += path_flow
                 bush_flows[d_id][turn_id] += path_flow
 
-    return flows, bush_flows, topological_orders, turns_in_bush
-
-
+    return flows, bush_flows, topological_orders, turns_in_bush, last_indices
