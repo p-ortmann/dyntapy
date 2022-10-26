@@ -292,10 +292,10 @@ class StaticAssignment:
         # multi-commodity (origin, destination or origin-destination)
         tolls = kwargs.get('tolls', np.zeros(self.internal_network.tot_links))
         if method == "dial_b":
-            costs, origin_flows, gap_definition, gap = dial_b(
+            costs, destination_flows, gap_definition, gap = dial_b(
                 self.internal_network, self.internal_demand, store_iterations, tolls
             )
-            flows = np.sum(origin_flows, axis=0)
+            flows = np.sum(destination_flows, axis=0)
             result = StaticResult(
                 costs,
                 flows,
@@ -304,7 +304,7 @@ class StaticAssignment:
                 skim=get_skim(costs, self.internal_demand, self.internal_network),
                 gap_definition=gap_definition,
                 gap=gap,
-                origin_flows=origin_flows,
+                destination_flows=destination_flows,
             )
         elif method == "msa":
             costs, flows, gap_definition, gap = msa_flow_averaging(

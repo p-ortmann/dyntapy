@@ -105,7 +105,7 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
             dest = destination_links[d_id]
             if debugging:
                 print(
-                    f"IN ITERATION: {convergence_counter} with dest= {dest} and"
+                    f"IN ITERATION: {iteration} with dest= {dest} and"
                     f" d_id = {d_id}"
                 )
             bush_out_turns = _make_out_links(
@@ -201,8 +201,8 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                 token += 1
         # print(f'number of converged bushes {convergence_counter} out of {len(
         # demand_dict)}')
-        gaps.append(convergence_counter / demand.to_destinations.get_nnz_rows().size)
-        if convergence_counter == demand.to_destinations.get_nnz_rows().size:
+        gaps.append(convergence_counter / demand.destinations.size)
+        if convergence_counter == demand.destinations.size:
             break
         iteration = iteration + 1
         if iteration == dial_b_max_iterations:
@@ -211,8 +211,19 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
     gap_arr = np.empty(len(gaps), dtype=np.float64)
     for _id, val in enumerate(gaps):
         gap_arr[_id] = val
-    costs = __bpr_cost_tolls(flows, network.links.capacity, link_ff_times, tolls)
-    return costs, bush_flows, gap_definition, gap_arr
+    link_costs = __bpr_cost_tolls(flows, network.links.capacity, link_ff_times, tolls)
+    link_destination_flows = np.zeros((demand.destinations.size, network.tot_links),
+                                      np.float64)
+    for d_id in range(demand.destinations.size):
+        for link_id in range(network.tot_links):
+            for turn_id in network.links.in_turns.get_nnz(link_id):
+                link_destination_flows[d_id][link_id]+=bush_flows[d_id][turn_id]
+            if link_id<demand.origins.size:
+                # origins have no incoming turns
+                for turn_id in network.links.out_turns.get_nnz(link_id):
+                    link_destination_flows[d_id][link_id]+=bush_flows[d_id][turn_id]
+
+    return link_costs, link_destination_flows, gap_definition, gap_arr
 
 
 @njit
