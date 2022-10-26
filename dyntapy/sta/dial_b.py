@@ -65,6 +65,9 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
     derivatives = derivative_function(
         flows=flows, capacities=network.links.capacity, ff_tts=link_ff_times
     )
+    turn_derivatives = np.zeros(network.tot_turns)
+    for turn in range(network.tot_turns):
+        turn_derivatives[turn] = derivatives[network.turns.to_link[turn]]
     iteration = 0
 
     destination_links = np.empty_like(demand.destinations)
@@ -136,7 +139,7 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                     destination=dest,
                     flows=flows,
                     topological_order=topological_orders[d_id][:last_indices[d_id]],
-                    derivatives=derivatives,
+                    derivatives=turn_derivatives,
                     turns_in_bush=turns_in_bush[d_id],
                     capacities=network.links.capacity,
                     ff_tts=link_ff_times,
@@ -321,6 +324,7 @@ def topological_sort(forward_star, backward_star, tot_reachable_nodes, tot_nodes
         my_tuple = heappop(my_heap)
         pos = my_tuple[0]
         i = my_tuple[1]
+        assert not visited_node[i]
         visited_node[i] = True
         order[idx] = i
         idx = idx + 1
