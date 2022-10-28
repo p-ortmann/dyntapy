@@ -28,6 +28,7 @@ from dyntapy import show_demand, show_network, show_dynamic_network, \
 from dyntapy.results import get_od_flows, get_selected_link_analysis
 from dyntapy.supply_data import road_network_from_place, relabel_graph
 from dyntapy.results import StaticResult
+from dyntapy import kspwlo_esx
 
 _city = 'Leuven'
 graph = None
@@ -91,6 +92,7 @@ def test_shortest_path():
     print(f'one to all passed, acquired {dist=}')
 
 
+
 def test_dial_b():
     global assignment
     assignment = StaticAssignment(graph, od_graph)
@@ -103,6 +105,20 @@ def test_dial_b():
     result = assignment.run(method)
     show_network(graph, flows=result.flows)
     print(f'static assignment method {method=} ran successfully')
+
+def test_kspwlo():
+    out_links = network.nodes.out_links
+    costs = network.links.length / network.links.free_speed
+    is_centroid = network.nodes.is_centroid
+    source = 0
+    target = 1000
+    k = 4
+    max_overlap = 0.8
+    detour_rejection = 0.3
+    paths, distances = kspwlo_esx(costs, out_links, source, target, k, is_centroid,
+                                  max_overlap, detour_rejection)
+    print(f'found {len(paths)} paths, {distances =} ')
+    show_network(graph, highlight_links=paths)
 
 
 def test_sue():

@@ -13,11 +13,12 @@ building on the provided definitions of supply, demand and assignment results.
 
 Provided functionalities:
 - Network generation from OSM using OSMnx complying with [GMNS](https://github.com/zephyr-data-specs/GMNS) attribute names.
-- Static Assignments (deterministic user equilibrium: DialB, MSA; stochastic, uncongested: Dial's Algorithm)
+- Static Assignments (deterministic user equilibrium: DialB, MSA; stochastic, congested and uncongested: Dial's Algorithm)
 - Dynamic User Equilibrium using the iterative link transmission model
 - Visualization of static and dynamic attributes, including bidirectional flow visualization
 - Fast shortest path computations
 - Selected Link Analysis
+
 
 
 There are demo tutorials available that you can run in Binder. [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/git/https%3A%2F%2Fgitlab.kuleuven.be%2FITSCreaLab%2Fpublic-toolboxes%2Fdyntapy-tutorials/HEAD)
@@ -25,6 +26,10 @@ There are demo tutorials available that you can run in Binder. [![Binder](https:
 These tutorials are running with the latest released version of dyntapy. 
 
 All the user-facing functions also have [documentation](https://dyntapy.readthedocs.io/en/latest/?badge=latest) available. 
+
+If you use this package in your work please cite the associated paper:
+
+Ortmann et al., (2022). [dyntapy: dynamic and static traffic assignment in Python.](https://doi.org/10.21105/joss.04593) Journal of Open Source Software, 7(77), 4593 
 
 # How to install
 
