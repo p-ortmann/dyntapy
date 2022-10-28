@@ -21,21 +21,21 @@ from dyntapy.supply_data import road_network_from_place, relabel_graph
 
 # this file stress-tests the DIAL B implementation with more demand, a bigger network
 # and multiple connectors per centroid.
-method = 'iterated'  # 'constant' or 'iterated' if multiple demand scenarios
+method = 'constant'  # 'constant' or 'iterated' if multiple demand scenarios
 # should be explored, you can run this until failure to identify seeds that trigger
 # an error.
 # stress tested for epsilon up to 0.00001, not lower
 #
-seed_constant = 9
-tot_seeds_to_try = 10
+seed_constant = 13
+tot_seeds_to_try = 50
 tot_od_pairs = 10
 max_flow_per_od_pair = 5000
 
 
 # should be run to explore if errors would occur under different queueing conditions
 
-@mark.skip(reason='too computationally expensive')
-def stress_test_dial_b():
+#@mark.skip(reason='too computationally expensive')
+def test_stress_dial_b():
     city = 'Stralsund'
     HERE = pathlib.Path(__file__).parent
     one_up = pathlib.Path(__file__).parents[1]
@@ -54,7 +54,7 @@ def stress_test_dial_b():
                                                             buffer_dist_close=5000,
                                                             buffer_dist_extended=10000)
         print('centroids found')
-        g = add_centroids(g, x, y, k=3, method='link',
+        g = add_centroids(g, x, y, k=3, method='turn',
                           name=names, place=place_tags)
         print('centroids added to graph')
         g, inverse = relabel_graph(g, return_inverse=True)
@@ -81,9 +81,10 @@ def stress_test_dial_b():
         od_graph = parse_demand(json_demand, g)
         assignment = StaticAssignment(g, od_graph)
         results = assignment.run(method='dial_b')
+        show_network(g,flows=results.flows, highlight_links=[891,839])
 
     print('dial passed successfully')
 
 
 if __name__ == '__main__':
-    stress_test_dial_b()
+    test_stress_dial_b()

@@ -8,7 +8,7 @@
 
 import numpy as np
 from numba import njit
-from numba.typed import Dict
+from numba.typed import List
 
 from dyntapy.settings import parameters, debugging
 from dyntapy.sta.utilities import __bpr_cost_single_toll, __bpr_derivative_single
@@ -83,7 +83,7 @@ def __equilibrate_bush(
         print(
             f"________the remaining cost differences in this bush for origin "
             f"{destination} "
-            f"are {max_delta_path_cost}______"
+            f"are {float(max_delta_path_cost)}______"
         )
     for i in topological_order:
         assert L[i] != np.inf
@@ -91,11 +91,11 @@ def __equilibrate_bush(
     if epsilon > max_delta_path_cost:
         converged_without_shifts = True
 
-    if debugging:
-        print(
-            f"no shifts were ever necessary, delta: {max_delta_path_cost} smaller "
-            f"than epsilon {epsilon}"
-        )
+        if debugging:
+            print(
+                f"no shifts were ever necessary, delta: {max_delta_path_cost} smaller "
+                f"than epsilon {epsilon}"
+            )
     while epsilon < max_delta_path_cost:
         if debugging:
             print(
@@ -147,7 +147,7 @@ def __equilibrate_bush(
         min_path_successor=min_path_successor,
         tot_turns=tot_turns,
     )
-    if np.sum(turns_in_bush) > number_of_turns:
+    if np.sum(turns_in_bush) < number_of_turns:
         if debugging:
             print("time for new labels, edges have been removed!")
         max_delta_path_cost, L, U = __update_trees(
@@ -199,6 +199,9 @@ def __update_path_flow(
     while i != end_link:
         (i, j) = (i, successor[i])
         turn_id = _get_link_id(i, j, out_turns)
+        if not bush_flow[turn_id] + delta_f >= 0:
+            print(f'error turn {turn_id} links {i} and {j}')
+            raise AssertionError
         bush_flow[turn_id] = bush_flow[turn_id] + delta_f
         flows[j] = flows[j] + delta_f
         new_path_flow = min(new_path_flow, bush_flow[turn_id])
@@ -231,27 +234,43 @@ def __get_delta_flow_and_cost(
 ):
     if min_path_cost < max_path_cost:
         delta_f = max_path_flow
-    else:
+    elif min_path_cost> max_path_cost:
         delta_f = -min_path_flow
+    else:
+        # equal
+        return 0,0
     assert min_path_flow >= 0
     if (max_path_derivative + min_path_derivative) <= 0:
         if min_path_cost < max_path_cost:
             delta_f = max_path_flow
-        else:
+        elif min_path_cost> max_path_cost:
             delta_f = -min_path_flow
+        else:
+            # equal
+            return 0,0
     else:
-        if delta_f >= 0:
+        if delta_f > 0:
             delta_f = min(
                 delta_f,
                 (max_path_cost - min_path_cost)
                 / (min_path_derivative + max_path_derivative),
             )
-        else:
+
+            assert delta_f > 0
+        elif delta_f < 0:
             delta_f = max(
                 delta_f,
                 (max_path_cost - min_path_cost)
                 / (min_path_derivative + max_path_derivative),
             )
+            if not delta_f < 0:
+                print('error')
+                print(min_path_cost)
+                print(max_path_cost)
+                print(min_path_derivative)
+                print(max_path_derivative)
+                print(delta_f)
+                raise AssertionError
     return delta_f, max_path_cost - min_path_cost
 
 
@@ -277,6 +296,8 @@ def __equalize_cost(
         tolls
 ):
     assert start_link != end_link
+    assert min_path_flow >= 0
+    assert max_path_flow >= 0
     total = min_path_flow + max_path_flow
     # print('got into eq cost')
     delta_f, delta_cost = __get_delta_flow_and_cost(
@@ -360,11 +381,13 @@ def __update_trees(
     assert n <= len(topological_order)
     max_delta_path_costs = 0
     if k == 0:
-        U[0] = 0.0
-        L[0] = 0.0
+        U[topological_order[0]] = 0.0
+        L[topological_order[0]] = 0.0
         k = 1
     for i in topological_order[k:n]:
-        L[i], U[i] = 100000.0, -100000.0
+        L[i], U[i] = np.inf, -np.inf
+        max_path_successor[i] = -1
+        min_path_successor[i] = -1
         for j, turn_id in bush_out_turns[i]:
             if L[j] == np.inf:
                 raise AssertionError
@@ -379,17 +402,21 @@ def __update_trees(
             # assert j in U
             # these assert statements verify whether
             # the topological order is still intact
-            if L[i] > L[j] + costs[turn_id] :
+            if L[i] > L[j] + costs[turn_id]:
                 L[i] = L[j] + costs[turn_id]
                 min_path_successor[i] = j
-            if bush_flows[turn_id] > 0 and U[i] < U[j] +costs[turn_id]:
+            if bush_flows[turn_id] > np.finfo(np.float32).eps and U[i] < U[j] + costs[
+                turn_id]:
                 U[i] = U[j] + costs[turn_id]
                 max_path_successor[i] = j
-        if max_path_successor[i] != 0:
+        if max_path_successor[i] != -1:
             max_delta_path_costs = max(max_delta_path_costs, U[i] - L[i])
-            assert max_delta_path_costs < 99999
+            if max_delta_path_costs>9999999:
+                print('hi')
+            assert max_delta_path_costs < 9999999
         if U[i] > 0:
             assert L[i] <= U[i]
+    assert np.all(L[topological_order] != np.inf)
     return max_delta_path_costs, L, U
 
 
@@ -413,6 +440,8 @@ def __get_branch_links(
     first_branch_link = origin
     next_min_i = min_path_successor[origin]
     next_max_i = max_path_successor[origin]
+    max_turns = List()
+    min_turns = List()
     while next_min_i == next_max_i:
         if next_min_i == next_max_i:
             first_branch_link = next_max_i
@@ -426,6 +455,8 @@ def __get_branch_links(
     next_max_turn = _get_link_id(
         first_branch_link, max_path_successor[first_branch_link], out_turns
     )
+    max_turns.append(next_max_turn)
+    min_turns.append(next_min_turn)
     turns_on_max_path, turns_on_min_path = 1, 1
     min_path_flow, max_path_flow = (
         bush_flows[next_min_turn],
@@ -440,14 +471,17 @@ def __get_branch_links(
     while next_min_i != next_max_i:
         # print(f'the current min label is {label[next_min_i]}with node {next_min_i}')
         # print(f'the current max label is {label[next_max_i]}with node {next_max_i}')
+        last_min_path_derivative = -1
+        last_max_path_derivative = -1
         while label[next_min_i] < label[next_max_i]:
             #   print(f'following max, label is {label[next_max_i]}')
             j = next_max_i
             next_max_i = max_path_successor[next_max_i]
             turn_id = _get_link_id(j, next_max_i, out_turns)
+            max_turns.append(turn_id)
             max_path_flow = min(max_path_flow, bush_flows[turn_id])
             max_path_cost += turn_costs[turn_id]
-
+            last_max_path_derivative = turn_derivatives[turn_id]
             max_path_derivative += turn_derivatives[turn_id]
             turns_on_max_path += 1
         while label[next_min_i] > label[next_max_i]:
@@ -455,12 +489,25 @@ def __get_branch_links(
             j = next_min_i
             next_min_i = min_path_successor[next_min_i]
             turn_id = _get_link_id(j, next_min_i, out_turns)
+            min_turns.append(turn_id)
             min_path_flow = min(min_path_flow, bush_flows[turn_id])
             min_path_cost += turn_costs[turn_id]
             # min_path, costs are now {min_path_cost}  ')
+            last_min_path_derivative = turn_derivatives[turn_id]
             min_path_derivative += turn_derivatives[turn_id]
             turns_on_min_path += 1
+    max_path_derivative = max_path_derivative - last_max_path_derivative
+    min_path_derivative = min_path_derivative - last_min_path_derivative
     last_branch_link = next_min_i
+    assert min_path_flow >= 0
+    assert max_path_flow >= 0
+    for turn in max_turns:
+        if bush_flows[turn] < max_path_flow:
+            print(f'error with turn {turn}')
+
+    for turn in min_turns:
+        if bush_flows[turn] < min_path_flow:
+            print(f'error with turn {turn}')
     return (
         first_branch_link,
         last_branch_link,
@@ -544,11 +591,11 @@ def __shift_flow(
                     tolls
                 )
                 assert total_flow == min_path_flow + max_path_flow
-                print(f'updating tree between {end_link} and {j} with labels'
-                       f' {label[end_link], label[j]}')
+                # print(f'updating tree between {end_link} and {j} with labels'
+                #       f' {label[end_link], label[j]}')
                 __update_trees(
                     label[end_link],
-                    label[j]+1 ,
+                    label[j] + 1,
                     L,
                     U,
                     min_path_successors,
@@ -558,7 +605,7 @@ def __shift_flow(
                     bush_flows,
                     bush_out_turns,
                 )
-                print(f'cost differences now {U[j] - L[j]}')
+                # print(f'cost differences now {U[j] - L[j]}')
                 assert abs(U[j] - L[j]) < 99999
             else:
                 continue
@@ -592,10 +639,11 @@ def __remove_unused_turns(
             i = from_link[turn]
             j = to_link[turn]
             if debugging:
-                print(f"edge under consideration ij: {i, j}")
+                pass
+                # print(f"edge under consideration ij: {i, j}")
             try:
                 if (
-                        len(bush_in_turns[j]) > 1 and min_path_successor[i] != j
+                        len(bush_out_turns[i]) > 1 and min_path_successor[i] != j
                 ):  # otherwise the edge is needed for connectivity
                     #    print(f'edge {(i,j)} with flow
                     #    {bush_flows[edge_map[(i,j)]]} removed ')
@@ -616,7 +664,8 @@ def __remove_unused_turns(
                     if debugging:
                         print(f"removed edge ij: {i, j}, turn {turn}")
             except Exception:
-                print("hi")
+                raise Exception
+
     # print(f'there are {len(bush_edges)} edges
     # left after pruning the bush by {pruning_counter}')
     return turns_in_bush

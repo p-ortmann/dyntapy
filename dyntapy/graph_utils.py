@@ -155,7 +155,7 @@ def _get_link_id(from_node: int, to_node: int, out_links: UI32CSRMatrix):
 
 @njit(nogil=True)
 def pred_to_paths(predecessors, source, targets, out_links: UI32CSRMatrix, reverse =
-True):
+False):
     """
     converts optimal predecessor arrays to paths between source and targets
 

@@ -180,10 +180,12 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                     destination=dest,
                     global_out_turns=network.links.out_turns,
                     tot_reachable_links=last_indices[d_id],
-                    tot_links=network.tot_links
+                    tot_links=network.tot_links,
+                    old_topological_order=topological_orders[d_id][:last_indices[d_id]]
 
                 )
-                assert len(set(topological_orders[d_id])) == network.tot_links
+                assert np.unique(topological_orders[d_id][:last_indices[d_id]]).size \
+                       == last_indices[d_id]
                 if not turns_added:
                     if converged_without_shifts and token == 0:
                         convergence_counter += 1
@@ -208,6 +210,8 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
         if iteration == dial_b_max_iterations:
             print("max iterations reached")
 
+
+    print(f'solution found, Dial B in iteration {iteration}')
     gap_arr = np.empty(len(gaps), dtype=np.float64)
     for _id, val in enumerate(gaps):
         gap_arr[_id] = val
@@ -239,12 +243,13 @@ def __update_bush(
         destination,
         global_out_turns,
         tot_reachable_links,
-        tot_links
+        tot_links,
+        old_topological_order
 ):
     new_turns_added = False
     for turn_id, link_tuple in enumerate(zip(from_link, to_link)):
         i, j = link_tuple[0], link_tuple[1]
-        if L[i] -epsilon> turn_costs[turn_id] + L[j] :
+        if L[i] -np.finfo(np.float32).eps> turn_costs[turn_id] + L[j] :
             # current edges is a shortcut edge
             # pos2 = np.argwhere(topological_order == j)[0][0]
             # pos1 = np.argwhere(topological_order == i)[0][0]
@@ -267,8 +272,12 @@ def __update_bush(
                     # happen with very short links and comparatively large epsilon
                     # values
                     continue
+            if bush_turns[turn_id]:
+                print('Labels are not correct, attempting to include turn that '
+                      'already exists')
+                raise AssertionError
             bush_turns[turn_id] = True
-            print(f'adding turn {turn_id} with {i=} and {j=}')
+            #print(f'adding turn {turn_id} with {i=} and {j=}')
             # adding an in_link i to j
             in_links_j = np.empty(
                 (bush_in_turns[j].shape[0] + 1, bush_in_turns[j].shape[1]),
@@ -315,13 +324,13 @@ def __update_bush(
                             idx += 1
                     bush_out_turns[j] = out_links_j
     return new_turns_added, topological_sort(
-        bush_in_turns, bush_out_turns,tot_reachable_links ,tot_links, destination
+        bush_in_turns, bush_out_turns,tot_reachable_links ,tot_links, destination, old_topological_order
     )
 
 
 @njit
 def topological_sort(forward_star, backward_star, tot_reachable_nodes, tot_nodes,
-                     origin):
+                     origin, old_topological_order):
     # topological sort on a graph assuming that backward and forward stars form
     # a connected DAG, (Directed Acyclic Graph)
     # origin forms the root
@@ -350,7 +359,9 @@ def topological_sort(forward_star, backward_star, tot_reachable_nodes, tot_nodes
             if visited_all_nodes_in_backward_star:
                 pos_count += 1
                 heappush(my_heap, (np.uint32(pos_count), np.uint32(j)))
-    assert len(set(order)) == tot_reachable_nodes  # if this fails forward and backward stars do
+    if not len(set(order)) == tot_reachable_nodes:  # if this fails forward and
+        raise AssertionError
+    # backward stars do
     # not form DAG
     return order
 
@@ -398,7 +409,7 @@ def __initial_loading(network: Network, demand: InternalStaticDemand, tolls):
             is_centroid=is_centroid
         )
         paths = pred_to_paths(pred, destination_link, origin_links,
-                              network.links.out_turns)
+                              network.links.out_turns, reverse=True)
         topological_orders[d_id] = np.argsort(distances)
         sorted_dist = np.sort(distances)
         last_index = np.argwhere(sorted_dist == np.inf).flatten()[0]
