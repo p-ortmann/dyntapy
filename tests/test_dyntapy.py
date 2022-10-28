@@ -82,6 +82,10 @@ seed = 1
 json_demand = generate_od_xy(40, _city, seed=seed, max_flow=900)
 od_graph = parse_demand(json_demand, graph)
 
+assignment = StaticAssignment(graph, od_graph)
+network = assignment.internal_network
+demand = assignment.internal_demand
+
 
 def test_shortest_path():
     dist, paths = get_shortest_paths(graph, 15, [100, 220], return_paths=True)
@@ -92,19 +96,13 @@ def test_shortest_path():
     print(f'one to all passed, acquired {dist=}')
 
 
-
 def test_dial_b():
-    global assignment
-    assignment = StaticAssignment(graph, od_graph)
-    global network
-    global demand
     global result
-    network = assignment.internal_network
-    demand = assignment.internal_demand
     method = 'dial_b'
     result = assignment.run(method)
     show_network(graph, flows=result.flows)
     print(f'static assignment method {method=} ran successfully')
+
 
 def test_kspwlo():
     out_links = network.nodes.out_links
@@ -122,23 +120,16 @@ def test_kspwlo():
 
 
 def test_sue():
-    global assignment
-    assignment = StaticAssignment(graph, od_graph)
-    global network
-    global demand
     global result
-    network = assignment.internal_network
-    demand = assignment.internal_demand
     method = 'sue'
-    result = assignment.run(method, max_iterations = 10, max_gap = 0.00001)
+    result = assignment.run(method, max_iterations=10, max_gap=0.00001)
     show_network(graph, flows=result.flows)
     print(f'static assignment method {method=} ran successfully')
 
 
 def test_msa():
-    loc_assignment = StaticAssignment(graph, od_graph)
     method = 'msa'
-    res = loc_assignment.run(method)
+    res = assignment.run(method)
     print(f'static assignment method {method=} ran successfully')
     show_network(graph, res.flows)
 
@@ -198,9 +189,8 @@ def test_selected_link_analysis():
 
 
 def test_sun():
-    loc_assignment = StaticAssignment(graph, od_graph)
     method = 'sun'
-    res = loc_assignment.run(method)
+    res = assignment.run(method)
     show_network(graph, res.flows)
 
 
