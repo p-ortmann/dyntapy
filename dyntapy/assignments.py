@@ -103,10 +103,10 @@ class DynamicAssignment:
     """
 
     def __init__(
-        self,
-        network,
-        dynamic_demand,
-        simulation_time,
+            self,
+            network,
+            dynamic_demand,
+            simulation_time,
     ):
         """
 
@@ -290,6 +290,8 @@ class StaticAssignment:
         )
         # assignment needs to return at least link_cost and flows, ideally also
         # multi-commodity (origin, destination or origin-destination)
+        if 'tolls' in kwargs.keys():
+            assert method == 'dial_b'  # not supported for the other assignments
         tolls = kwargs.get('tolls', np.zeros(self.internal_network.tot_links))
         if method == "dial_b":
             costs, destination_flows, gap_definition, gap = dial_b(
