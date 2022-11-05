@@ -695,7 +695,7 @@ def _dijkstra_with_target_ignored_links(
 
 
 def kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
-               detour_rejection):
+               detour_rejection=0.5):
     """
     computes k-shortest paths with a maximum overlap of `sim_threshold`.
 
@@ -755,3 +755,69 @@ def kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
         py_solution_paths.append(py_path)
         py_distances.append(dist)
     return py_solution_paths, py_distances
+
+
+def get_k_shortest_paths(g, source, target, costs=None, k=3, sim_threshold=0.75, detour_rejection=0.5):
+    """
+    computes k-shortest paths with a maximum overlap of `sim_threshold`
+
+    Parameters
+    ----------
+    g: networkx.DiGraph
+        as specified for assignments
+    source: int
+        node id
+    target: int
+        node id
+    costs: numpy.ndarray, optional
+        if not set, free flow travel times are used based on defined length and speed
+    k: int
+        number of the shortest paths to return
+    sim_threshold: float
+        threshold for similarity between paths in the solution set, [0,1]
+    detour_rejection: float
+        path quality criteria
+
+    Returns
+    -------
+    solution_paths: list of list
+        each entry is a solution path
+    path_lengths : list
+        length of each solution path as the sum of traversed link costs
+
+    Notes
+    -----
+
+    `detour_rejection` has been added by the developers to prune bad solutions.
+    A value of 0.10 indicates that paths can be at most 10 percent worse than the
+    shortest path solution. Similar to a lower `sim_threshold` this setting may
+    affect the completeness of the results.
+
+    References
+    ----------
+
+    .. [1] Chondrogiannis, Theodoros, Panagiotis Bouros, Johann Gamper, Ulf Leser,
+     and David B. Blumenthal. ‘Finding K-Shortest Paths with Limited Overlap’.
+     The VLDB Journal 29, no. 5 (1 September 2020): 1023–47.
+      https://doi.org/10.1007/s00778-020-00604-x.
+
+    """
+    if costs is not None:
+        if not isinstance(costs, np.ndarray):
+            raise TypeError
+        if not costs.size == g.number_of_edges():
+            raise ValueError
+    if not isinstance(source, int):
+        raise TypeError
+    # transform networkx DiGraph to internal network presentation
+    network = build_network(g)
+    if costs is None:
+        # assuming free flow travel times
+        costs = network.links.length / network.links.free_speed
+        costs = costs.astype(np.float32)
+
+    out_links = network.nodes.out_links
+    solution_paths, distances = kspwlo_esx(costs, out_links, source, target, k, network.nodes.is_centroid,
+                                           sim_threshold, detour_rejection)
+
+    return solution_paths, distances
