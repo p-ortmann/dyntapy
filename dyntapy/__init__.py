@@ -23,7 +23,7 @@ from .demand_data import (
     od_graph_from_matrix,
     od_matrix_from_dataframes,
 )
-from .graph_utils import get_shortest_paths, get_all_shortest_paths, kspwlo_esx
+from .graph_utils import get_shortest_paths, get_all_shortest_paths, kspwlo_esx, get_k_shortest_paths
 from .results import StaticResult, DynamicResult
 from .supply_data import relabel_graph, road_network_from_place, get_toy_network
 from .visualization import (

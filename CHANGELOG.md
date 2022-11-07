@@ -4,7 +4,7 @@
 ## 0.2.4 (in development)
 - support for link tolls in DialB
 - Dial B reimplemented on the link-turn graph and destination based
-- heuristic for finding k-shortest path with limited overlap
+- heuristic for finding k-shortest path with limited overlap (high and lower level call)
 
 
 ## 0.2.3 (08.09.2022)
