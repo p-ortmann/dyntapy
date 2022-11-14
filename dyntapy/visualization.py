@@ -24,7 +24,7 @@ from bokeh.layouts import Spacer, column, row
 from bokeh.models import HoverTool, OpenURL, TapTool
 from bokeh.models.callbacks import CustomJS
 from bokeh.models.glyphs import Patches, MultiPolygons
-from bokeh.models.markers import Circle
+from bokeh.models import Circle
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.tile_providers import Vendors, get_provider
@@ -79,8 +79,8 @@ def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwa
         # starting at 0 & consecutively labelled integers
     if not euclidean:
         plot = figure(
-            plot_height=parameters.visualization.plot_size,
-            plot_width=parameters.visualization.plot_size,
+            inner_height=parameters.visualization.plot_size,
+            inner_width=parameters.visualization.plot_size,
             x_axis_type="mercator",
             y_axis_type="mercator",
             aspect_ratio=1,
@@ -98,8 +98,8 @@ def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwa
 
         link_width_scaling = parameters.visualization.link_width_scaling_euclidean
         plot = figure(
-            plot_height=parameters.visualization.plot_size,
-            plot_width=parameters.visualization.plot_size,
+            inner_height=parameters.visualization.plot_size,
+            inner_width=parameters.visualization.plot_size,
             aspect_ratio=1,
             toolbar_location="below",
         )
@@ -587,19 +587,20 @@ def show_dynamic_network(
     plot.add_tools(edge_hover)
 
     # Set up callbacks
+    # all arguments need to be lists
     link_call_back = CustomJS(
         args=dict(
             source=edge_source,
             all_x=all_x,
             all_y=all_y,
-            flows=flows,
+            flows=flows.tolist(),
             all_colors=all_colors,
             link_kwargs=link_kwargs,
             step_size=time.step_size,
         ),
         code="""
         var data = source.data;
-        var t = cb_obj.value/step_size
+        var t = Math.round(cb_obj.value/step_size)
         for(var key in link_kwargs) {
             var value = link_kwargs[key][t];
             data[key] = value
@@ -613,6 +614,8 @@ def show_dynamic_network(
     """,
     )
 
+
+    # all arguments need to be lists
     node_call_back = CustomJS(
         args=dict(
             source=node_source, node_kwargs=node_kwargs, step_size=time.step_size
@@ -717,8 +720,8 @@ def show_demand(
         tmp = nx.MultiDiGraph(g)
         tmp = ox.project_graph(tmp, CRS.from_user_input(3857))
         plot = figure(
-            plot_height=parameters.visualization.plot_size,
-            plot_width=parameters.visualization.plot_size,
+            inner_height=parameters.visualization.plot_size,
+            inner_width=parameters.visualization.plot_size,
             x_axis_type="mercator",
             y_axis_type="mercator",
             aspect_ratio=1,
@@ -733,8 +736,8 @@ def show_demand(
             # cartesian
         )
         plot = figure(
-            plot_height=parameters.visualization.plot_size,
-            plot_width=parameters.visualization.plot_size,
+            inner_height=parameters.visualization.plot_size,
+            inner_width=parameters.visualization.plot_size,
             aspect_ratio=1,
             toolbar_location="below",
         )

@@ -183,17 +183,18 @@ False):
         path = List()
         i = predecessors[j]
         if not reverse:
-            path.append(_get_link_id(i, j, out_links))
+
+            path.insert(0,_get_link_id(i, j, out_links))
         else:
-            path.append(_get_link_id(j, i, out_links))
+            path.insert(0,_get_link_id(j, i, out_links))
         j = predecessors[j]
 
         while j != source:
             i = predecessors[j]
             if not reverse:
-                path.append(_get_link_id(i, j, out_links))
+                path.insert(0,_get_link_id(i, j, out_links))
             else:
-                path.append(_get_link_id(j, i, out_links))
+                path.insert(0,_get_link_id(j, i, out_links))
             j = predecessors[j]
         link_paths.append(path)
 
@@ -245,7 +246,7 @@ def pred_to_path(predecessors, source, target, out_links: UI32CSRMatrix):
     while j != source:
         i = predecessors[j]
 
-        path.append(_get_link_id(i, j, out_links))
+        path.insert(0,_get_link_id(i, j, out_links))
 
         j = predecessors[j]
 

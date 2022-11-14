@@ -16,7 +16,7 @@ dependencies:
   - pip
   - jupyter
   - python-igraph
-  - bokeh
+  - bokeh>=3.0
   - pyproj
   - geojson
   - pandas
