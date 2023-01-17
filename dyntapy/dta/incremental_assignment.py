@@ -1,13 +1,12 @@
 import numpy as np
 from numba import njit
 
-from dyntapy.demand import InternalDynamicDemand
+from dyntapy.demand import InternalDynamicDemand, SimulationTime
 from dyntapy.dta.aon import get_aon_route_choice, link_to_turn_costs_deterministic
-from dyntapy.dta.deterministic import update_arrival_maps, get_turning_fractions
+from dyntapy.dta.deterministic import get_turning_fractions, update_arrival_maps
 from dyntapy.dta.i_ltm import i_ltm
 from dyntapy.dta.i_ltm_cls import ILTMState
 from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
-from dyntapy.demand import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
 from dyntapy.results import _cvn_to_flows
 from dyntapy.supply import Network
@@ -32,9 +31,9 @@ def incremental(network, dynamic_demand, time):
     return {k: v for k, v in zip(attr, vals)}
 
 
-@njit(cache=True)
+@njit()
 def _incremental(
-        network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime
+    network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime
 ):
     iltm_state, network = i_ltm_aon_setup(network, time, dynamic_demand)
     aon_state = incremental_loading(network, time, dynamic_demand, 20, iltm_state)
@@ -53,7 +52,7 @@ def _incremental(
         iltm_state.cvn_down,
         iltm_state.con_up,
         iltm_state.con_down,
-        'destination',
+        "destination",
         iltm_state.turning_fractions,
         aon_state.turn_costs,
         flows,
@@ -62,13 +61,13 @@ def _incremental(
     )
 
 
-@njit(cache=True)
+@njit()
 def incremental_loading(
-        network: Network,
-        time: SimulationTime,
-        dynamic_demand: InternalDynamicDemand,
-        K,
-        iltm_state: ILTMState,
+    network: Network,
+    time: SimulationTime,
+    dynamic_demand: InternalDynamicDemand,
+    K,
+    iltm_state: ILTMState,
 ):
     """
     Parameters
@@ -94,7 +93,7 @@ def incremental_loading(
             demand_factor = np.float32(k / (k - 1))
         for demand in dynamic_demand.demands:
             demand.to_destinations.values = (
-                    demand.to_destinations.values * demand_factor
+                demand.to_destinations.values * demand_factor
             )
             demand.to_origins.values = demand.to_origins.values * demand_factor
         # network loading and route choice are calculated

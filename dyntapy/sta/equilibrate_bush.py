@@ -10,17 +10,16 @@ import numpy as np
 from numba import njit
 from numba.typed import List
 
-from dyntapy.settings import parameters, debugging
-from dyntapy.sta.utilities import __bpr_cost_single_toll, __bpr_derivative_single
+from heapq import heappop, heappush
+from dyntapy.csr import BCSRMatrix, UI32CSRMatrix
+from dyntapy.sta.utilities import _bpr_cost_single_toll, _bpr_derivative_single
 from dyntapy.graph_utils import _get_link_id
+from dyntapy.settings import debugging, debugging_full
 
-link_cost_function = __bpr_cost_single_toll
+
+link_cost_function = _bpr_cost_single_toll
 
 # sub modules for Dial's Algorithm B.
-
-epsilon = parameters.static_assignment.dial_b_cost_differences
-epsilon_2 = epsilon / 20  # Epsilon that is used on an alternatives basis, replaces
-
 
 # the expansion factor in Dial's paper.
 # needs to be lower than epsilon to achieve an epsilon compliant gap across all
@@ -28,26 +27,239 @@ epsilon_2 = epsilon / 20  # Epsilon that is used on an alternatives basis, repla
 
 
 @njit
-def __equilibrate_bush(
-        costs,
-        bush_flows,
-        destination,
-        flows,
-        topological_order,
-        derivatives,
-        turns_in_bush,
-        capacities,
-        ff_tts,
-        bush_out_turns,
-        bush_in_turns,
-        epsilon,
-        global_out_turns,
-        tot_turns,
-        tot_links,
-        to_links,
-        from_links,
-        tolls
+def _remove_unused_turns(
+    L,
+    out_turns,
+    bush_flows,
+    bush_out_turns,
+    min_path_successors,
+    to_link,
 ):
+    if debugging:
+        print("removing turns called")
+    for i in range(bush_out_turns.tot_rows):
+        for idx, turn in enumerate(bush_out_turns.get_nnz(i)):
+            j = out_turns.get_row(i)[idx]
+            if bush_flows[turn] > np.finfo(np.float32).eps:
+                if debugging_full:
+                    if L[j] > L[i]:
+                        # occurs in initial iterations near the origin
+                        print("retaining inefficient turn")
+                        print(turn)
+                        print(L[j] - L[i])
+            if (
+                bush_out_turns.get_row(i)[idx]
+                and bush_flows[turn] < np.finfo(np.float32).eps
+            ):
+                if (
+                    bush_out_turns.get_row(i).sum() > 1
+                    and min_path_successors[i] != to_link[turn]
+                ):
+                    bush_out_turns.get_row(i)[idx] = False
+                    if debugging_full:
+                        print(f"removing turn {turn} from link {i}")
+
+
+@njit
+def topological_sort(
+    out_turns,
+    in_turns,
+    bush_out_turns,
+    tot_reachable_nodes,
+    tot_nodes,
+    destination_link,
+    old_topological_order,
+):
+    # topological sort on a graph assuming that the defined bush_outturns form a
+    # a connected DAG, (Directed Acyclic Graph)
+    # destinations forms the root as sink
+    order = np.zeros(tot_reachable_nodes, dtype=np.uint32)
+    order[0] = destination_link
+    my_heap = []
+    my_heap.append((np.uint32(0), np.uint32(destination_link)))
+    visited_node = np.full(tot_nodes, False)
+    idx = 0
+    while my_heap:
+        my_tuple = heappop(my_heap)
+        pos = my_tuple[0]
+        j = my_tuple[1]
+        assert not visited_node[j]
+        visited_node[j] = True
+        order[idx] = j
+        idx = idx + 1
+        pos_count = pos
+        for i in in_turns.get_row(j):
+            visited_all_nodes_in_forward_star = False
+            if j in out_turns.get_row(i)[bush_out_turns.get_row(i)]:
+                visited_all_nodes_in_forward_star = True  # have all outgoing links
+                # from i been processed?
+                for j2 in out_turns.get_row(i)[bush_out_turns.get_row(i)]:
+                    if not visited_node[j2]:
+                        visited_all_nodes_in_forward_star = False
+            if visited_all_nodes_in_forward_star:
+                pos_count += 1
+                heappush(my_heap, (np.uint32(pos_count), np.uint32(i)))
+    if not len(set(order)) == tot_reachable_nodes:  # if this fails forward and
+        for i in old_topological_order:
+            if i not in set(order):
+                print(i)
+        print("_____")
+        print(len(set(order)))
+        print(tot_reachable_nodes)
+        raise AssertionError
+    # backward stars do
+    # not form DAG
+    return order
+
+
+@njit
+def _update_bush(
+    L,
+    turn_costs,
+    bush_out_turns: BCSRMatrix,
+    bush_flows,
+    destination,
+    global_in_turns,
+    global_out_turns,
+    tot_reachable_links,
+    old_topological_order,
+    eps=np.finfo(np.float32).eps * 100000,
+):
+    # if eps is set too close to 0, cycles may be created.
+    # All solutions to the bush-based algorithms may retain inefficient edges,
+    # within the PAS convergence bound that is set.
+    new_turns_added = False
+    tot_links = global_out_turns.tot_rows
+    for i in old_topological_order:
+        for idx, (j, turn_id) in enumerate(
+            zip(
+                global_out_turns.get_row(i),
+                global_out_turns.get_nnz(i),
+            )
+        ):
+            is_contained_turn = bush_out_turns.get_row(i)[idx]
+            if not is_contained_turn:
+                if L[i] - eps > turn_costs[turn_id] + L[j]:
+                    # current edges is a shortcut edge
+                    # pos2 = np.argwhere(topological_order == j)[0][0]
+                    # pos1 = np.argwhere(topological_order == i)[0][0]
+                    # assert pos2>pos1
+                    # if pos1 > pos2:
+                    #    print('something wrong with labels or shifting')
+                    opposite_exists = False
+                    try:
+                        # never the case on the link turn graph if u-turns are omitted
+                        opposite_turn = _get_link_id(j, i, global_out_turns)
+                        opposite_exists = True
+                    except Exception:
+                        pass
+
+                    if opposite_exists:
+                        flow_opposite_turn = bush_flows[opposite_turn]
+                        if flow_opposite_turn > 0:
+                            # cannot remove this edge, it's loaded!
+                            # adding the opposite would yield a graph that cannot be
+                            # topologically sorted. If the epsilon taken for local PAS
+                            # equilibration is set high compared to the epsilon used in
+                            # this function there'll be trouble.
+                            continue
+                    if debugging_full:
+                        print(f"adding turn {turn_id} from link {i} to link {j}")
+                    new_turns_added = True
+                    bush_out_turns.get_row(i)[idx] = True
+    new_topological_order = topological_sort(
+        global_out_turns,
+        global_in_turns,
+        bush_out_turns,
+        len(old_topological_order),
+        tot_links,
+        destination,
+        old_topological_order,
+    )
+    return new_turns_added, new_topological_order
+
+
+@njit
+def update_bush_flow(
+    delta,
+    turn,
+    in_turns,
+    j,
+    capacities,
+    ff_tts,
+    tolls,
+    local_bush_flow,
+    global_turn_flows,
+    turn_derivatives,
+    costs,
+):
+    local_bush_flow[turn] += delta
+    global_turn_flows[turn] += delta
+    if not global_turn_flows[turn] - local_bush_flow[turn] > -np.finfo(np.float32).eps:
+        print(global_turn_flows[turn] - local_bush_flow[turn])
+        raise AssertionError
+    if not global_turn_flows[turn] >= 0 or not local_bush_flow[turn] >= 0:
+        print(global_turn_flows[turn])
+        print(local_bush_flow[turn])
+        assert global_turn_flows[turn] > -np.finfo(np.float32).eps
+        assert local_bush_flow[turn] > -np.finfo(np.float32).eps
+        print(f"numerical inaccuracy turn {turn}")
+        global_turn_flows[turn] = 0
+        local_bush_flow[turn] = 0
+    link_flow = global_turn_flows[in_turns.get_nnz(j)].sum()
+    updated_turn_cost = link_cost_function(
+        capacity=capacities[j], ff_tt=ff_tts[j], flow=link_flow, toll=tolls[j]
+    )
+    updated_turn_derivative = _bpr_derivative_single(
+        capacity=capacities[j],
+        ff_tt=ff_tts[j],
+        flow=link_flow,
+    )
+    for turn in in_turns.get_nnz(j):
+        costs[turn] = updated_turn_cost
+        turn_derivatives[turn] = updated_turn_derivative
+
+
+@njit
+def find_reachable_topo_links(
+    bush_out_turns: BCSRMatrix, out_turns, origins, tot_links
+):
+    reachable = np.full(tot_links, False)
+    for origin in origins:
+        to_process = List()
+        to_process.append(origin)
+        while len(to_process) > 0:
+            i = to_process.pop()
+            if not reachable[i]:
+                reachable[i] = True
+            else:
+                continue
+            for j in out_turns.get_row(i)[bush_out_turns.get_row(i)]:
+                to_process.append(j)
+    # print(f"origin is {origin}")
+    # print(np.sum(reachable))
+    return reachable
+
+
+@njit
+def _equilibrate_bush(
+    costs,
+    bush_flows,
+    turn_flows,
+    destination,
+    topological_order,
+    derivatives,
+    capacities,
+    ff_tts,
+    bush_out_turns,
+    epsilon,
+    global_out_turns: UI32CSRMatrix,
+    global_in_turns,
+    to_links,
+    tolls,
+):
+    epsilon_2 = epsilon / 20  # Epsilon that is used on an alternatives basis, replaces
+    tot_links = global_out_turns.tot_rows
     # we equilibrate each bush to convergence before moving on to the next ..
     # once shifting in the bush has reached equilibrium
     # we try to add shortcut links from the graph
@@ -64,18 +276,37 @@ def __equilibrate_bush(
     label = np.empty(tot_links, np.uint32)
     U[destination] = 0.0
     L[destination] = 0.0
-    for index, link in enumerate(topological_order):
+
+    link_flows = np.zeros(tot_links)
+    for idx, link in enumerate(range(tot_links)):
+        link_flows[idx] = max(
+            bush_flows[global_out_turns.get_nnz(link)].sum(),
+            bush_flows[global_in_turns.get_nnz(link)].sum(),
+        )
+    origins = np.nonzero(link_flows)[0]
+    reachable = find_reachable_topo_links(
+        bush_out_turns, global_out_turns, origins, tot_links
+    )
+    tot_reachable = np.sum(reachable)
+    reduced_topological_order = np.empty(tot_reachable, dtype=np.uint32)
+    idx = 0
+    for link in topological_order:
+        if reachable[link]:
+            reduced_topological_order[idx] = link
+            idx = idx + 1
+    for index, link in enumerate(reduced_topological_order):
         label[link] = index
-    max_delta_path_cost, L, U = __update_trees(
+    max_delta_path_cost, L, U = _update_trees(
         1,
-        len(topological_order),
+        len(reduced_topological_order),
         L,
         U,
         min_path_successor,
         max_path_successor,
-        topological_order,
+        reduced_topological_order,
         costs,
         bush_flows,
+        global_out_turns,
         bush_out_turns,
     )
 
@@ -85,7 +316,7 @@ def __equilibrate_bush(
             f"{destination} "
             f"are {float(max_delta_path_cost)}______"
         )
-    for i in topological_order:
+    for i in reduced_topological_order:
         assert L[i] != np.inf
 
     if epsilon > max_delta_path_cost:
@@ -96,101 +327,123 @@ def __equilibrate_bush(
                 f"no shifts were ever necessary, delta: {max_delta_path_cost} smaller "
                 f"than epsilon {epsilon}"
             )
-    while epsilon < max_delta_path_cost:
+    while max_delta_path_cost > epsilon:
         if debugging:
             print(
                 f"calling shift flow, cost differences are:{max_delta_path_cost} "
                 f"larger "
                 f"than {epsilon} "
             )
-        lowest_order_node = __shift_flow(
-            topological_order,
+        lowest_order_node = _shift_flow(
+            reduced_topological_order,
             L,
             U,
             min_path_successor,
             max_path_successor,
             derivatives,
             costs,
-            global_out_turns,
             label,
+            turn_flows,
             bush_flows,
             capacities,
-            flows,
             ff_tts,
+            global_in_turns,
+            global_out_turns,
             bush_out_turns,
-            tolls
+            tolls,
+            epsilon_2,
         )
         if debugging:
             print(f"updating trees, branch node is: {lowest_order_node}")
-        max_delta_path_cost, L, U = __update_trees(
+        max_delta_path_cost, L, U = _update_trees(
             label[lowest_order_node],
-            len(topological_order),
+            len(reduced_topological_order),
             L,
             U,
             min_path_successor,
             max_path_successor,
-            topological_order,
+            reduced_topological_order,
             costs,
             bush_flows,
+            global_out_turns,
             bush_out_turns,
         )
+
         if debugging:
             print(f"max path delta in mainline: {max_delta_path_cost}")
-    number_of_turns = np.sum(turns_in_bush)
-    turns_in_bush = __remove_unused_turns(
-        turns_in_bush=turns_in_bush,
-        bush_flows=bush_flows,
-        to_link=to_links,
-        from_link=from_links,
-        bush_out_turns=bush_out_turns,
-        bush_in_turns=bush_in_turns,
-        min_path_successor=min_path_successor,
-        tot_turns=tot_turns,
-    )
-    if np.sum(turns_in_bush) < number_of_turns:
-        if debugging:
-            print("time for new labels, edges have been removed!")
-        max_delta_path_cost, L, U = __update_trees(
-            1,
-            len(topological_order),
-            L,
-            U,
-            min_path_successor,
-            max_path_successor,
-            topological_order,
-            costs,
-            bush_flows,
-            bush_out_turns,
-        )
-    for i in topological_order:
-        assert L[i] != np.inf
 
-    return (
-        flows,
-        bush_flows,
-        turns_in_bush,
-        converged_without_shifts,
+    max_delta_path_cost, L, U = _update_trees(
+        1,
+        len(topological_order),
         L,
         U,
+        min_path_successor,
+        max_path_successor,
+        topological_order,
+        costs,
+        bush_flows,
+        global_out_turns,
         bush_out_turns,
-        bush_in_turns,
+    )
+
+    if debugging:
+        print(f"max path delta before updating bush: {max_delta_path_cost}")
+    _remove_unused_turns(
+        L, global_out_turns, bush_flows, bush_out_turns, min_path_successor, to_links
+    )
+
+    if debugging:
+        for i in topological_order:
+            if L[i] == np.inf:
+                raise AssertionError
+    turns_added, new_topological_order = _update_bush(
+        L,
+        costs,
+        bush_out_turns,
+        bush_flows,
+        destination,
+        global_in_turns,
+        global_out_turns,
+        len(topological_order),
+        topological_order,
+        eps=max_delta_path_cost,
+    )
+    if debugging:
+        if turns_added:
+            print("turns added after equilibration, bush not converged")
+        else:
+            print("no turns added")
+
+    new_labels = np.full(global_out_turns.tot_rows, global_out_turns.tot_rows + 1)
+
+    for label, link in enumerate(new_topological_order):
+        new_labels[link] = label
+
+    return (
+        turn_flows,
+        bush_flows,
+        new_topological_order,
+        new_labels,
+        converged_without_shifts and not turns_added,
+        bush_out_turns,
     )
 
 
 @njit
-def __update_path_flow(
-        delta_f,
-        start_link,
-        end_link,
-        successor,
-        bush_flow,
-        out_turns,
-        derivatives,
-        costs,
-        capacities,
-        ff_tts,
-        flows,
-        tolls
+def _update_path_flow(
+    delta_f,
+    start_link,
+    end_link,
+    successor,
+    turn_flows,
+    bush_flow,
+    global_in_turns,
+    global_out_turns,
+    derivatives,
+    costs,
+    capacities,
+    ff_tts,
+    tolls,
 ):
     new_path_flow = 100000
     new_path_cost = 0
@@ -198,25 +451,24 @@ def __update_path_flow(
     i = start_link
     while i != end_link:
         (i, j) = (i, successor[i])
-        turn_id = _get_link_id(i, j, out_turns)
+        turn_id = _get_link_id(i, j, global_out_turns)
         if not bush_flow[turn_id] + delta_f >= 0:
-            print(f'error turn {turn_id} links {i} and {j}')
+            print(f"error turn {turn_id} links {i} and {j}")
             raise AssertionError
-        bush_flow[turn_id] = bush_flow[turn_id] + delta_f
-        flows[j] = flows[j] + delta_f
+        update_bush_flow(
+            delta_f,
+            turn_id,
+            global_in_turns,
+            j,
+            capacities,
+            ff_tts,
+            tolls,
+            bush_flow,
+            turn_flows,
+            derivatives,
+            costs,
+        )
         new_path_flow = min(new_path_flow, bush_flow[turn_id])
-        # get link flows
-        costs[turn_id] = link_cost_function(
-            capacity=capacities[i],
-            ff_tt=ff_tts[i],
-            flow=flows[i], toll=tolls[i]
-        )
-        # get link derivatives
-        derivatives[turn_id] = __bpr_derivative_single(
-            capacity=capacities[j],
-            ff_tt=ff_tts[j],
-            flow=flows[j],
-        )
         new_path_cost += costs[turn_id]
         new_path_derivative += derivatives[turn_id]
         i = successor[i]
@@ -224,30 +476,30 @@ def __update_path_flow(
 
 
 @njit
-def __get_delta_flow_and_cost(
-        min_path_flow,
-        max_path_flow,
-        min_path_cost,
-        max_path_cost,
-        min_path_derivative,
-        max_path_derivative,
+def _get_delta_flow_and_cost(
+    min_path_flow,
+    max_path_flow,
+    min_path_cost,
+    max_path_cost,
+    min_path_derivative,
+    max_path_derivative,
 ):
     if min_path_cost < max_path_cost:
         delta_f = max_path_flow
-    elif min_path_cost> max_path_cost:
+    elif min_path_cost > max_path_cost:
         delta_f = -min_path_flow
     else:
         # equal
-        return 0,0
+        return 0, 0
     assert min_path_flow >= 0
     if (max_path_derivative + min_path_derivative) <= 0:
         if min_path_cost < max_path_cost:
             delta_f = max_path_flow
-        elif min_path_cost> max_path_cost:
+        elif min_path_cost > max_path_cost:
             delta_f = -min_path_flow
         else:
             # equal
-            return 0,0
+            return 0, 0
     else:
         if delta_f > 0:
             delta_f = min(
@@ -264,7 +516,7 @@ def __get_delta_flow_and_cost(
                 / (min_path_derivative + max_path_derivative),
             )
             if not delta_f < 0:
-                print('error')
+                print("error")
                 print(min_path_cost)
                 print(max_path_cost)
                 print(min_path_derivative)
@@ -275,32 +527,34 @@ def __get_delta_flow_and_cost(
 
 
 @njit
-def __equalize_cost(
-        start_link,
-        end_link,
-        max_path_flow,
-        min_path_flow,
-        max_path_cost,
-        min_path_cost,
-        min_path_derivative,
-        max_path_derivative,
-        min_path_successors,
-        max_path_successors,
-        bush_flow,
-        out_turns,
-        derivatives,
-        costs,
-        capacities,
-        ff_tts,
-        flows,
-        tolls
+def _equalize_cost(
+    start_link,
+    end_link,
+    max_path_flow,
+    min_path_flow,
+    max_path_cost,
+    min_path_cost,
+    min_path_derivative,
+    max_path_derivative,
+    min_path_successors,
+    max_path_successors,
+    turn_flows,
+    bush_flow,
+    global_in_turns,
+    global_out_turns,
+    derivatives,
+    costs,
+    capacities,
+    ff_tts,
+    tolls,
+    epsilon_2,
 ):
     assert start_link != end_link
     assert min_path_flow >= 0
     assert max_path_flow >= 0
     total = min_path_flow + max_path_flow
     # print('got into eq cost')
-    delta_f, delta_cost = __get_delta_flow_and_cost(
+    delta_f, delta_cost = _get_delta_flow_and_cost(
         min_path_flow,
         max_path_flow,
         min_path_cost,
@@ -312,42 +566,43 @@ def __equalize_cost(
     assert abs(delta_f) < 100000
     while abs(delta_cost) > epsilon_2 and abs(delta_f) > 0:
         #   print(f'delta cost is {delta_cost}')
-        min_path_flow, min_path_cost, min_path_derivative = __update_path_flow(
+        min_path_flow, min_path_cost, min_path_derivative = _update_path_flow(
             delta_f,
             start_link,
             end_link,
             min_path_successors,
+            turn_flows,
             bush_flow,
-            out_turns,
+            global_in_turns,
+            global_out_turns,
             derivatives,
             costs,
             capacities,
             ff_tts,
-            flows,
-            tolls
+            tolls,
         )
         #  print('got out of update p flow')
-        max_path_flow, max_path_cost, max_path_derivative = __update_path_flow(
+        max_path_flow, max_path_cost, max_path_derivative = _update_path_flow(
             -delta_f,
             start_link,
             end_link,
             max_path_successors,
+            turn_flows,
             bush_flow,
-            out_turns,
+            global_in_turns,
+            global_out_turns,
             derivatives,
             costs,
             capacities,
             ff_tts,
-            flows,
-            tolls
+            tolls,
         )
         assert (
-                np.abs(total - (min_path_flow + max_path_flow)) < np.finfo(
-            np.float32).eps
+            np.abs(total - (min_path_flow + max_path_flow)) < np.finfo(np.float32).eps
         )
         # bush flow
         # print('updated path flows')
-        delta_f, delta_cost = __get_delta_flow_and_cost(
+        delta_f, delta_cost = _get_delta_flow_and_cost(
             min_path_flow,
             max_path_flow,
             min_path_cost,
@@ -360,17 +615,18 @@ def __equalize_cost(
 
 
 @njit
-def __update_trees(
-        k,
-        n,
-        L,
-        U,
-        min_path_successor,
-        max_path_successor,
-        topological_order,
-        costs,
-        bush_flows,
-        bush_out_turns,
+def _update_trees(
+    k,
+    n,
+    L,
+    U,
+    min_path_successor,
+    max_path_successor,
+    topological_order,
+    costs,
+    bush_flows,
+    out_turns,
+    bush_out_turns: BCSRMatrix,
 ):
     """
     k
@@ -388,13 +644,16 @@ def __update_trees(
         L[i], U[i] = np.inf, -np.inf
         max_path_successor[i] = -1
         min_path_successor[i] = -1
-        for j, turn_id in bush_out_turns[i]:
+        for j, turn_id in zip(
+            out_turns.get_row(i)[bush_out_turns.get_row(i)],
+            out_turns.get_nnz(i)[bush_out_turns.get_row(i)],
+        ):
             if L[j] == np.inf:
-                raise AssertionError
                 if debugging:
                     print("topological order broken for node i " + str(i))
                     print("supposed to be BEFORE node j " + str(j))
                     print(L)
+                raise AssertionError
 
             # assert i in L
             # assert j in L
@@ -405,14 +664,16 @@ def __update_trees(
             if L[i] > L[j] + costs[turn_id]:
                 L[i] = L[j] + costs[turn_id]
                 min_path_successor[i] = j
-            if bush_flows[turn_id] > np.finfo(np.float32).eps and U[i] < U[j] + costs[
-                turn_id]:
+            if (
+                bush_flows[turn_id] > np.finfo(np.float32).eps
+                and U[i] < U[j] + costs[turn_id]
+            ):
                 U[i] = U[j] + costs[turn_id]
                 max_path_successor[i] = j
         if max_path_successor[i] != -1:
             max_delta_path_costs = max(max_delta_path_costs, U[i] - L[i])
-            if max_delta_path_costs>9999999:
-                print('hi')
+            if max_delta_path_costs > 9999999:
+                print("hi")
             assert max_delta_path_costs < 9999999
         if U[i] > 0:
             assert L[i] <= U[i]
@@ -421,15 +682,15 @@ def __update_trees(
 
 
 @njit
-def __get_branch_links(
-        origin,
-        min_path_successor,
-        max_path_successor,
-        bush_flows,
-        out_turns,
-        turn_costs,
-        label,
-        turn_derivatives,  # turn derivatives
+def _get_branch_links(
+    origin,
+    min_path_successor,
+    max_path_successor,
+    bush_flows,
+    out_turns,
+    turn_costs,
+    label,
+    turn_derivatives,  # turn derivatives
 ):
     """
 
@@ -464,10 +725,13 @@ def __get_branch_links(
     )
     min_path_cost, max_path_cost = (
         max(turn_costs[next_min_turn] - turn_costs[next_max_turn], 0),
-        max(turn_costs[next_max_turn] - turn_costs[next_min_turn], 0))
+        max(turn_costs[next_max_turn] - turn_costs[next_min_turn], 0),
+    )
     # omitting the shared cost of the origin link here.
-    min_path_derivative, max_path_derivative = turn_derivatives[next_min_turn], \
-                                               turn_derivatives[next_max_turn]
+    min_path_derivative, max_path_derivative = (
+        turn_derivatives[next_min_turn],
+        turn_derivatives[next_max_turn],
+    )
     while next_min_i != next_max_i:
         # print(f'the current min label is {label[next_min_i]}with node {next_min_i}')
         # print(f'the current max label is {label[next_max_i]}with node {next_max_i}')
@@ -503,11 +767,11 @@ def __get_branch_links(
     assert max_path_flow >= 0
     for turn in max_turns:
         if bush_flows[turn] < max_path_flow:
-            print(f'error with turn {turn}')
+            print(f"error with turn {turn}")
 
     for turn in min_turns:
         if bush_flows[turn] < min_path_flow:
-            print(f'error with turn {turn}')
+            print(f"error with turn {turn}")
     return (
         first_branch_link,
         last_branch_link,
@@ -521,22 +785,24 @@ def __get_branch_links(
 
 
 @njit
-def __shift_flow(
-        topological_order,
-        L,
-        U,
-        min_path_successors,
-        max_path_successors,
-        derivatives,
-        costs,
-        out_turns,
-        label,
-        bush_flows,
-        capacities,
-        flows,
-        ff_tts,
-        bush_out_turns,
-        tolls
+def _shift_flow(
+    topological_order,
+    L,
+    U,
+    min_path_successors,
+    max_path_successors,
+    derivatives,
+    costs,
+    label,
+    turn_flows,
+    bush_flows,
+    capacities,
+    ff_tts,
+    global_in_turns,
+    global_out_turns,
+    bush_out_turns,
+    tolls,
+    epsilon_2,
 ):
     lowest_order_link = 1
     # print('new run in shift flow')
@@ -554,12 +820,12 @@ def __shift_flow(
                 max_path_cost,
                 min_path_derivative,
                 max_path_derivative,
-            ) = __get_branch_links(
+            ) = _get_branch_links(
                 j,
                 min_path_successors,
                 max_path_successors,
                 bush_flows,
-                out_turns,
+                global_out_turns,
                 costs,
                 label,
                 derivatives,
@@ -570,7 +836,7 @@ def __shift_flow(
             #       f's{label[start_node], label[end_node]}, cost dif ar'
             #       f'e{max_path_cost - min_path_cost}')
             if abs(max_path_cost - min_path_cost) > 0:
-                __equalize_cost(
+                _equalize_cost(
                     start_link,
                     end_link,
                     max_path_flow,
@@ -581,19 +847,21 @@ def __shift_flow(
                     max_path_derivative,
                     min_path_successors,
                     max_path_successors,
+                    turn_flows,
                     bush_flows,
-                    out_turns,
+                    global_in_turns,
+                    global_out_turns,
                     derivatives,
                     costs,
                     capacities,
                     ff_tts,
-                    flows,
-                    tolls
+                    tolls,
+                    epsilon_2,
                 )
                 assert total_flow == min_path_flow + max_path_flow
                 # print(f'updating tree between {end_link} and {j} with labels'
                 #       f' {label[end_link], label[j]}')
-                __update_trees(
+                _update_trees(
                     label[end_link],
                     label[j] + 1,
                     L,
@@ -603,6 +871,7 @@ def __shift_flow(
                     topological_order,
                     costs,
                     bush_flows,
+                    global_out_turns,
                     bush_out_turns,
                 )
                 # print(f'cost differences now {U[j] - L[j]}')
@@ -612,60 +881,3 @@ def __shift_flow(
             lowest_order_link = j
 
     return lowest_order_link
-
-
-@njit
-def __remove_unused_turns(
-        turns_in_bush,
-        bush_flows,
-        bush_out_turns,
-        bush_in_turns,
-        min_path_successor,
-        from_link,
-        to_link,
-        tot_turns,
-):
-    if debugging:
-        print("removing edges called")
-    to_be_removed = np.full(tot_turns, False)
-    for turn, in_bush in enumerate(turns_in_bush):
-        if in_bush:
-            if bush_flows[turn] < np.finfo(np.float32).eps:
-                to_be_removed[turn] = True
-    offset = 0
-    pruning_counter = 0
-    for turn, remove in enumerate(to_be_removed):
-        if remove:
-            i = from_link[turn]
-            j = to_link[turn]
-            if debugging:
-                pass
-                # print(f"edge under consideration ij: {i, j}")
-            try:
-                if (
-                        len(bush_out_turns[i]) > 1 and min_path_successor[i] != j
-                ):  # otherwise the edge is needed for connectivity
-                    #    print(f'edge {(i,j)} with flow
-                    #    {bush_flows[edge_map[(i,j)]]} removed ')
-                    turns_in_bush[turn] = False
-                    if bush_out_turns[i].size == 2:
-                        bush_out_turns[i] = np.empty((0, 2), dtype=np.int64)
-                    else:
-                        bush_out_turns[i] = bush_out_turns[i][
-                            bush_out_turns[i][:, 0] != j
-                            ]
-                    if bush_in_turns[j].size == 2:
-                        bush_in_turns[j] = np.empty((0, 2), dtype=np.int64)
-                    else:
-                        bush_in_turns[j] = bush_in_turns[j][bush_in_turns[j][:, 0] != i]
-                    pruning_counter += 1
-                    offset += 1
-
-                    if debugging:
-                        print(f"removed edge ij: {i, j}, turn {turn}")
-            except Exception:
-                raise Exception
-
-    # print(f'there are {len(bush_edges)} edges
-    # left after pruning the bush by {pruning_counter}')
-    return turns_in_bush

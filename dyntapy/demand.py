@@ -11,12 +11,13 @@
 #
 from collections import OrderedDict
 from warnings import warn
+
 import networkx as nx
 import numpy as np
-from numba import njit, float32
+from numba import float32, njit
 from numba.core.types import ListType, uint32
-from numba.typed.typedlist import List
 from numba.experimental import jitclass
+from numba.typed.typedlist import List
 
 from dyntapy.csr import F32CSRMatrix, UI32CSRMatrix, csr_prep, f32csr_type
 from dyntapy.supply import Network
@@ -106,6 +107,9 @@ def build_internal_static_demand(od_graph: nx.DiGraph):
         # will be deprecated for networkx 3.0
         lil_demand = nx.to_scipy_sparse_matrix(od_graph, weight="flow", format="lil")
     tot_centroids = od_graph.number_of_nodes()
+    # boxing these values into float32 leads to some minor demand loss
+    # the boxing leads to rounding down - do not know why -
+    # as a consequence the row and column totals can be off
     row = np.asarray(lil_demand.nonzero()[0])
     col = np.asarray(lil_demand.nonzero()[1])
     vals = np.asarray(lil_demand.tocsr().data, dtype=np.float32)
@@ -381,8 +385,8 @@ def build_internal_dynamic_demand(
     ]
 
     if not np.all(
-        dynamic_demand.insertion_times[1:] - dynamic_demand.insertion_times[:-1] >=
-        simulation_time.step_size
+        dynamic_demand.insertion_times[1:] - dynamic_demand.insertion_times[:-1]
+        >= simulation_time.step_size
     ):
         raise ValueError(
             "insertion times are assumed to be monotonously increasing."

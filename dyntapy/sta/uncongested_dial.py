@@ -11,10 +11,7 @@ from math import exp
 import numpy as np
 
 from dyntapy.demand import InternalStaticDemand
-from dyntapy.graph_utils import (
-    _make_in_links,
-    _make_out_links,
-)
+from dyntapy.graph_utils import _make_in_links, _make_out_links
 from dyntapy.settings import parameters
 from dyntapy.sta.utilities import generate_bushes
 from dyntapy.supply import Network

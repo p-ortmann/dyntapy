@@ -136,6 +136,8 @@ venv.bak/
 #intellij
 /.idea/
 
+#tmuxp
+.tmuxp*
 #vscode
 /.vscode/
 

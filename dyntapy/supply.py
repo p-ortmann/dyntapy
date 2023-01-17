@@ -32,7 +32,6 @@ from numba.experimental import jitclass
 
 from dyntapy.csr import UI32CSRMatrix, f32csr_type, ui32csr_type
 
-
 spec_link = [
     ("capacity", float32[:]),
     ("from_node", uint32[:]),

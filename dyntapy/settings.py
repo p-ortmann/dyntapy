@@ -23,6 +23,7 @@ log_level = 20
 log_numba = False  # this will affect performance dramatically,
 # and should only be set to true for debugging
 debugging = False  # whether to run various consistency checks during the computation
+debugging_full = False
 
 default_dynamic_city = "Zinnowitz"
 default_static_city = "Leuven"
@@ -132,7 +133,7 @@ class _NetworkLoading:
     node_model: str = "orca"  # 'only 'orca' for now
     precision: np.float32 = np.float32(0.001)
     use_turn_delays: bool = False
-    # whether or not to take into account turn delays in the route choice
+    # whether to take into account turn delays in the route choice
     # more of a space holder settings as it's not yet
     # integrated into propagation ..
     tot_itr_incremental: int = (
@@ -148,7 +149,7 @@ class _Visualization:
     """
 
     max_links: np.uint32 = np.uint32(10000)
-    plot_size: int = 800
+    plot_size: int = 920
     plot_size_notebook: int = 600
     notebook_plot_size: int = 600
     rounding_digits: int = 2

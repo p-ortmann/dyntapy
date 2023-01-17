@@ -8,12 +8,11 @@
 from heapq import heappop, heappush
 
 import numpy as np
-from numba import njit
+from numba import float64, njit
 from numba.typed import Dict, List
-from numba import float64
 
-from dyntapy.supply_data import build_network
 from dyntapy.csr import UI32CSRMatrix
+from dyntapy.supply_data import build_network
 
 
 # store link_ids as tuple, infer from link_ids, to_node and from_node
@@ -125,9 +124,7 @@ def _make_in_links(links_to_include, from_node, to_node, tot_nodes):
     max_in_links = np.max(star_sizes)  # getting the max in_degree of nodes to limit
     # memory usage in creation
     for i in range(tot_nodes):
-        backward_star[i] = np.empty(
-            (max_in_links, 2), dtype=np.int64
-        )
+        backward_star[i] = np.empty((max_in_links, 2), dtype=np.int64)
 
     star_sizes = np.zeros(tot_nodes, dtype=np.int64)  # , dtype=int_dtype
     for link, include in enumerate(links_to_include):
@@ -154,8 +151,9 @@ def _get_link_id(from_node: int, to_node: int, out_links: UI32CSRMatrix):
 
 
 @njit(nogil=True)
-def pred_to_paths(predecessors, source, targets, out_links: UI32CSRMatrix, reverse=
-False):
+def pred_to_paths(
+    predecessors, source, targets, out_links: UI32CSRMatrix, reverse=False
+):
     """
     converts optimal predecessor arrays to paths between source and targets
 
@@ -184,17 +182,17 @@ False):
         i = predecessors[j]
         if not reverse:
 
-            path.insert(0,_get_link_id(i, j, out_links))
+            path.insert(0, _get_link_id(i, j, out_links))
         else:
-            path.insert(0,_get_link_id(j, i, out_links))
+            path.insert(0, _get_link_id(j, i, out_links))
         j = predecessors[j]
 
         while j != source:
             i = predecessors[j]
             if not reverse:
-                path.insert(0,_get_link_id(i, j, out_links))
+                path.insert(0, _get_link_id(i, j, out_links))
             else:
-                path.insert(0,_get_link_id(j, i, out_links))
+                path.insert(0, _get_link_id(j, i, out_links))
             j = predecessors[j]
         link_paths.append(path)
 
@@ -246,7 +244,7 @@ def pred_to_path(predecessors, source, target, out_links: UI32CSRMatrix):
     while j != source:
         i = predecessors[j]
 
-        path.insert(0,_get_link_id(i, j, out_links))
+        path.insert(0, _get_link_id(i, j, out_links))
 
         j = predecessors[j]
 
@@ -255,10 +253,10 @@ def pred_to_path(predecessors, source, target, out_links: UI32CSRMatrix):
 
 @njit(cache=True)
 def dijkstra_all(
-        costs,
-        out_links: UI32CSRMatrix,
-        source,
-        is_centroid,
+    costs,
+    out_links: UI32CSRMatrix,
+    source,
+    is_centroid,
 ):
     """
     compiled one to all shortest path computation
@@ -338,7 +336,7 @@ def dijkstra_all(
 
 @njit(cache=True)
 def dijkstra_with_targets(
-        costs, out_links: UI32CSRMatrix, source, is_centroid, targets
+    costs, out_links: UI32CSRMatrix, source, is_centroid, targets
 ):
     """
     compiled one to many shortest path computation, terminates once distance array
@@ -527,8 +525,16 @@ def get_shortest_paths(g, source, targets, costs=None, return_paths=False):
 
 
 @njit
-def _kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
-                detour_rejection=0.5):
+def _kspwlo_esx(
+    costs,
+    out_links,
+    source,
+    target,
+    k,
+    is_centroid,
+    sim_threshold,
+    detour_rejection=0.5,
+):
     # Chondrogiannis, Theodoros, et al. "Finding k-shortest paths with limited
     # overlap." The VLDB Journal 29.5 (2020): 1023-1047.
 
@@ -537,8 +543,9 @@ def _kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
     _targets = np.empty(1)
     _targets[0] = target  # making singular target iterable to comply with fixed typed
     # of dijkstra_with_targets arg
-    distances, pred = dijkstra_with_targets(costs, out_links, source, is_centroid,
-                                            _targets)
+    distances, pred = dijkstra_with_targets(
+        costs, out_links, source, is_centroid, _targets
+    )
     sp = pred_to_path(pred, source, target, out_links)
     do_not_ignore = np.full(costs.size, False)
     solution_paths = List()
@@ -567,14 +574,15 @@ def _kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
             # print(f'there are {len(path_queues)} queues')
             # print(f'{solution_paths[-1]=}')
             # print(f'calling max_similarity, {candidate_path=}')
-            max_sim, max_path, path_idx = max_similarity(candidate_path, solution_paths,
-                                                         path_queues)
+            max_sim, max_path, path_idx = max_similarity(
+                candidate_path, solution_paths, path_queues
+            )
 
             # print(f'path has {max_sim=}')
             path_queue = path_queues[path_idx]
             if path_idx == -1:
                 incomplete_solution = True
-                print('incomplete solution')
+                print("incomplete solution")
                 break  # no edges can be removed, less than k paths found
             if max_sim < sim_threshold:
                 # candidate can be added to the set
@@ -596,7 +604,9 @@ def _kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
                 source,
                 is_centroid,
                 target,
-                links_to_ignore, path_rejection_cost)
+                links_to_ignore,
+                path_rejection_cost,
+            )
             if not path_found:
                 #   print(f'{link=} cannot be ignored')
                 do_not_ignore[link] = True
@@ -606,8 +616,9 @@ def _kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
                 candidate_path = tentative_path
             #   print(f'candidate path replaced with tentative path')
 
-        max_sim, max_path, path_idx = max_similarity(candidate_path, solution_paths,
-                                                     path_queues)
+        max_sim, max_path, path_idx = max_similarity(
+            candidate_path, solution_paths, path_queues
+        )
         if max_sim < sim_threshold:
             # print('new path added to solution set')
             solution_paths.append(candidate_path)
@@ -649,8 +660,13 @@ def max_similarity(path, path_set, path_queues):
 
 @njit
 def _dijkstra_with_target_ignored_links(
-        costs, out_links: UI32CSRMatrix, source, is_centroid, target,
-        links_to_ignore, max_dist
+    costs,
+    out_links: UI32CSRMatrix,
+    source,
+    is_centroid,
+    target,
+    links_to_ignore,
+    max_dist,
 ):
     # TODO: add links to ignore option
 
@@ -686,8 +702,7 @@ def _dijkstra_with_target_ignored_links(
                 heappush(my_heap, heap_item)
                 predecessors[j] = i
     if target_found and distances[target] < max_dist:
-        path = pred_to_path(predecessors, source, target,
-                            out_links)
+        path = pred_to_path(predecessors, source, target, out_links)
     else:
         target_found = False
         path = List()
@@ -695,8 +710,16 @@ def _dijkstra_with_target_ignored_links(
     return target_found, distances[target], path
 
 
-def kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
-               detour_rejection=0.5):
+def kspwlo_esx(
+    costs,
+    out_links,
+    source,
+    target,
+    k,
+    is_centroid,
+    sim_threshold,
+    detour_rejection=0.5,
+):
     """
     computes k-shortest paths with a maximum overlap of `sim_threshold`.
 
@@ -744,9 +767,16 @@ def kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
       https://doi.org/10.1007/s00778-020-00604-x.
 
     """
-    solution_paths, distances = _kspwlo_esx(costs, out_links, source, target, k,
-                                            is_centroid,
-                                            sim_threshold, detour_rejection)
+    solution_paths, distances = _kspwlo_esx(
+        costs,
+        out_links,
+        source,
+        target,
+        k,
+        is_centroid,
+        sim_threshold,
+        detour_rejection,
+    )
     py_solution_paths = []
     py_distances = []
     for path, dist in zip(solution_paths, distances):
@@ -758,7 +788,9 @@ def kspwlo_esx(costs, out_links, source, target, k, is_centroid, sim_threshold,
     return py_solution_paths, py_distances
 
 
-def get_k_shortest_paths(g, source, target, costs=None, k=3, sim_threshold=0.75, detour_rejection=0.5):
+def get_k_shortest_paths(
+    g, source, target, costs=None, k=3, sim_threshold=0.75, detour_rejection=0.5
+):
     """
     computes k-shortest paths with a maximum overlap of `sim_threshold`
 
@@ -818,7 +850,15 @@ def get_k_shortest_paths(g, source, target, costs=None, k=3, sim_threshold=0.75,
         costs = costs.astype(np.float32)
 
     out_links = network.nodes.out_links
-    solution_paths, distances = kspwlo_esx(costs, out_links, source, target, k, network.nodes.is_centroid,
-                                           sim_threshold, detour_rejection)
+    solution_paths, distances = kspwlo_esx(
+        costs,
+        out_links,
+        source,
+        target,
+        k,
+        network.nodes.is_centroid,
+        sim_threshold,
+        detour_rejection,
+    )
 
     return solution_paths, distances

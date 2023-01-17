@@ -12,8 +12,8 @@
 import datetime
 import os
 import warnings
-from itertools import chain
 from inspect import signature
+from itertools import chain
 from warnings import warn
 
 import networkx as nx
@@ -21,10 +21,9 @@ import numpy as np
 import osmnx as ox
 from bokeh.io import output_file, output_notebook, show
 from bokeh.layouts import Spacer, column, row
-from bokeh.models import HoverTool, OpenURL, TapTool
+from bokeh.models import Circle, HoverTool, OpenURL, TapTool
 from bokeh.models.callbacks import CustomJS
-from bokeh.models.glyphs import Patches, MultiPolygons
-from bokeh.models import Circle
+from bokeh.models.glyphs import MultiPolygons, Patches
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.tile_providers import Vendors, get_provider
@@ -50,7 +49,9 @@ def _get_output_file(plot_name: str):
     return os.getcwd() + os.path.sep + f"{plot_name}_{dt_string}.html"
 
 
-def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwargs):
+def _process_plot_arguments(
+    g, title, notebook, euclidean, link_kwargs, node_kwargs, max_edge_width
+):
     # process all arguments that are shared between dynamic and static
     for _, _, data in g.edges.data():
         if "x_coord" in data:
@@ -79,8 +80,8 @@ def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwa
         # starting at 0 & consecutively labelled integers
     if not euclidean:
         plot = figure(
-            inner_height=parameters.visualization.plot_size,
-            inner_width=parameters.visualization.plot_size,
+            height=parameters.visualization.plot_size,
+            width=parameters.visualization.plot_size,
             x_axis_type="mercator",
             y_axis_type="mercator",
             aspect_ratio=1,
@@ -98,13 +99,14 @@ def _process_plot_arguments(g, title, notebook, euclidean, link_kwargs, node_kwa
 
         link_width_scaling = parameters.visualization.link_width_scaling_euclidean
         plot = figure(
-            inner_height=parameters.visualization.plot_size,
-            inner_width=parameters.visualization.plot_size,
+            height=parameters.visualization.plot_size,
+            width=parameters.visualization.plot_size,
             aspect_ratio=1,
             toolbar_location="below",
         )
         tmp = g
 
+    link_width_scaling = max_edge_width * link_width_scaling
     if title is None:
         title = "network_plot"
     plot.title.text = title
@@ -150,6 +152,7 @@ def show_network(
     notebook=False,
     show_nodes=True,
     return_plot=False,
+    max_edge_width=1,
 ):
     """
     Visualizing a network with static attributes in a .html.
@@ -225,7 +228,13 @@ def show_network(
             DeprecationWarning,
         )
     plot, tmp, link_width_scaling = _process_plot_arguments(
-        g, title, notebook, euclidean, link_kwargs, node_kwargs
+        g,
+        title,
+        notebook,
+        euclidean,
+        link_kwargs,
+        node_kwargs,
+        max_edge_width=max_edge_width,
     )
     show_flows = True
     if flows is not None:
@@ -359,6 +368,7 @@ def show_dynamic_network(
     notebook=False,
     show_nodes=True,
     return_plot=False,
+    max_edge_width=1,
 ):
     """
     Visualizing a network with dynamic attributes in a .html.
@@ -431,7 +441,13 @@ def show_dynamic_network(
         )
 
     plot, tmp, link_width_scaling = _process_plot_arguments(
-        g, title, notebook, euclidean, link_kwargs, node_kwargs
+        g,
+        title,
+        notebook,
+        euclidean,
+        link_kwargs,
+        node_kwargs,
+        max_edge_width=max_edge_width,
     )
     if flows is None:
         if "flows" not in list(link_kwargs.keys()):
@@ -614,7 +630,6 @@ def show_dynamic_network(
     """,
     )
 
-
     # all arguments need to be lists
     node_call_back = CustomJS(
         args=dict(
@@ -658,6 +673,7 @@ def show_demand(
     toy_network=False,
     highlight_nodes=[],
     return_plot=False,
+    max_edge_width=1,
 ):
     """
 
@@ -729,7 +745,9 @@ def show_demand(
         )
         tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
         plot.add_tile(tile_provider)
-        link_width_scaling = parameters.visualization.link_width_scaling
+        link_width_scaling = (
+            max_edge_width * parameters.visualization.link_width_scaling
+        )
     else:
         tmp = (
             g  # projection not needed for toy networks, coordinates are plain

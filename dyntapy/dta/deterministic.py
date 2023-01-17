@@ -10,12 +10,11 @@ import numpy as np
 from numba import bool_, float32, float64, njit, prange
 from numba.experimental import jitclass
 
-from dyntapy.demand import InternalDynamicDemand
+from dyntapy.demand import InternalDynamicDemand, SimulationTime
 from dyntapy.dta.qr_projection import qr_projection
-from dyntapy.demand import SimulationTime
+from dyntapy.settings import parameters
 from dyntapy.supply import Network
 from dyntapy.utilities import _log
-from dyntapy.settings import parameters
 
 spec_rc_state = [
     ("link_costs", float32[:, :]),

@@ -24,7 +24,7 @@ from heapq import heappop, heappush
 
 import numba as nb
 import numpy as np
-from numba.core.types import float32, uint8, uint32, uint64
+from numba.core.types import boolean, float32, uint8, uint32, uint64
 
 numba_csr_val_types = [float32[:], uint32[:], uint8[:]]
 
@@ -282,13 +282,16 @@ def _csr_format(index_array, number_of_rows):
 F32CSRMatrix = __build_csr_cls(nb.float32[:])
 UI32CSRMatrix = __build_csr_cls(nb.uint32[:])
 UI8CSRMatrix = __build_csr_cls(nb.uint8[:])
+BCSRMatrix = __build_csr_cls(boolean[:])
 
 try:
     ui32csr_type = UI32CSRMatrix.class_type.instance_type
     f32csr_type = F32CSRMatrix.class_type.instance_type
     ui8csr_type = UI8CSRMatrix.class_type.instance_type
+    bcsr_type = BCSRMatrix.class_type.instance_type
 except Exception:
     # numba disabled
     ui32csr_type = None
     f32csr_type = None
     ui8csr_type = None
+    bcsr_type = None

@@ -12,14 +12,13 @@ from numba import njit
 from numba.typed import List
 
 from dyntapy.csr import UI32CSRMatrix
-from dyntapy.demand import InternalDynamicDemand, InternalStaticDemand
+from dyntapy.demand import InternalDynamicDemand, InternalStaticDemand, SimulationTime
+from dyntapy.dta.aon import link_to_turn_costs_deterministic
 from dyntapy.dta.debugging import sum_of_turning_fractions, verify_assignment_state
+from dyntapy.dta.deterministic import update_route_choice
 from dyntapy.dta.i_ltm import i_ltm
 from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
-from dyntapy.dta.aon import link_to_turn_costs_deterministic
 from dyntapy.dta.incremental_assignment import incremental_loading
-from dyntapy.dta.deterministic import update_route_choice
-from dyntapy.demand import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
 from dyntapy.results import _cvn_to_flows
 from dyntapy.settings import debugging, parameters
@@ -31,6 +30,7 @@ tot_itr_incremental = parameters.dynamic_assignment.network_loading.tot_itr_incr
 commodity_type = "destination"
 
 
+@njit()
 def _i_ltm_aon(
     network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime
 ):

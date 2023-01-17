@@ -13,10 +13,10 @@ from numba.typed import List
 
 from dyntapy.demand import InternalStaticDemand
 from dyntapy.graph_utils import (
+    _make_in_links,
+    _make_out_links,
     dijkstra_all,
     pred_to_paths,
-    _make_out_links,
-    _make_in_links,
 )
 from dyntapy.settings import parameters
 from dyntapy.supply import Network
@@ -25,37 +25,38 @@ bpr_b = parameters.static_assignment.bpr_beta
 bpr_a = parameters.static_assignment.bpr_alpha
 
 
-
 @njit
-def __bpr_cost_tolls(flows, capacities, ff_tts, tolls):
+def _bpr_cost_tolls(flows, capacities, ff_tts, tolls):
     number_of_links = len(flows)
     costs = np.empty(number_of_links, dtype=np.float64)
     for it, (f, c, ff_tt, toll) in enumerate(zip(flows, capacities, ff_tts, tolls)):
         assert c != 0
-        costs[it] = __bpr_cost_single_toll(f, c, ff_tt, toll)
+        costs[it] = _bpr_cost_single_toll(f, c, ff_tt, toll)
     return costs
 
+
 @njit
-def __bpr_cost(flows, capacities, ff_tts):
+def _bpr_cost(flows, capacities, ff_tts):
     number_of_links = len(flows)
     costs = np.empty(number_of_links, dtype=np.float64)
     for it, (f, c, ff_tt) in enumerate(zip(flows, capacities, ff_tts)):
         assert c != 0
-        costs[it] = __bpr_cost_single(f, c, ff_tt)
+        costs[it] = _bpr_cost_single(f, c, ff_tt)
     return costs
 
 
+@njit
+def _bpr_cost_single_toll(flow, capacity, ff_tt, toll):
+    return toll + 1.0 * ff_tt + np.multiply(bpr_a, pow(flow / capacity, bpr_b)) * ff_tt
+
 
 @njit
-def __bpr_cost_single_toll(flow, capacity, ff_tt, toll):
-    return toll+1.0 * ff_tt + np.multiply(bpr_a, pow(flow / capacity, bpr_b)) * ff_tt
-@njit
-def __bpr_cost_single(flow, capacity, ff_tt):
+def _bpr_cost_single(flow, capacity, ff_tt):
     return 1.0 * ff_tt + np.multiply(bpr_a, pow(flow / capacity, bpr_b)) * ff_tt
 
 
 @njit
-def __bpr_derivative(flows, capacities, ff_tts):
+def _bpr_derivative(flows, capacities, ff_tts):
     number_of_links = len(flows)
     derivatives = np.empty(number_of_links, dtype=np.float64)
     for it, (f, c, ff_tt) in enumerate(zip(flows, capacities, ff_tts)):
@@ -65,7 +66,7 @@ def __bpr_derivative(flows, capacities, ff_tts):
 
 
 @njit
-def __bpr_derivative_single(flow, capacity, ff_tt):
+def _bpr_derivative_single(flow, capacity, ff_tt):
     return ff_tt * bpr_a * bpr_b * (1 / capacity) * pow(flow / capacity, bpr_b - 1)
 
 
@@ -172,7 +173,7 @@ def generate_bushes_line_graph(
 
 
 @njit
-def __link_to_turn_cost_static(
+def _link_to_turn_cost_static(
     tot_turns, from_links, link_cost, turn_restriction, restricted_turn_cost=3600 / 3600
 ):
     turn_costs = np.zeros(tot_turns, dtype=np.float64)
@@ -187,7 +188,7 @@ def __link_to_turn_cost_static(
 
 
 @njit
-def __get_u_turn_turn_restrictions(tot_turns, from_node, to_node):
+def _get_u_turn_turn_restrictions(tot_turns, from_node, to_node):
     turn_restrictions = np.full(tot_turns, False)
     for turn in range(tot_turns):
         if from_node[turn] == to_node[turn]:

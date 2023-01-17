@@ -7,16 +7,16 @@
 #
 #
 #
-from numba import objmode, njit
 import numpy as np
+from numba import njit, objmode
 
+from dyntapy._context import iteration_states
 from dyntapy.demand import InternalStaticDemand
+from dyntapy.results import StaticResult, get_skim
 from dyntapy.settings import parameters
 from dyntapy.sta.gap import gap
-from dyntapy.sta.utilities import aon, __bpr_cost
+from dyntapy.sta.utilities import _bpr_cost, aon
 from dyntapy.supply import Network
-from dyntapy.results import StaticResult, get_skim
-from dyntapy._context import iteration_states
 
 gap_definition = "relative gap"
 msa_max_iterations = parameters.static_assignment.msa_max_iterations
@@ -36,13 +36,13 @@ def msa_flow_averaging(
     while not converged:
         k = k + 1
         if k == 1:
-            costs = __bpr_cost(
+            costs = _bpr_cost(
                 capacities=network.links.capacity,
                 ff_tts=ff_tt,
                 flows=f2,
             )
         else:
-            costs = __bpr_cost(
+            costs = _bpr_cost(
                 capacities=network.links.capacity,
                 ff_tts=ff_tt,
                 flows=f2,

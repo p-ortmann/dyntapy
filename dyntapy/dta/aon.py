@@ -10,12 +10,11 @@ from numba import njit, prange, uint32
 from numba.typed import List
 
 from dyntapy.csr import UI32CSRMatrix
-from dyntapy.demand import InternalDynamicDemand
+from dyntapy.demand import InternalDynamicDemand, SimulationTime
 from dyntapy.dta.deterministic import RouteChoiceState, get_turning_fractions
 from dyntapy.dta.dynamic_dijkstra import dijkstra
 from dyntapy.dta.i_ltm import i_ltm
 from dyntapy.dta.i_ltm_setup import i_ltm_aon_setup
-from dyntapy.demand import SimulationTime
 from dyntapy.dta.travel_times import cvn_to_travel_times
 from dyntapy.results import _cvn_to_flows
 from dyntapy.settings import parameters

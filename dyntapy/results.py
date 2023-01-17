@@ -5,17 +5,18 @@
 #  or contact: ITScrealab@kuleuven.be
 #
 from dataclasses import dataclass
+from heapq import heappop, heappush
+
 import numpy
 import numpy as np
 from numba import njit, prange
-from heapq import heappop, heappush
 from numba.typed.typedlist import List as NumbaList
 
-from dyntapy.demand import InternalStaticDemand
-from dyntapy.supply import Network
-from dyntapy.graph_utils import dijkstra_all
 from dyntapy.csr import UI32CSRMatrix
+from dyntapy.demand import InternalStaticDemand
 from dyntapy.dta.i_ltm_cls import ILTMState
+from dyntapy.graph_utils import dijkstra_all
+from dyntapy.supply import Network
 
 
 @dataclass

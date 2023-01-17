@@ -81,19 +81,19 @@ import numpy as np
 import dyntapy._context
 from dyntapy.demand import (
     InternalDynamicDemand,
-    build_internal_static_demand,
     build_internal_dynamic_demand,
+    build_internal_static_demand,
 )
 from dyntapy.demand_data import _check_centroid_connectivity
 from dyntapy.dta.i_ltm_aon import i_ltm_aon
 from dyntapy.dta.incremental_assignment import incremental
-from dyntapy.sta.dial_stochastic_assignment import dial_sue
+from dyntapy.results import DynamicResult, StaticResult, get_skim
 from dyntapy.sta.dial_b import dial_b
+from dyntapy.sta.dial_stochastic_assignment import dial_sue
 from dyntapy.sta.msa import msa_flow_averaging
 from dyntapy.sta.uncongested_dial import sun
 from dyntapy.supply_data import build_network
 from dyntapy.utilities import log
-from dyntapy.results import StaticResult, get_skim, DynamicResult
 
 
 class DynamicAssignment:
@@ -103,10 +103,10 @@ class DynamicAssignment:
     """
 
     def __init__(
-            self,
-            network,
-            dynamic_demand,
-            simulation_time,
+        self,
+        network,
+        dynamic_demand,
+        simulation_time,
     ):
         """
 
@@ -258,7 +258,7 @@ class StaticAssignment:
 
 
         'dial_b' refers to Dial's Algorithm B, a bush-based assignment
-        algorithm [3]_. 
+        algorithm [3]_.
 
         'sun' returns a stochastic uncongested assignment of flows on the free-flow
         travel times that are determined by the lengths and speeds of the links. It
@@ -290,9 +290,9 @@ class StaticAssignment:
         )
         # assignment needs to return at least link_cost and flows, ideally also
         # multi-commodity (origin, destination or origin-destination)
-        if 'tolls' in kwargs.keys():
-            assert method == 'dial_b'  # not supported for the other assignments
-        tolls = kwargs.get('tolls', np.zeros(self.internal_network.tot_links))
+        if "tolls" in kwargs.keys():
+            assert method == "dial_b"  # not supported for the other assignments
+        tolls = kwargs.get("tolls", np.zeros(self.internal_network.tot_links))
         if method == "dial_b":
             costs, destination_flows, gap_definition, gap = dial_b(
                 self.internal_network, self.internal_demand, store_iterations, tolls

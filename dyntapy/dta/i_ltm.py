@@ -9,10 +9,9 @@
 import numpy as np
 from numba import njit
 
-from dyntapy.demand import InternalDynamicDemand, InternalStaticDemand
+from dyntapy.demand import InternalDynamicDemand, InternalStaticDemand, SimulationTime
 from dyntapy.dta.i_ltm_cls import ILTMNetwork, ILTMState
 from dyntapy.dta.orca_nodel_model import orca_node_model as orca
-from dyntapy.demand import SimulationTime
 from dyntapy.settings import parameters
 from dyntapy.utilities import _log
 
@@ -26,7 +25,7 @@ trigger_node_update_threshold = (
 )
 
 
-@njit(cache=True)
+@njit()
 def i_ltm(
     network: ILTMNetwork,
     dynamic_demand: InternalDynamicDemand,
@@ -341,7 +340,7 @@ def unload_destination_flows(
                     ] = True
 
 
-@njit(cache=True)
+@njit()
 def __load_origin_flows(
     current_demand,
     nodes_2_update,
@@ -515,7 +514,7 @@ def calc_sending_flows(
             tot_local_sending_flow[_id] = np.sum(local_sending_flow[_id, :])
 
 
-@njit
+@njit(cache=True)
 def calc_receiving_flows(
     local_out_links,
     wrt,

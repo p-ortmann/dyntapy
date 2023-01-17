@@ -14,6 +14,8 @@ import numpy as np
 one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
 
+from numba import config
+config.DISABLE_JIT =1
 from dyntapy.demand import DynamicDemand
 from dyntapy.demand_data import od_graph_from_matrix
 from dyntapy.assignments import DynamicAssignment
@@ -23,6 +25,7 @@ from dyntapy.demand import SimulationTime
 from dyntapy.demand_data import generate_od_xy, add_centroids, \
     auto_configured_centroids, parse_demand
 from dyntapy import StaticAssignment
+from dyntapy.sta._debugging_sta import loading, continuity
 from dyntapy import show_demand, show_network, show_dynamic_network, \
     show_link_od_flows
 from dyntapy.results import get_od_flows, get_selected_link_analysis
@@ -40,6 +43,21 @@ HERE = pathlib.Path(__file__).parent
 one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
 file_path_network = HERE.as_posix() + os.path.sep + _city.lower() + '_road_network'
+loading_eps = 0.001
+continuity_eps = 0.00001
+
+
+def _check_continuity(flows: np.ndarray, method: str):
+    continuity_violations, _, _ = continuity(flows=flows,
+                                             network=network,
+                                             numerical_threshold=continuity_eps)
+    loading_ok, _, _ = loading(assignment.internal_demand,
+                               assignment.internal_network,
+                               flows)
+    if np.any(continuity_violations) or not loading_ok:
+        print(f'continuity issues with {method = }')
+        assert not np.any(continuity_violations)
+        assert loading_ok
 
 
 def test_get_graph(city=_city, k=1, connector_type='turn'):
@@ -101,6 +119,7 @@ def test_dial_b():
     method = 'dial_b'
     result = assignment.run(method)
     show_network(graph, flows=result.flows)
+    _check_continuity(flows=result.flows, method= method)
     print(f'static assignment method {method=} ran successfully')
 
 
@@ -124,6 +143,8 @@ def test_sue():
     method = 'sue'
     result = assignment.run(method, max_iterations=10, max_gap=0.00001)
     show_network(graph, flows=result.flows)
+    _check_continuity(flows=result.flows, method= method)
+
     print(f'static assignment method {method=} ran successfully')
 
 
@@ -132,6 +153,7 @@ def test_msa():
     res = assignment.run(method)
     print(f'static assignment method {method=} ran successfully')
     show_network(graph, res.flows)
+    _check_continuity(flows=result.flows, method= method)
 
 
 def test_node_model():
@@ -192,6 +214,7 @@ def test_sun():
     method = 'sun'
     res = assignment.run(method)
     show_network(graph, res.flows)
+    _check_continuity(flows=result.flows, method= method)
 
 
 def test_get_toy_networks():
