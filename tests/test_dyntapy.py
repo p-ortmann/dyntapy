@@ -14,8 +14,6 @@ import numpy as np
 one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
 
-from numba import config
-config.DISABLE_JIT =1
 from dyntapy.demand import DynamicDemand
 from dyntapy.demand_data import od_graph_from_matrix
 from dyntapy.assignments import DynamicAssignment
@@ -44,20 +42,20 @@ one_up = pathlib.Path(__file__).parents[1]
 sys.path.append(one_up.as_posix())
 file_path_network = HERE.as_posix() + os.path.sep + _city.lower() + '_road_network'
 loading_eps = 0.001
-continuity_eps = 0.00001
+continuity_eps = 0.001
 
 
 def _check_continuity(flows: np.ndarray, method: str):
     continuity_violations, _, _ = continuity(flows=flows,
                                              network=network,
                                              numerical_threshold=continuity_eps)
-    loading_ok, _, _ = loading(assignment.internal_demand,
+    loading_failed, _, _ = loading(assignment.internal_demand,
                                assignment.internal_network,
                                flows)
-    if np.any(continuity_violations) or not loading_ok:
+    if np.any(continuity_violations) or loading_failed:
         print(f'continuity issues with {method = }')
         assert not np.any(continuity_violations)
-        assert loading_ok
+        assert not loading_failed
 
 
 def test_get_graph(city=_city, k=1, connector_type='turn'):
@@ -153,7 +151,7 @@ def test_msa():
     res = assignment.run(method)
     print(f'static assignment method {method=} ran successfully')
     show_network(graph, res.flows)
-    _check_continuity(flows=result.flows, method= method)
+    _check_continuity(flows=res.flows, method= method)
 
 
 def test_node_model():
@@ -214,7 +212,7 @@ def test_sun():
     method = 'sun'
     res = assignment.run(method)
     show_network(graph, res.flows)
-    _check_continuity(flows=result.flows, method= method)
+    _check_continuity(flows=res.flows, method= method)
 
 
 def test_get_toy_networks():

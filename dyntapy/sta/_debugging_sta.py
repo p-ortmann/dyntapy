@@ -18,7 +18,7 @@ def loading(
     to_destinations = demand.to_destinations
     to_origins = demand.to_origins
     origin_links = demand.origins
-    destination_links = np.empty_like(origin_links)
+    destination_links = np.empty_like(demand.destinations)
     for idx, destination in enumerate(demand.destinations):
         destination_links[idx] = network.nodes.in_links.get_nnz(destination)[0]
     for origin in origin_links:
