@@ -1,5 +1,3 @@
-from numba import config
-config.DISABLE_JIT = 1
 
 import os
 import pathlib
