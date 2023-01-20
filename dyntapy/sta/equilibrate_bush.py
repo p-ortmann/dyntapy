@@ -16,7 +16,6 @@ from dyntapy.sta.utilities import _bpr_cost_single_toll, _bpr_derivative_single
 from dyntapy.graph_utils import _get_link_id
 from dyntapy.settings import debugging, debugging_full
 
-
 link_cost_function = _bpr_cost_single_toll
 
 # sub modules for Dial's Algorithm B.
@@ -197,15 +196,28 @@ def update_bush_flow(
     global_turn_flows[turn] += delta
     if not global_turn_flows[turn] - local_bush_flow[turn] > -np.finfo(np.float32).eps:
         print(global_turn_flows[turn] - local_bush_flow[turn])
-        raise AssertionError
-    if not global_turn_flows[turn] >= 0 or not local_bush_flow[turn] >= 0:
+        print("local and global turn flows inconsistent, unrelated to shift")
+        print(f"concerning {turn}")
         print(global_turn_flows[turn])
         print(local_bush_flow[turn])
-        assert global_turn_flows[turn] > -np.finfo(np.float32).eps
-        assert local_bush_flow[turn] > -np.finfo(np.float32).eps
-        print(f"numerical inaccuracy turn {turn}")
-        global_turn_flows[turn] = 0
-        local_bush_flow[turn] = 0
+        print(f"j {j}")
+        print(delta)
+        print("inturns and inlinks j")
+        print(in_turns.get_nnz(j))
+        print(in_turns.get_row(j))
+        raise AssertionError
+    if global_turn_flows[turn] < 0:
+        if not global_turn_flows[turn] > -np.finfo(np.float32).eps:
+            print(global_turn_flows[turn])
+            print(f"continuity error turn {turn}, global")
+            raise AssertionError
+        global_turn_flows[turn] = 0  # avoiding negative flows due to rounding
+    if local_bush_flow[turn] < 0:
+        if not local_bush_flow[turn] > -np.finfo(np.float32).eps:
+            print(local_bush_flow[turn])
+            print(f"continuity error turn {turn}, local")
+            raise AssertionError
+        local_bush_flow[turn] = 0  # avoiding negative flows due to rounding
     link_flow = global_turn_flows[in_turns.get_nnz(j)].sum()
     updated_turn_cost = link_cost_function(
         capacity=capacities[j], ff_tt=ff_tts[j], flow=link_flow, toll=tolls[j]
@@ -258,7 +270,9 @@ def _equilibrate_bush(
     to_links,
     tolls,
 ):
-    epsilon_2 = epsilon / 20  # Epsilon that is used on an alternatives basis, replaces
+    pas_epsilon = (
+        epsilon / 20
+    )  # Epsilon that is used on an alternatives basis, replaces
     tot_links = global_out_turns.tot_rows
     # we equilibrate each bush to convergence before moving on to the next ..
     # once shifting in the bush has reached equilibrium
@@ -351,7 +365,7 @@ def _equilibrate_bush(
             global_out_turns,
             bush_out_turns,
             tolls,
-            epsilon_2,
+            pas_epsilon,
         )
         if debugging:
             print(f"updating trees, branch node is: {lowest_order_node}")
@@ -426,6 +440,7 @@ def _equilibrate_bush(
         new_labels,
         converged_without_shifts and not turns_added,
         bush_out_turns,
+        min_path_successor,
     )
 
 
@@ -547,7 +562,7 @@ def _equalize_cost(
     capacities,
     ff_tts,
     tolls,
-    epsilon_2,
+    pas_epsilon,
 ):
     assert start_link != end_link
     assert min_path_flow >= 0
@@ -564,7 +579,7 @@ def _equalize_cost(
     )
     # print(f'delta cost is {delta_cost} with a shift of {delta_f}')
     assert abs(delta_f) < 100000
-    while abs(delta_cost) > epsilon_2 and abs(delta_f) > 0:
+    while abs(delta_cost) > pas_epsilon and abs(delta_f) > 0:
         #   print(f'delta cost is {delta_cost}')
         min_path_flow, min_path_cost, min_path_derivative = _update_path_flow(
             delta_f,
@@ -802,12 +817,12 @@ def _shift_flow(
     global_out_turns,
     bush_out_turns,
     tolls,
-    epsilon_2,
+    pas_epsilon,
 ):
     lowest_order_link = 1
     # print('new run in shift flow')
     for j in topological_order[::-1]:
-        if U[j] - L[j] > epsilon_2:  # the shifts here need to be tighter so that
+        if U[j] - L[j] > pas_epsilon:  # the shifts here need to be tighter so that
             # the overall gap goes below the threshold
             # print(f'require shift for destination j {j} with label {label[j]}, '
             #       f'cost differences are: {U[j] - L[j]}')
@@ -856,7 +871,7 @@ def _shift_flow(
                     capacities,
                     ff_tts,
                     tolls,
-                    epsilon_2,
+                    pas_epsilon,
                 )
                 assert total_flow == min_path_flow + max_path_flow
                 # print(f'updating tree between {end_link} and {j} with labels'

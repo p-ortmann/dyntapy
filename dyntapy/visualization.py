@@ -184,6 +184,8 @@ def show_network(
         whether to render nodes
     return_plot: bool, optional
         set to True if the plot object should be returned instead of showing it.
+    max_edge_width: float, optional
+        defaults to 1, changes the width of the edges by the set factor
 
     Examples
     --------
@@ -401,6 +403,8 @@ def show_dynamic_network(
         whether to render nodes
     return_plot: bool, optional
         set to True if the plot object should be returned instead of showing it.
+    max_edge_width: float, optional
+        defaults to 1, changes the width of the edges by the set factor
 
     Examples
     --------
@@ -693,6 +697,8 @@ def show_demand(
         int, 1D - nodes to highlight
     return_plot: bool, optional
         set to True if the plot object should be returned instead of showing it.
+    max_edge_width: float, optional
+        defaults to 1, changes the width of the edges by the set factor
 
     Examples
     --------

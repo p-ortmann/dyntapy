@@ -8,7 +8,7 @@
 #
 #
 import numpy as np
-from numba import njit
+from numba import njit, prange
 from numba.typed import List
 
 from dyntapy.demand import InternalStaticDemand
@@ -29,7 +29,11 @@ bpr_a = parameters.static_assignment.bpr_alpha
 def _bpr_cost_tolls(flows, capacities, ff_tts, tolls):
     number_of_links = len(flows)
     costs = np.empty(number_of_links, dtype=np.float64)
-    for it, (f, c, ff_tt, toll) in enumerate(zip(flows, capacities, ff_tts, tolls)):
+    for it in prange(number_of_links):
+        toll = tolls[it]
+        f = flows[it]
+        c = capacities[it]
+        ff_tt = ff_tts[it]
         assert c != 0
         costs[it] = _bpr_cost_single_toll(f, c, ff_tt, toll)
     return costs
@@ -39,7 +43,10 @@ def _bpr_cost_tolls(flows, capacities, ff_tts, tolls):
 def _bpr_cost(flows, capacities, ff_tts):
     number_of_links = len(flows)
     costs = np.empty(number_of_links, dtype=np.float64)
-    for it, (f, c, ff_tt) in enumerate(zip(flows, capacities, ff_tts)):
+    for it in prange(number_of_links):
+        f = flows[it]
+        c = capacities[it]
+        ff_tt = ff_tts[it]
         assert c != 0
         costs[it] = _bpr_cost_single(f, c, ff_tt)
     return costs
@@ -59,7 +66,10 @@ def _bpr_cost_single(flow, capacity, ff_tt):
 def _bpr_derivative(flows, capacities, ff_tts):
     number_of_links = len(flows)
     derivatives = np.empty(number_of_links, dtype=np.float64)
-    for it, (f, c, ff_tt) in enumerate(zip(flows, capacities, ff_tts)):
+    for it in prange(number_of_links):
+        f = flows[it]
+        c = capacities[it]
+        ff_tt = ff_tts[it]
         assert c != 0
         derivatives[it] = ff_tt * bpr_a * bpr_b * (1 / c) * pow(f / c, bpr_b - 1)
     return derivatives

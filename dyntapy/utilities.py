@@ -175,3 +175,74 @@ def get_logger(name):
         logger.handler_set = True
 
     return logger
+
+
+_results = {}
+__start = np.zeros(1, np.float64)
+
+
+@njit
+def nb_timer_start(my_string: str = ""):
+    # these functions nb_timer_start and nb_timer_end below are for quick and easy
+    # timing of snippets within functions
+    # that are decorated with @njit
+    with objmode():
+        print("starting timer")
+        if my_string != "":
+            print(my_string)
+        __start[0] = time.time()
+
+
+@njit
+def nb_timer_end(my_string: str = ""):
+    with objmode():
+        end = time.time()
+        print("ending timer")
+        if my_string != "":
+            print(my_string)
+        print("exec time")
+        exec_time = end - __start[0]
+        print("{:.6f}".format(exec_time))
+
+
+def jit_timer(f):
+    # can be used as a decorator instead of @njit
+    # stores runtime of the decorated functions as _results in this file.
+    # can be applied after importing the decorated function
+    # see example below:
+
+    # from my_module import my_function
+    # my_function.py_func # @njit decorated functions have a py_func attribute
+    # timed_function = jit_timer(my_function.py_func)
+    jf = njit(f)
+
+    @njit
+    def wrapper(*args):
+        with objmode(start="float64"):
+            start = time.time()
+        g = jf(*args)
+        with objmode():
+            end = time.time()
+            run_time = end - start
+            if f.__name__ in _results:
+                _results[f.__name__] += [run_time]
+            else:
+                _results[f.__name__] = [run_time]
+        return g
+
+    return wrapper
+
+
+def profile_results(clear=False):
+    # prints the sum of the time for each of the with jit_timer decorated functions
+    # removes all entries from the results if clear is set to true
+    # useful for evaluation between different invocations
+    x = []
+    for k in _results:
+        a = np.asarray(_results[k])
+        x += [[k + " " * (13 - len(k)), np.sum(a[1:])]]
+    x = sorted(x, key=lambda x: x[1])
+    for i in range(len(x)):
+        print(x[i][0], "{:.6f}".format(x[i][1]))
+    if clear:
+        _results.clear()

@@ -67,7 +67,9 @@ def make_boolean_turn_csr(from_link, to_link, tot_links, turn_restriction):
 
 
 @njit
-def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tolls):
+def dial_b(
+    network: Network, demand: InternalStaticDemand, store_iterations, tolls, eps=epsilon
+):
     gaps = []
     from_links = network.turns.from_link
     to_links = network.turns.to_link
@@ -150,21 +152,22 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
                     _,
                     converged,
                     bush_out_turns[d_id],
+                    _,
                 ) = _equilibrate_bush(
                     turn_costs,
-                    bush_flows=bush_flows[d_id],
-                    turn_flows=turn_flows,
-                    destination=dest,
-                    topological_order=topological_orders[d_id][: last_indices[d_id]],
-                    derivatives=turn_derivatives,
-                    capacities=capacities,
-                    ff_tts=link_ff_times,
-                    bush_out_turns=bush_out_turns[d_id],
-                    epsilon=epsilon,
-                    global_out_turns=network.links.out_turns,
-                    global_in_turns=network.links.in_turns,
-                    to_links=to_links,
-                    tolls=tolls,
+                    bush_flows[d_id],
+                    turn_flows,
+                    dest,
+                    topological_orders[d_id][: last_indices[d_id]],
+                    turn_derivatives,
+                    capacities,
+                    link_ff_times,
+                    bush_out_turns[d_id],
+                    eps,
+                    network.links.out_turns,
+                    network.links.in_turns,
+                    to_links,
+                    tolls,
                 )
                 if converged and iterations_eq == 0:
                     convergence_counter += 1
@@ -182,19 +185,25 @@ def dial_b(network: Network, demand: InternalStaticDemand, store_iterations, tol
     gap_arr = np.empty(len(gaps), dtype=np.float64)
     for _id, val in enumerate(gaps):
         gap_arr[_id] = val
-    link_costs = _bpr_cost_tolls(flows, network.links.capacity, link_ff_times, tolls)
     link_destination_flows = np.zeros(
         (demand.destinations.size, network.tot_links), np.float64
     )
-    for d_id in range(demand.destinations.size):
+    tot_centroids = network.nodes.is_centroid.sum()
+    for d_id in prange(demand.destinations.size):
         for link_id in range(network.tot_links):
             for turn_id in network.links.in_turns.get_nnz(link_id):
                 link_destination_flows[d_id][link_id] += bush_flows[d_id][turn_id]
-            if link_id < network.nodes.is_centroid.sum():
+            if link_id < tot_centroids:
                 # origins have no incoming turns
                 for turn_id in network.links.out_turns.get_nnz(link_id):
                     link_destination_flows[d_id][link_id] += bush_flows[d_id][turn_id]
 
+    link_costs = _bpr_cost_tolls(
+        np.sum(link_destination_flows, axis=0),
+        network.links.capacity,
+        link_ff_times,
+        tolls,
+    )
     return link_costs, link_destination_flows, gap_definition, gap_arr
 
 

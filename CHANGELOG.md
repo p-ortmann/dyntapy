@@ -2,12 +2,18 @@
 
 
 ## 0.2.4 (in development)
+users:
+- kwarg max_edge_width for all plotting functions
 - bugfix proper display of flow values in time slider
 - compatibility with bokeh 3.0
 - pred_to_path and pred_to_paths now return paths in the natural order (from source to target)
 - support for link tolls in DialB
 - Dial B reimplemented on the link-turn graph and destination based
 - heuristic for finding k-shortest path with limited overlap (high and lower level call)
+devs:
+- dyntapy.utilities now has some functions that allow timing compiled
+  functions and sections within numba
+- debugging functions and testing for static assignments
 
 
 ## 0.2.3 (08.09.2022)
