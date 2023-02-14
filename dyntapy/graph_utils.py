@@ -280,14 +280,6 @@ def dijkstra_all(
     predecessors: numpy.ndarray
         int, 1D - predecessor for each node that is closest to source.
 
-    Notes
-    --------
-
-    A network object is build using the build_network function.
-    Here we can retrieve both `network.nodes.is_centroid` and
-    `network.nodes.out_links`, which is what is needed to run this function.
-
-
     See Also
     --------
 
@@ -298,6 +290,7 @@ def dijkstra_all(
     dyntapy.graph_utils.pred_to_paths
 
     """
+
     tot_nodes = out_links.tot_rows
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
@@ -334,10 +327,11 @@ def dijkstra_with_targets(
     """
 
     compiled one to many shortest path computation, terminates once distance array
-    has been filled for all target nodes
+    has been filled for all target nodes.
 
     Parameters
     ----------
+
     costs: numpy.ndarray
         float, 1D
     out_links: dyntapy.csr.UI32CSRMatrix
@@ -403,6 +397,7 @@ def dijkstra_with_targets(
 
 def get_all_shortest_paths(g, source, costs=None):
     """
+
     one to all shortest path computation
 
     Parameters
