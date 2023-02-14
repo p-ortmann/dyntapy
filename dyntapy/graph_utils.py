@@ -259,13 +259,15 @@ def dijkstra_all(
     is_centroid,
 ):
     """
+
     compiled one to all shortest path computation
 
     Parameters
     ----------
-    costs: numpy.ndarray
+
+    costs : numpy.ndarray
         float, 1D
-    out_links: dyntapy.csr.UI32CSRMatrix
+    out_links : dyntapy.csr.UI32CSRMatrix
     source: int
     is_centroid : numpy.ndarray
         bool, 1D
@@ -277,22 +279,13 @@ def dijkstra_all(
         float, 1D
     predecessors: numpy.ndarray
         int, 1D - predecessor for each node that is closest to source.
-        Can be used to reconstruct paths.
 
-    Examples
+    Notes
     --------
 
-    A network object is build using `dyntapy.supply_data.build_network`, this happens
-    during the intilization of any assignment.
-
-    >>> network = dyntapy.supply_data.build_network(g)
-
-    from this we can retrieve both `is_centroid` and `out_links`:
-
-    >>> out_links = network.nodes.out_links
-    >>> is_centroid = network.nodes.is_centroid
-
-    which is what we need to run this function.
+    A network object is build using the build_network function.
+    Here we can retrieve both `network.nodes.is_centroid` and
+    `network.nodes.out_links`, which is what is needed to run this function.
 
 
     See Also
@@ -339,6 +332,7 @@ def dijkstra_with_targets(
     costs, out_links: UI32CSRMatrix, source, is_centroid, targets
 ):
     """
+
     compiled one to many shortest path computation, terminates once distance array
     has been filled for all target nodes
 
@@ -363,6 +357,7 @@ def dijkstra_with_targets(
 
     Notes
     -----
+
     depending on how many targets there are to be found it can be faster to use
     `dyntapy.graph_utils.dijkstra_all`
 
@@ -721,10 +716,12 @@ def kspwlo_esx(
     detour_rejection=0.5,
 ):
     """
+
     computes k-shortest paths with a maximum overlap of `sim_threshold`.
 
     Parameters
     ----------
+
     costs: numpy.ndarray
         float, 1D - cost for each link
     out_links: dyntapy.csr.UI32CSRMatrix
@@ -744,6 +741,7 @@ def kspwlo_esx(
 
     Returns
     -------
+
     solution_paths: list of list
         each entry is a solution path
     path_lengths : list
@@ -755,16 +753,15 @@ def kspwlo_esx(
     `detour_rejection` has been added by the developers to prune bad solutions.
     A value of 0.10 indicates that paths can be at most 10 percent worse than the
     shortest path solution. Similar to a lower `sim_threshold` this setting may
-    affect the completeness of the results.
-
+    affect the completeness of the results, see [5]_.
 
     References
     ----------
 
-    .. [1] Chondrogiannis, Theodoros, Panagiotis Bouros, Johann Gamper, Ulf Leser,
-     and David B. Blumenthal. ‘Finding K-Shortest Paths with Limited Overlap’.
-     The VLDB Journal 29, no. 5 (1 September 2020): 1023–47.
-      https://doi.org/10.1007/s00778-020-00604-x.
+    .. [5] Chondrogiannis, Theodoros, Panagiotis Bouros, Johann Gamper, Ulf Leser,
+    and David B. Blumenthal. ‘Finding K-Shortest Paths with Limited Overlap’.
+    The VLDB Journal 29, no. 5 (1 September 2020): 1023–47.
+    https://doi.org/10.1007/s00778-020-00604-x.
 
     """
     solution_paths, distances = _kspwlo_esx(
@@ -826,13 +823,10 @@ def get_k_shortest_paths(
     shortest path solution. Similar to a lower `sim_threshold` this setting may
     affect the completeness of the results.
 
-    References
+    See Also
     ----------
 
-    .. [1] Chondrogiannis, Theodoros, Panagiotis Bouros, Johann Gamper, Ulf Leser,
-     and David B. Blumenthal. ‘Finding K-Shortest Paths with Limited Overlap’.
-     The VLDB Journal 29, no. 5 (1 September 2020): 1023–47.
-      https://doi.org/10.1007/s00778-020-00604-x.
+    dyntapy.graph_utils.kspwlo_esx
 
     """
     if costs is not None:
