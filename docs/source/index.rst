@@ -18,7 +18,7 @@ They can be run without installation from the browser using Binder.
    :maxdepth: 4
    :caption: Contents:
 
-   source/dyntapy
+   dyntapy
    
 
 Indices and tables

@@ -6,7 +6,6 @@
 #
 #
 from heapq import heappop, heappush
-
 import numpy as np
 from numba import float64, njit
 from numba.typed import Dict, List
@@ -15,7 +14,6 @@ from dyntapy.csr import UI32CSRMatrix
 from dyntapy.supply_data import build_network
 
 
-# store link_ids as tuple, infer from link_ids, to_node and from_node
 @njit
 def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
     """
@@ -24,6 +22,7 @@ def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
 
     Parameters
     ----------
+
     links_to_include: numpy.ndarray
         bool, 1D
     from_node: numpy.ndarray
@@ -34,6 +33,7 @@ def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
 
     Returns
     -------
+
     out_links: numba.typed.Dict
 
     Notes
@@ -42,15 +42,7 @@ def _make_out_links(links_to_include, from_node, to_node, tot_nodes):
     It is more efficient to work with dyntapy's sparse matrices, however
     for some algorithms like Dial's Algorithm B editable graph structures are required.
 
-    Examples
-    --------
-    the resulting dictionary gives access to the graph's structure as shown below
-
-    >>> out_links[node_id]
-    [node_id, link_id]
-
     """
-    # creates out_links as dictionary, outlink[node] = [node_id, link_id]
     out_links = Dict()
 
     star_sizes = np.zeros(tot_nodes, dtype=np.int64)
@@ -106,13 +98,6 @@ def _make_in_links(links_to_include, from_node, to_node, tot_nodes):
 
     It is more efficient to work with dyntapy's sparse matrices, however
     for some algorithms like Dial's Algorithm B editable graph structures are required.
-
-    Examples
-    --------
-    the resulting dictionary gives access to the graph's structure as shown below
-
-    >>> in_links[node_id]
-    [node_id, link_id]
 
     """
     backward_star = Dict()
@@ -205,29 +190,20 @@ def pred_to_path(predecessors, source, target, out_links: UI32CSRMatrix):
 
     converts optimal predecessor arrays to path between source and target
 
-
     Parameters
-
     ----------
 
     predecessors : numpy.ndarray
-
         int, 1D - predecessor of each node that is closest to `source`
-
     source: int
-
     target: int
-
     out_links: dyntapy.csr.UI32CSRMatrix
 
 
     Returns
-
     -------
 
-
     numba.typed.List
-
 
     """
 
@@ -341,26 +317,34 @@ def dijkstra_with_targets(
     targets: numpy.ndarray
         int, 1D
 
+
     Returns
     -------
+
 
     distances: numpy.ndarray
         float, 1D
     predecessors: numpy.ndarray
         int, 1D - predecessor for each node that is closest to source.
 
+
     Notes
     -----
+
 
     depending on how many targets there are to be found it can be faster to use
     `dyntapy.graph_utils.dijkstra_all`
 
+
     See Also
     --------
 
+
     dyntapy.graph_utils.pred_to_paths
 
+
     """
+
     tot_nodes = out_links.tot_rows
     distances = np.full(tot_nodes, np.inf, dtype=np.float32)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
@@ -448,6 +432,7 @@ def get_all_shortest_paths(g, source, costs=None):
 
 def get_shortest_paths(g, source, targets, costs=None, return_paths=False):
     """
+
     one to many shortest path computation
 
     Parameters
@@ -465,6 +450,7 @@ def get_shortest_paths(g, source, targets, costs=None, return_paths=False):
 
     Returns
     -------
+
     distances: numpy.ndarray
         float, 1D - distance to each target
     paths: list of list
