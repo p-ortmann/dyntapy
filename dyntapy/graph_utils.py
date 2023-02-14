@@ -739,7 +739,12 @@ def kspwlo_esx(
     References
     ----------
 
-    .. [5] Chondrogiannis, Theodoros, Panagiotis Bouros, Johann Gamper, Ulf Leser, and David B. Blumenthal. ‘Finding K-Shortest Paths with Limited Overlap’. The VLDB Journal 29, no. 5 (1 September 2020): 1023–47.  https://doi.org/10.1007/s00778-020-00604-x.
+    .. [5] Chondrogiannis, Theodoros, Panagiotis Bouros, Johann Gamper,
+     Ulf Leser, and David B. Blumenthal.
+     ‘Finding K-Shortest Paths with Limited Overlap’.
+     The VLDB Journal 29, no. 5 (1 September 2020): 1023–47.
+     https://doi.org/10.1007/s00778-020-00604-x.
+
 
     """
     solution_paths, distances = _kspwlo_esx(

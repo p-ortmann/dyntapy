@@ -35,5 +35,4 @@ repos:
         # these are errors that will be ignored by flake8
         # check out their meaning here
         # https://flake8.pycqa.org/en/latest/user/error-codes.html
-        - "--ignore=F401,E203, W503, E501"
-        # omitting line length errors here since that's tricky in the docs sometimes.
+        - "--ignore=F401,E203, W503"
