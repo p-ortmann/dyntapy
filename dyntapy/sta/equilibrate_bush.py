@@ -122,7 +122,7 @@ def _update_bush(
     global_out_turns,
     tot_reachable_links,
     old_topological_order,
-    eps=np.finfo(np.float32).eps * 100000,
+    eps=0.0001,
 ):
     # if eps is set too close to 0, cycles may be created.
     # All solutions to the bush-based algorithms may retain inefficient edges,

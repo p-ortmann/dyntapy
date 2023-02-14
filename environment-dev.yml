@@ -23,4 +23,5 @@ dependencies:
   - shapely
   - networkx
   - pre-commit
+  - sphinx-rtd-theme
   - pytest
