@@ -182,16 +182,6 @@ def __build_csr_cls(nb_type):
             # get rows that have non-zero values
             return self.nnz_rows
 
-        def copy(self):
-            """
-
-            returns a copy of the CSRMatrix object
-
-            """
-            return CSRMatrix(
-                np.copy(self.values), np.copy(self.col_index), np.copy(self.row_index)
-            )
-
     return CSRMatrix
 
 
