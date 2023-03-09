@@ -65,7 +65,7 @@ def verify_assignment_state(
                 pass
 
 
-@njit(cache=True)
+@njit()
 def sum_of_turning_fractions(
     turning_fractions: np.ndarray,
     out_turns: UI32CSRMatrix,
@@ -130,7 +130,7 @@ def sum_of_turning_fractions(
 nl_precision = parameters.dynamic_assignment.network_loading.precision
 
 
-@njit(cache=True)
+@njit()
 def continuity(
     cvn_up: np.ndarray,
     cvn_down: np.ndarray,

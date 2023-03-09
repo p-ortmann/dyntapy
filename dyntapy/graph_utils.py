@@ -135,7 +135,7 @@ def _get_link_id(from_node: int, to_node: int, out_links: UI32CSRMatrix):
     raise AssertionError
 
 
-@njit(nogil=True)
+@njit()
 def pred_to_paths(
     predecessors, source, targets, out_links: UI32CSRMatrix, reverse=False
 ):
@@ -296,7 +296,7 @@ def dijkstra_all(
     return distances, predecessors
 
 
-@njit(cache=True)
+@njit()
 def dijkstra_with_targets(
     costs, out_links: UI32CSRMatrix, source, is_centroid, targets
 ):

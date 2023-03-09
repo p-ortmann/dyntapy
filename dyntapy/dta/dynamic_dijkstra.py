@@ -14,7 +14,7 @@ from numba import njit
 from dyntapy.csr import UI32CSRMatrix
 
 
-@njit(cache=True)
+@njit()
 def dijkstra(costs, in_links: UI32CSRMatrix, target, tot_nodes, is_centroid):
     """
     typical dijkstra_with_targets implementation with heaps, fills the distances

@@ -30,7 +30,9 @@ use_turn_delays = parameters.dynamic_assignment.network_loading.use_turn_delays
 # TODO: test the @njit(parallel=True) option here
 
 
-@njit(parallel=True, cache=True)
+@njit(
+    parallel=True,
+)
 def link_to_turn_costs(
     link_costs: np.ndarray,
     out_links: UI32CSRMatrix,
@@ -106,7 +108,7 @@ def link_to_turn_costs(
     return turn_costs
 
 
-@njit(cache=True)
+@njit()
 def link_to_turn_costs_deterministic(
     link_costs: np.ndarray,
     out_links: UI32CSRMatrix,
@@ -134,7 +136,7 @@ def link_to_turn_costs_deterministic(
     return turn_costs
 
 
-@njit(cache=True)
+@njit()
 def aon(network: Network, dynamic_demand: InternalDynamicDemand, time: SimulationTime):
     iltm_state, network = i_ltm_aon_setup(network, time, dynamic_demand)
     aon_state = get_aon_route_choice(network, time, dynamic_demand)
@@ -151,7 +153,7 @@ def aon(network: Network, dynamic_demand: InternalDynamicDemand, time: Simulatio
     return flows, link_costs
 
 
-@njit(cache=True)
+@njit()
 def get_aon_route_choice(
     network: Network,
     time: SimulationTime,
@@ -200,7 +202,7 @@ def get_aon_route_choice(
     )
 
 
-@njit(cache=True)
+@njit()
 def init_arrival_maps(
     costs,
     in_links,

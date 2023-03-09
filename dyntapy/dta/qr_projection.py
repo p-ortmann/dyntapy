@@ -17,7 +17,7 @@ TRANSLATION_FACTOR = 10
 restricted_turn_cost = parameters.dynamic_assignment.route_choice.restricted_turn_cost
 
 
-@njit(cache=True, parallel=True)
+@njit(parallel=True)
 def qr_projection(
     cvn_down,
     arrival_map,

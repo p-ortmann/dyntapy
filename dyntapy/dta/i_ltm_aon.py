@@ -158,7 +158,7 @@ def i_ltm_aon(network, dynamic_demand, time):
     return {k: v for k, v in zip(attr, vals)}
 
 
-@njit(cache=True)
+@njit()
 def is_cost_converged(
     costs,
     flows,

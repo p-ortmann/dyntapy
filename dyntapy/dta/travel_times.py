@@ -16,7 +16,7 @@ from dyntapy.supply import Network
 epsilon = parameters.dynamic_assignment.network_loading.epsilon
 
 
-@njit(cache=True, parallel=True)
+@njit(parallel=True)
 def cvn_to_travel_times(
     cvn_up: np.ndarray,
     cvn_down: np.ndarray,

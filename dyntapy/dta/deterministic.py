@@ -46,7 +46,7 @@ class RouteChoiceState(object):
         self.turn_restrictions = turn_restrictions
 
 
-@njit(cache=True)
+@njit()
 def update_route_choice(
     state,
     link_costs: np.ndarray,
@@ -112,7 +112,7 @@ def update_route_choice(
     return gec
 
 
-@njit(cache=True, parallel=True)
+@njit(parallel=True)
 def update_arrival_maps(
     network: Network,
     time: SimulationTime,
@@ -227,7 +227,7 @@ def update_arrival_maps(
                         )
 
 
-@njit(cache=True)
+@njit()
 def get_turning_fractions(
     dynamic_demand: InternalDynamicDemand,
     network: Network,

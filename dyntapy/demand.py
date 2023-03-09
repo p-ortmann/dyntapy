@@ -260,7 +260,7 @@ class InternalDynamicDemand(object):
         return self.demands[_id]
 
 
-@njit(cache=True)
+@njit()
 def _get_loading_time_steps(demands):
     loading = np.empty(len(demands), dtype=np.uint32)
     for _id, demand in enumerate(demands):
@@ -298,7 +298,7 @@ def _get_all_origins(demands):
     return np.unique(current)
 
 
-@njit(cache=True)
+@njit()
 def _get_destination_links(destinations: np.ndarray, in_links: UI32CSRMatrix):
     """
     Parameters

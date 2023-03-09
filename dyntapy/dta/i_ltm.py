@@ -306,7 +306,7 @@ def i_ltm(
     results.marg_comp = True
 
 
-@njit(cache=True)
+@njit()
 def unload_destination_flows(
     nodes_2_update,
     destinations,
@@ -514,7 +514,7 @@ def calc_sending_flows(
             tot_local_sending_flow[_id] = np.sum(local_sending_flow[_id, :])
 
 
-@njit(cache=True)
+@njit()
 def calc_receiving_flows(
     local_out_links,
     wrt,
@@ -560,7 +560,7 @@ def calc_receiving_flows(
         )
 
 
-@njit(cache=True)
+@njit()
 def calc_turning_flows_general(
     local_turning_fractions,
     turn_in_links,
@@ -613,7 +613,7 @@ def calc_turning_flows_general(
                 )
 
 
-@njit(cache=True)
+@njit()
 def calc_turning_flows_merge(
     local_in_links, local_turning_flows, local_sending_flow, local_turning_fractions
 ):
@@ -623,7 +623,7 @@ def calc_turning_flows_merge(
         local_turning_flows[in_id, 0] = np.sum(local_sending_flow[in_id, :])
 
 
-@njit(cache=True)
+@njit()
 def update_cvns_and_delta_n(
     result_turning_flows,
     turning_fractions,

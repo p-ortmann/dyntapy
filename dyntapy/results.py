@@ -60,7 +60,7 @@ class DynamicResult:
     iterations: numpy.ndarray = None
 
 
-@njit(parallel=True, cache=True)
+@njit(parallel=True)
 def get_skim(link_costs, demand: InternalStaticDemand, network: Network):
     """
     get skim matrix in dense format from link costs
