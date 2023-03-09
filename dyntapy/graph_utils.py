@@ -188,7 +188,7 @@ def pred_to_paths(
 def pred_to_path(predecessors, source, target, out_links: UI32CSRMatrix):
     """
 
-    converts optimal predecessor arrays to path between source and target
+    converts optimal predecessor arrays to an arc-path between source and target
 
     Parameters
     ----------
@@ -227,7 +227,7 @@ def pred_to_path(predecessors, source, target, out_links: UI32CSRMatrix):
     return path
 
 
-@njit(cache=True)
+@njit
 def dijkstra_all(
     costs,
     out_links: UI32CSRMatrix,
