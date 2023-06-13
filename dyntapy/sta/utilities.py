@@ -12,6 +12,7 @@ from numba import njit, prange
 from numba.typed import List
 
 from dyntapy.demand import InternalStaticDemand
+from dyntapy.supply import Links
 from dyntapy.graph_utils import (
     _make_in_links,
     _make_out_links,
@@ -184,15 +185,15 @@ def generate_bushes_line_graph(
 
 @njit
 def _link_to_turn_cost_static(
-    tot_turns, from_links, link_cost, turn_restriction, restricted_turn_cost=3600 / 3600
+    tot_turns, to_links, link_cost, turn_restriction, restricted_turn_cost=3600 / 3600
 ):
     turn_costs = np.zeros(tot_turns, dtype=np.float64)
     for turn in range(tot_turns):
-        from_link = from_links[turn]
+        to_link = to_links[turn]
         if not turn_restriction[turn]:
-            turn_costs[turn] = link_cost[from_link]
+            turn_costs[turn] = link_cost[to_link]
         else:
-            turn_costs[turn] = max(restricted_turn_cost, link_cost[from_link])  #
+            turn_costs[turn] = max(restricted_turn_cost, link_cost[to_link])  #
             # large penalty for u turns
     return turn_costs
 
@@ -204,3 +205,18 @@ def _get_u_turn_turn_restrictions(tot_turns, from_node, to_node):
         if from_node[turn] == to_node[turn]:
             turn_restrictions[turn] = True
     return turn_restrictions
+
+
+@njit
+def beckmann(links: Links, flows):
+    tot_links = links.capacity.size
+    cap = links.capacity
+    ff_tts = links.length / links.free_speed
+    integrals = np.empty(tot_links, dtype=np.float64)
+    for it in prange(tot_links):
+        f = flows[it]
+        c = cap[it]
+        ff_tt = ff_tts[it]
+        assert c != 0
+        integrals[it] = ff_tt * ((bpr_a * c * pow(f / c, bpr_b + 1)) / (bpr_b + 1) + f)
+    return np.sum(integrals)

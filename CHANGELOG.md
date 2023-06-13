@@ -3,6 +3,8 @@
 
 ## 0.2.4 (in development)
 users:
+- upgrading the dependencies, where possible ..
+- compatibility with shapely 2.0
 - kwarg max_edge_width for all plotting functions
 - bugfix proper display of flow values in time slider
 - compatibility with bokeh 3.0

@@ -268,12 +268,12 @@ def dijkstra_all(
     """
 
     tot_nodes = out_links.tot_rows
-    distances = np.full(tot_nodes, np.inf, dtype=np.float32)
+    distances = np.full(tot_nodes, np.inf, dtype=np.float64)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
     seen = np.copy(distances)
     my_heap = []
-    seen[source] = np.float32(0)
-    heap_item = (np.float32(0), np.float32(source))
+    seen[source] = np.float64(0)
+    heap_item = (np.float64(0), np.float64(source))
     my_heap.append(heap_item)
     while my_heap:
         heap_item = heappop(my_heap)
@@ -289,7 +289,7 @@ def dijkstra_all(
             ij_dist = distances[i] + costs[out_link]
             if seen[j] == np.inf or ij_dist < seen[j]:
                 seen[j] = ij_dist
-                heap_item = (np.float32(ij_dist), np.float32(j))
+                heap_item = (np.float64(ij_dist), np.float64(j))
                 heappush(my_heap, heap_item)
                 predecessors[j] = i
         distances[source] = 0
@@ -346,12 +346,12 @@ def dijkstra_with_targets(
     """
 
     tot_nodes = out_links.tot_rows
-    distances = np.full(tot_nodes, np.inf, dtype=np.float32)
+    distances = np.full(tot_nodes, np.inf, dtype=np.float64)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
     seen = np.copy(distances)
     my_heap = []
-    seen[source] = np.float32(0)
-    heap_item = (np.float32(0), np.float32(source))
+    seen[source] = np.float64(0)
+    heap_item = (np.float64(0), np.float64(source))
     my_heap.append(heap_item)
     while my_heap:
         heap_item = heappop(my_heap)
@@ -373,7 +373,7 @@ def dijkstra_with_targets(
             ij_dist = distances[i] + costs[out_link]
             if seen[j] == np.inf or ij_dist < seen[j]:
                 seen[j] = ij_dist
-                heap_item = (np.float32(ij_dist), np.float32(j))
+                heap_item = (np.float64(ij_dist), np.float64(j))
                 heappush(my_heap, heap_item)
                 predecessors[j] = i
     return distances, predecessors
@@ -424,7 +424,7 @@ def get_all_shortest_paths(g, source, costs=None):
     if costs is None:
         # assuming free flow travel times
         costs = network.links.length / network.links.free_speed
-        costs = costs.astype(np.float32)
+        costs = costs.astype(np.float64)
     out_links = network.nodes.out_links
     distances, pred = dijkstra_all(costs, out_links, source, network.nodes.is_centroid)
     return distances, pred
@@ -483,7 +483,7 @@ def get_shortest_paths(g, source, targets, costs=None, return_paths=False):
     if costs is None:
         # assuming free flow travel times
         costs = network.links.length / network.links.free_speed
-        costs = costs.astype(np.float32)
+        costs = costs.astype(np.float64)
     out_links = network.nodes.out_links
     distances, pred = dijkstra_with_targets(
         costs, out_links, source, network.nodes.is_centroid, targets=targets
@@ -647,12 +647,12 @@ def _dijkstra_with_target_ignored_links(
     # TODO: add links to ignore option
 
     tot_nodes = out_links.tot_rows
-    distances = np.full(tot_nodes, np.inf, dtype=np.float32)
+    distances = np.full(tot_nodes, np.inf, dtype=np.float64)
     predecessors = np.empty(tot_nodes, dtype=np.uint32)
     seen = np.copy(distances)
     my_heap = []
-    seen[source] = np.float32(0)
-    heap_item = (np.float32(0), np.float32(source))
+    seen[source] = np.float64(0)
+    heap_item = (np.float64(0), np.float64(source))
     my_heap.append(heap_item)
     target_found = False
     while my_heap:
@@ -674,7 +674,7 @@ def _dijkstra_with_target_ignored_links(
             ij_dist = distances[i] + costs[out_link]
             if seen[j] == np.inf or ij_dist < seen[j]:
                 seen[j] = ij_dist
-                heap_item = (np.float32(ij_dist), np.float32(j))
+                heap_item = (np.float64(ij_dist), np.float64(j))
                 heappush(my_heap, heap_item)
                 predecessors[j] = i
     if target_found and distances[target] < max_dist:
@@ -824,7 +824,7 @@ def get_k_shortest_paths(
     if costs is None:
         # assuming free flow travel times
         costs = network.links.length / network.links.free_speed
-        costs = costs.astype(np.float32)
+        costs = costs.astype(np.float64)
 
     out_links = network.nodes.out_links
     solution_paths, distances = kspwlo_esx(

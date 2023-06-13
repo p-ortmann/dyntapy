@@ -25,6 +25,7 @@ from dyntapy.results import StaticResult
 from dyntapy.settings import debugging, debugging_full, parameters
 from dyntapy.sta.equilibrate_bush import _equilibrate_bush, _update_bush
 from dyntapy.sta.utilities import (
+    beckmann,
     _bpr_cost_single_toll,
     _bpr_cost_tolls,
     _bpr_derivative,
@@ -47,7 +48,7 @@ derivative_function = _bpr_derivative
 
 
 @njit
-def make_boolean_turn_csr(from_link, to_link, tot_links, turn_restriction):
+def make_boolean_turn_csr(from_link, to_link, tot_links, is_allowed_turn):
     # bool for each turn
     # sparse structure for each out_turn
 
@@ -55,12 +56,12 @@ def make_boolean_turn_csr(from_link, to_link, tot_links, turn_restriction):
     fw_index_array = np.column_stack((from_link, np.arange(tot_turns, dtype=np.uint32)))
     bw_index_array = np.column_stack((to_link, np.arange(tot_turns, dtype=np.uint32)))
 
-    val = np.copy(turn_restriction)
+    val = np.copy(is_allowed_turn)
     val, col, row = csr_prep(
         fw_index_array, val, (tot_links, tot_turns), unsorted=False
     )
     is_out_turn = BCSRMatrix(val, col, row)
-    val = np.copy(turn_restriction)
+    val = np.copy(is_allowed_turn)
     val, col, row = csr_prep(bw_index_array, val, (tot_links, tot_turns))
     is_in_turn = BCSRMatrix(val, col, row)
     return is_out_turn, is_in_turn
@@ -71,7 +72,6 @@ def dial_b(
     network: Network, demand: InternalStaticDemand, store_iterations, tolls, eps=epsilon
 ):
     gaps = []
-    from_links = network.turns.from_link
     to_links = network.turns.to_link
     link_ff_times = network.links.length / network.links.free_speed
     capacities = network.links.capacity
@@ -92,7 +92,7 @@ def dial_b(
     )
     turn_costs = _link_to_turn_cost_static(
         network.tot_turns,
-        from_links,
+        to_links,
         link_costs,
         turn_restriction=np.full(network.tot_turns, False),
     )
@@ -158,6 +158,7 @@ def dial_b(
                     bush_flows[d_id],
                     turn_flows,
                     dest,
+                    demand.to_origins.get_nnz(demand.destinations[d_id]),
                     topological_orders[d_id][: last_indices[d_id]],
                     turn_derivatives,
                     capacities,
@@ -177,6 +178,7 @@ def dial_b(
         gaps.append(convergence_counter / demand.destinations.size)
         if convergence_counter == demand.destinations.size:
             break
+
         iteration = iteration + 1
         if iteration == dial_b_max_iterations:
             print("max iterations reached")
@@ -234,7 +236,7 @@ def _initial_loading(network: Network, demand: InternalStaticDemand, tolls):
     )
     turn_costs = _link_to_turn_cost_static(
         network.tot_turns,
-        network.turns.from_link,
+        network.turns.to_link,
         costs,
         turn_restriction=np.full(network.tot_turns, False),
     )
@@ -264,7 +266,7 @@ def _initial_loading(network: Network, demand: InternalStaticDemand, tolls):
                 turns_in_bush[d_id][turn] = True
         for path, path_flow in zip(paths, demand.to_origins.get_row(dest)):
             for turn_id in path:
-                flows[from_link[turn_id]] += path_flow
+                flows[to_link[turn_id]] += path_flow
                 bush_flows[d_id][turn_id] += path_flow
         bush_out_turn, _ = make_boolean_turn_csr(
             from_link, to_link, tot_links, turns_in_bush[d_id]

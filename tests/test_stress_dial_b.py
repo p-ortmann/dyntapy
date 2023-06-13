@@ -20,20 +20,19 @@ from dyntapy.sta._debugging_sta import loading, continuity
 
 # this file stress-tests the DIAL B implementation with more demand, a bigger network
 # and multiple connectors per centroid.
-method = 'constant'  # 'constant' or 'iterated' if multiple demand scenarios
+method = 'iterated'  # 'constant' or 'iterated' if multiple demand scenarios
 # should be explored, you can run this until failure to identify seeds that trigger
 # an error.
 # stress tested for epsilon up to 0.00001, not lower
 #
 seed_constant = 13
-tot_seeds_to_try = 50
+tot_seeds_to_try = 20
 tot_od_pairs = 10
-max_flow_per_od_pair = 500
+max_flow_per_od_pair = 2000 #500 for almost no iterations, 2000 for much more
+# the variance among the number of iterations is high because each scenario implies
+# more or less competition for specific connections ..
 
 
-# should be run to explore if errors would occur under different queueing conditions
-
-#@mark.skip(reason='too computationally expensive')
 def test_stress_dial_b():
     city = 'Stralsund'
     HERE = pathlib.Path(__file__).parent
@@ -72,10 +71,10 @@ def test_stress_dial_b():
             assignment = StaticAssignment(g, od_graph)
             results = assignment.run(method='dial_b')
             print(f'test for demand from {seed=} passed successfully')
-            loading_ok, _, _ = loading(assignment.internal_demand,
+            loading_failed, _, _ = loading(assignment.internal_demand,
                                        assignment.internal_network,
                                        results.flows)
-            assert loading_ok
+            assert not loading_failed
             continuity_violations, _, _ = continuity(flows=results.flows,
                                                      network=assignment.internal_network)
             assert not np.any(continuity_violations)

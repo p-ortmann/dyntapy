@@ -96,8 +96,8 @@ def generate_od_xy(tot_ods, name: str, max_flow=2000, seed=0):
         my_points.within(my_gdf.loc[0, "geometry"])
     ]  # bounding box typically doesn't align
     # with polygon extend so we ought to check which points are inside
-    X = np.array(valid_points.geometry.x[: tot_ods * 2])
-    Y = np.array(valid_points.geometry.y[: tot_ods * 2])
+    X = np.array(valid_points.geometry.x)[: tot_ods * 2]
+    Y = np.array(valid_points.geometry.y)[: tot_ods * 2]
     destinations = [(x, y) for x, y in zip(X[:tot_ods], Y[:tot_ods])]
     origins = [(x, y) for x, y in zip(X[tot_ods:], Y[tot_ods:])]
     vals = np.random.random(tot_ods) * max_flow

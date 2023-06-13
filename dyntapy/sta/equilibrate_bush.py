@@ -13,7 +13,7 @@ from numba.typed import List
 from heapq import heappop, heappush
 from dyntapy.csr import BCSRMatrix, UI32CSRMatrix
 from dyntapy.sta.utilities import _bpr_cost_single_toll, _bpr_derivative_single
-from dyntapy.graph_utils import _get_link_id
+from dyntapy.graph_utils import _get_link_id, dijkstra_all
 from dyntapy.settings import debugging, debugging_full
 
 link_cost_function = _bpr_cost_single_toll
@@ -99,12 +99,13 @@ def topological_sort(
                 pos_count += 1
                 heappush(my_heap, (np.uint32(pos_count), np.uint32(i)))
     if not len(set(order)) == tot_reachable_nodes:  # if this fails forward and
-        for i in old_topological_order:
-            if i not in set(order):
-                print(i)
-        print("_____")
-        print(len(set(order)))
-        print(tot_reachable_nodes)
+        if debugging:
+            for i in old_topological_order:
+                if i not in set(order):
+                    print(i)
+            print("_____")
+            print(len(set(order)))
+            print(tot_reachable_nodes)
         raise AssertionError
     # backward stars do
     # not form DAG
@@ -113,6 +114,7 @@ def topological_sort(
 
 @njit
 def _update_bush(
+    U,
     L,
     turn_costs,
     bush_out_turns: BCSRMatrix,
@@ -122,11 +124,19 @@ def _update_bush(
     global_out_turns,
     tot_reachable_links,
     old_topological_order,
-    eps=0.0001,
+    eps=np.finfo(np.float32).eps,
 ):
     # if eps is set too close to 0, cycles may be created.
     # All solutions to the bush-based algorithms may retain inefficient edges,
     # within the PAS convergence bound that is set.
+    # if a topological order cannot be generated turns are removed in order of
+    # efficiency until a topological order is found.
+    added_turns = List()
+    added_turns.append((0, 0))
+    deltas = List()
+    deltas.append(0.0)
+    deltas.pop()
+    added_turns.pop()
     new_turns_added = False
     tot_links = global_out_turns.tot_rows
     for i in old_topological_order:
@@ -139,42 +149,82 @@ def _update_bush(
             is_contained_turn = bush_out_turns.get_row(i)[idx]
             if not is_contained_turn:
                 if L[i] - eps > turn_costs[turn_id] + L[j]:
-                    # current edges is a shortcut edge
-                    # pos2 = np.argwhere(topological_order == j)[0][0]
-                    # pos1 = np.argwhere(topological_order == i)[0][0]
-                    # assert pos2>pos1
-                    # if pos1 > pos2:
-                    #    print('something wrong with labels or shifting')
-                    opposite_exists = False
-                    try:
-                        # never the case on the link turn graph if u-turns are omitted
-                        opposite_turn = _get_link_id(j, i, global_out_turns)
-                        opposite_exists = True
-                    except Exception:
-                        pass
-
-                    if opposite_exists:
-                        flow_opposite_turn = bush_flows[opposite_turn]
-                        if flow_opposite_turn > 0:
-                            # cannot remove this edge, it's loaded!
-                            # adding the opposite would yield a graph that cannot be
-                            # topologically sorted. If the epsilon taken for local PAS
-                            # equilibration is set high compared to the epsilon used in
-                            # this function there'll be trouble.
-                            continue
+                    delta = L[i] - turn_costs[turn_id] - L[j]
+                    deltas.append(delta)
                     if debugging_full:
                         print(f"adding turn {turn_id} from link {i} to link {j}")
                     new_turns_added = True
+                    added_turns.append((i, idx))
                     bush_out_turns.get_row(i)[idx] = True
-    new_topological_order = topological_sort(
-        global_out_turns,
-        global_in_turns,
-        bush_out_turns,
-        len(old_topological_order),
-        tot_links,
-        destination,
-        old_topological_order,
-    )
+                    if debugging:
+                        try:
+                            topological_sort(
+                                global_out_turns,
+                                global_in_turns,
+                                bush_out_turns,
+                                len(old_topological_order),
+                                tot_links,
+                                destination,
+                                old_topological_order,
+                            )
+                        except:
+                            print("topological order compromised by adding turn")
+                            print(turn_id)
+                            # the way it is set up right now this is expected
+                            # behaviour, the fallback below handles it.
+                            # on real networks it is quite rare that cycles are created
+                            # through this process.
+                            # The below is essentially an escape hatch IF it does
+                            # happen.
+                            # Aggressively adding turns, like above, can speed up the
+                            # equilibrium finding though.
+
+    try:
+        new_topological_order = topological_sort(
+            global_out_turns,
+            global_in_turns,
+            bush_out_turns,
+            len(old_topological_order),
+            tot_links,
+            destination,
+            old_topological_order,
+        )
+    except:
+        # no topological order with current epsilon, readding turns one by one until
+        # graph is no longer cyclic.
+        success = False
+        if debugging:
+            print("fallback to restricted arc insertion to prevent cyclic graph")
+
+        while not success:
+
+            min_delta_idx = 0
+            min_delta = 1000000
+            for _idx, delta in enumerate(deltas):
+                if delta < min_delta:
+                    min_delta = delta
+                    min_delta_idx = _idx
+            min_i = added_turns[min_delta_idx][0]
+            bush_out_turns.get_row(min_i)[added_turns[min_delta_idx][1]] = False
+            deltas.pop(min_delta_idx)
+            added_turns.pop(min_delta_idx)
+            if len(added_turns) == 0:
+                new_turns_added = False
+
+            try:
+                new_topological_order = topological_sort(
+                    global_out_turns,
+                    global_in_turns,
+                    bush_out_turns,
+                    len(old_topological_order),
+                    tot_links,
+                    destination,
+                    old_topological_order,
+                )
+                success = True
+            except:
+                pass
+
     return new_turns_added, new_topological_order
 
 
@@ -259,6 +309,7 @@ def _equilibrate_bush(
     bush_flows,
     turn_flows,
     destination,
+    origins,
     topological_order,
     derivatives,
     capacities,
@@ -271,7 +322,7 @@ def _equilibrate_bush(
     tolls,
 ):
     pas_epsilon = (
-        epsilon / 20
+        epsilon / 30
     )  # Epsilon that is used on an alternatives basis, replaces
     tot_links = global_out_turns.tot_rows
     # we equilibrate each bush to convergence before moving on to the next ..
@@ -285,21 +336,32 @@ def _equilibrate_bush(
     max_path_successor = np.full(tot_links, -1)
     max_path_successor[destination] = -1
     min_path_successor[destination] = -1
-    L = np.full(tot_links, np.inf)
-    U = np.full(tot_links, -np.inf)
+    L = np.full(tot_links, np.inf, dtype=np.float64)
+    U = np.full(tot_links, -np.inf, dtype=np.float64)
     label = np.empty(tot_links, np.uint32)
+    for index, link in enumerate(topological_order):
+        label[link] = index
     U[destination] = 0.0
     L[destination] = 0.0
 
+    # for a set of active origins the below will find the most
+    # topologically upstream one among them and
+    # constructs a set of active links by identifying all topologically downstream
+    # links that are
+    # loaded, from each of those links it searches forward to find the set of links
+    # that are reachable..
     link_flows = np.zeros(tot_links)
-    for idx, link in enumerate(range(tot_links)):
-        link_flows[idx] = max(
+    max_idx = np.max(label[origins])
+    active_links = np.full(tot_links, False)
+    for link in range(tot_links):
+        link_flows[link] = max(
             bush_flows[global_out_turns.get_nnz(link)].sum(),
             bush_flows[global_in_turns.get_nnz(link)].sum(),
         )
-    origins = np.nonzero(link_flows)[0]
+        if label[link] < max_idx and link_flows[link] > 0:
+            active_links[link] = True
     reachable = find_reachable_topo_links(
-        bush_out_turns, global_out_turns, origins, tot_links
+        bush_out_turns, global_out_turns, np.argwhere(active_links).flatten(), tot_links
     )
     tot_reachable = np.sum(reachable)
     reduced_topological_order = np.empty(tot_reachable, dtype=np.uint32)
@@ -383,6 +445,8 @@ def _equilibrate_bush(
             bush_out_turns,
         )
 
+        # print("max path delta in mainline")
+        # print(max_delta_path_cost)
         if debugging:
             print(f"max path delta in mainline: {max_delta_path_cost}")
 
@@ -405,12 +469,22 @@ def _equilibrate_bush(
     _remove_unused_turns(
         L, global_out_turns, bush_flows, bush_out_turns, min_path_successor, to_links
     )
-
+    for i in topological_order:
+        if L[i] == np.inf:
+            raise AssertionError
     if debugging:
         for i in topological_order:
             if L[i] == np.inf:
                 raise AssertionError
+    # for origin in origins:
+    # print('destination')
+    # print(destination)
+    # print('origin')
+    # print(origin)
+    # print('dif')
+    # print(U[origin]-L[origin])
     turns_added, new_topological_order = _update_bush(
+        U,
         L,
         costs,
         bush_out_turns,
@@ -420,14 +494,65 @@ def _equilibrate_bush(
         global_out_turns,
         len(topological_order),
         topological_order,
-        eps=max_delta_path_cost,
+        eps=np.finfo(np.float32).eps,
     )
     if debugging:
         if turns_added:
             print("turns added after equilibration, bush not converged")
         else:
             print("no turns added")
+        if not turns_added:
 
+            is_centroid = np.full(tot_links, False)
+            ssp_dist, succ = dijkstra_all(
+                costs, global_in_turns, destination, is_centroid
+            )
+            for origin in origins:
+                dif = L[origin] - ssp_dist[origin]
+                # print('from dest')
+                # print(destination)
+                # print('ORIGIN')
+                # print(origin)
+                # print('L')
+                # print(L[origin])
+                # print('U')
+                # print(U[origin])
+                # print('ssp')
+                # print(ssp_dist[origin])
+                if dif > np.finfo(np.float32).eps * 10:
+                    print(dif)
+                    print(origin)
+                    print(destination)
+                    # verify the path
+                    cur_link = origin
+                    dist = 0
+                    while True:
+                        for to_link, turn in zip(
+                            global_out_turns.get_row(cur_link),
+                            global_out_turns.get_nnz(cur_link),
+                        ):
+                            if to_link == succ[cur_link]:
+                                dist += costs[turn]
+                                for turn2, is_included in zip(
+                                    bush_out_turns.get_nnz(cur_link),
+                                    bush_out_turns.get_row(cur_link),
+                                ):
+                                    if turn2 == turn:
+                                        if not is_included:
+                                            print("turn not included")
+                                            print(L[cur_link])
+                                            print(L[to_link])
+                                        else:
+                                            print("ssp turn included;")
+                        cur_link = succ[cur_link]
+
+                        if cur_link == destination:
+                            break
+                    raise AssertionError  # the distance reported should be the same
+                    # etiher not all shortest path turns are included..
+                    # or there is an issue in the cost updating
+                    # if this happens it will most likely be related to precision loss..
+                    # which is why there is a threshold value for the assertion error
     new_labels = np.full(global_out_turns.tot_rows, global_out_turns.tot_rows + 1)
 
     for label, link in enumerate(new_topological_order):
@@ -652,8 +777,8 @@ def _update_trees(
     assert n <= len(topological_order)
     max_delta_path_costs = 0
     if k == 0:
-        U[topological_order[0]] = 0.0
-        L[topological_order[0]] = 0.0
+        U[topological_order[0]] = 0
+        L[topological_order[0]] = 0
         k = 1
     for i in topological_order[k:n]:
         L[i], U[i] = np.inf, -np.inf
@@ -687,8 +812,6 @@ def _update_trees(
                 max_path_successor[i] = j
         if max_path_successor[i] != -1:
             max_delta_path_costs = max(max_delta_path_costs, U[i] - L[i])
-            if max_delta_path_costs > 9999999:
-                print("hi")
             assert max_delta_path_costs < 9999999
         if U[i] > 0:
             assert L[i] <= U[i]
@@ -780,13 +903,14 @@ def _get_branch_links(
     last_branch_link = next_min_i
     assert min_path_flow >= 0
     assert max_path_flow >= 0
-    for turn in max_turns:
-        if bush_flows[turn] < max_path_flow:
-            print(f"error with turn {turn}")
+    if debugging:
+        for turn in max_turns:
+            if bush_flows[turn] < max_path_flow:
+                print(f"error with turn {turn}")
 
-    for turn in min_turns:
-        if bush_flows[turn] < min_path_flow:
-            print(f"error with turn {turn}")
+        for turn in min_turns:
+            if bush_flows[turn] < min_path_flow:
+                print(f"error with turn {turn}")
     return (
         first_branch_link,
         last_branch_link,

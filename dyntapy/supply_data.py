@@ -776,7 +776,7 @@ def get_toy_network(name):
             sep = "       "
         else:
             sep = "\t"
-        node_df = pd.read_csv(node_file, sep=sep)
+        node_df = pd.read_csv(node_file, sep=sep, engine="python")
         Graphtype = nx.DiGraph()
         edge_df["init_node"] = edge_df["init_node"] - 1
         edge_df["term_node"] = edge_df["term_node"] - 1

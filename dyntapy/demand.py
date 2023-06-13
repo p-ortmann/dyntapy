@@ -66,7 +66,7 @@ class DynamicDemand:
         scipy.lil_matrix of trip table for given time slice
         """
         graph = self._get_od_graph(time)
-        return nx.to_scipy_sparse_matrix(graph, weight="flow", format="lil")
+        return nx.to_scipy_sparse_array(graph, weight="flow", format="lil")
 
     def _get_od_graph(self, time):
         _id = np.argwhere(self.insertion_times == time)[0][0]
@@ -100,12 +100,7 @@ def build_internal_static_demand(od_graph: nx.DiGraph):
     dyntapy.demand.InternalStaticDemand
 
     """
-    try:
-        # available since networkx version 2.7.0, February 2022
-        lil_demand = nx.to_scipy_sparse_array(od_graph, weight="flow", format="lil")
-    except AttributeError:
-        # will be deprecated for networkx 3.0
-        lil_demand = nx.to_scipy_sparse_matrix(od_graph, weight="flow", format="lil")
+    lil_demand = nx.to_scipy_sparse_array(od_graph, weight="flow", format="lil")
     tot_centroids = od_graph.number_of_nodes()
     # boxing these values into float32 leads to some minor demand loss
     # the boxing leads to rounding down - do not know why -

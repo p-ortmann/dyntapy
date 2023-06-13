@@ -26,7 +26,6 @@ from bokeh.models.callbacks import CustomJS
 from bokeh.models.glyphs import MultiPolygons, Patches
 from bokeh.models.widgets import Slider, TextInput
 from bokeh.plotting import ColumnDataSource, figure
-from bokeh.tile_providers import Vendors, get_provider
 from pyproj import CRS
 from shapely.geometry import LineString, MultiPolygon
 
@@ -41,9 +40,9 @@ node_color = parameters.visualization.node_color
 centroid_color = parameters.visualization.centroid_color
 node_size = parameters.visualization.node_size
 
+tile_provider = "CARTODBPOSITRON"  # tile
 
-# TODO: investigate reactions on layout width changes,
-#  https://github.com/bokeh/bokeh/pull/6021
+
 def _get_output_file(plot_name: str):
     dt_string = datetime.datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
     return os.getcwd() + os.path.sep + f"{plot_name}_{dt_string}.html"
@@ -87,8 +86,7 @@ def _process_plot_arguments(
             aspect_ratio=1,
             toolbar_location="below",
         )
-        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-        plot.add_tile(tile_provider)
+        plot.add_tile(tile_provider, retina=True)
         tmp = nx.MultiDiGraph(g)
         tmp = ox.project_graph(
             tmp, CRS.from_user_input(3857)
@@ -749,8 +747,7 @@ def show_demand(
             aspect_ratio=1,
             toolbar_location="below",
         )
-        tile_provider = get_provider(Vendors.CARTODBPOSITRON_RETINA)
-        plot.add_tile(tile_provider)
+        plot.add_tile(tile_provider, retina=True)
         link_width_scaling = (
             max_edge_width * parameters.visualization.link_width_scaling
         )
