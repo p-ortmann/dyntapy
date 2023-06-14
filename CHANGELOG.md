@@ -2,7 +2,6 @@
 
 
 ## 0.2.4 (in development)
-users:
 - upgrading the dependencies, where possible ..
 - compatibility with shapely 2.0
 - kwarg max_edge_width for all plotting functions
