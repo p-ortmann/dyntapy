@@ -16,8 +16,10 @@ from setuptools import setup
 HERE = pathlib.Path(__file__).parent
 
 # The text of the README file
-README = "See docs on " \
-         "[Gitlab](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy)"
+README = (
+    "See docs on "
+    "[Gitlab](https://gitlab.kuleuven.be/ITSCreaLab/public-toolboxes/dyntapy)"
+)
 
 # PyPI classifiers here
 CLASSIFIERS = [
@@ -33,26 +35,24 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3.9",
 ]
 
-DESC = (
-    "Macroscopic Static and Dynamic Traffic Assignment in Python "
-)
+DESC = "Macroscopic Static and Dynamic Traffic Assignment in Python "
 
 INSTALL_REQUIRES = [
-    'numba',
-    'bokeh',
-    'osmnx',
-    'pandas',
-    'scipy',
-    'numpy',
-    'geojson',
-    'pyyaml',
-    'networkx',
-    'pyproj',
-    'geopandas',
-    'Shapely',
-    'matplotlib',
-    'notebook',
-    'setuptools',
+    "numba",
+    "bokeh",
+    "osmnx",
+    "pandas",
+    "scipy",
+    "numpy",
+    "geojson",
+    "pyyaml",
+    "networkx",
+    "pyproj",
+    "geopandas",
+    "Shapely",
+    "matplotlib",
+    "notebook",
+    "setuptools",
 ]
 # now call setup
 setup(
@@ -67,7 +67,8 @@ setup(
     long_description_content_type="text/markdown",
     license="GPLv3",
     platforms="any",
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=INSTALL_REQUIRES,
-    packages=find_packages(exclude=('testing',)),
-    include_package_data=True)
+    packages=find_packages(exclude=("testing",)),
+    include_package_data=True,
+)

@@ -7,8 +7,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9
-  - numba>=0.54.1
+  - python>=3.9
+  - numba>=0.55
   - matplotlib
   - osmnx>=1.3.0
   - numpy
@@ -21,4 +21,4 @@ dependencies:
   - geojson
   - pandas
   - shapely
-  - networkx
+  - networkx>=2.7
