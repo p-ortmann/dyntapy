@@ -30,7 +30,12 @@ from .graph_utils import (
     kspwlo_esx,
 )
 from .results import DynamicResult, StaticResult
-from .supply_data import get_toy_network, relabel_graph, road_network_from_place
+from .supply_data import (
+    get_toy_network,
+    relabel_graph,
+    road_network_from_place,
+    road_network_from_polygon,
+)
 from .visualization import (
     show_demand,
     show_dynamic_network,

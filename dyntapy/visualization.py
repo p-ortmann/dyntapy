@@ -757,8 +757,8 @@ def show_demand(
             # cartesian
         )
         plot = figure(
-            inner_height=parameters.visualization.plot_size,
-            inner_width=parameters.visualization.plot_size,
+            # inner_height=parameters.visualization.plot_size,
+            # inner_width=parameters.visualization.plot_size,
             aspect_ratio=1,
             toolbar_location="below",
         )

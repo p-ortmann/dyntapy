@@ -17,8 +17,10 @@ import numpy as np
 import osmnx as ox
 import osmnx._errors
 import pandas as pd
+from typing import Union
 from numba.typed import List
 from osmnx.distance import euclidean_dist_vec
+from shapely import Polygon, MultiPolygon
 
 from dyntapy.csr import UI32CSRMatrix, csr_prep, csr_sort
 from dyntapy.settings import parameters
@@ -37,76 +39,69 @@ penalty_default = parameters.supply.turn_penalty_default
 node_control_default = parameters.supply.node_control_default
 
 
-def road_network_from_place(
-    place,
-    buffer_dist_close=default_buffer_dist,
-    buffer_dist_extended=None,
+# TODO: provide default filters for network coarsity
+def acquire_graph(
+    place: Union[str, Polygon, MultiPolygon],
+    buffer_dist_close: int,
+    buffer_dist_extended: int,
 ):
-    """
-    retrieves road_network from OSM for driving.
-
-    Detailed network for the inner polygon given by querying OSM.
-    The buffer values determine surrounding polygons
-    for which we acquire a coarser network.
-
-    Parameters
-    ----------
-    place : str
-        name of the city or region
-    buffer_dist_close : float
-        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
-        'primary'}
-    buffer_dist_extended: float
-        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
-        }
-
-
-    Notes
-    -----
-
-    The filters for the buffers can be adjusted in the settings file.
-
-    Returns
-    -------
-
-    networks.DiGraph
-    """
-
-    # TODO: provide default filters for network coarsity
-    def acquire_graph():
-        log("Starting to load from OSM")
+    log("Starting to load from OSM")
+    if isinstance(place, str):
         inner = ox.graph_from_place(place, network_type="drive")
-        close = None
-        extended = None
-        try:
+    else:
+        inner = ox.graph_from_polygon(place, network_type="drive")
+
+    close = None
+    extended = None
+    try:
+        if isinstance(place, str):
             close = ox.graph_from_place(
                 place,
                 network_type="drive",
                 buffer_dist=buffer_dist_close,
                 custom_filter=parameters.supply.close_surroundings_filter,
             )
-        except (ox._errors.EmptyOverpassResponse, ValueError):
-            warn("Could not find any elements in outer Buffer")
-        try:
+        else:
+            close = ox.graph_from_polygon(
+                place,
+                network_type="drive",
+                custom_filter=parameters.supply.close_surroundings_filter,
+            )
+    except (ox._errors.InsufficientResponseError, ValueError):
+        warn("Could not find any elements in outer Buffer")
+    try:
+        if isinstance(place, str):
             extended = ox.graph_from_place(
                 place,
                 network_type="drive",
                 buffer_dist=buffer_dist_extended,
                 custom_filter=parameters.supply.extended_surroundings_filter,
             )
-        except (ox._errors.EmptyOverpassResponse, ValueError):
-            warn("Could not find any elements in inner Buffer")
-        log("Finished downloading")
-        print("composing")
-        g = inner
-        if close is not None:
-            g = nx.compose(inner, close)
-        if extended is not None:
-            g = nx.compose(g, extended)
+        else:
+            extended = ox.graph_from_polygon(
+                place,
+                network_type="drive",
+                custom_filter=parameters.supply.extended_surroundings_filter,
+            )
+    except (ox._errors.InsufficientResponseError, ValueError):
+        warn("Could not find any elements in inner Buffer")
+    log("Finished downloading")
+    print("composing")
+    g = inner
+    if close is not None:
+        g = nx.compose(inner, close)
+    if extended is not None:
+        g = nx.compose(g, extended)
 
-        return g
+    return g
 
-    g = acquire_graph()
+
+def _road_network_from(
+    place: Union[str, Polygon, MultiPolygon],
+    buffer_dist_close: int,
+    buffer_dist_extended: int,
+):
+    g = acquire_graph(place, buffer_dist_close, buffer_dist_extended)
 
     # osmnx generates MultiDiGraphs, meaning there can
     # be more than one edge connecting i ->j, a preliminary check on
@@ -151,6 +146,81 @@ def road_network_from_place(
     )
 
     return dir_g
+
+
+def road_network_from_polygon(
+    polygon, buffer_dist_close=default_buffer_dist, buffer_dist_extended=None
+):
+    """
+    retrieves road_network from OSM for driving.
+
+    Detailed network for the inner polygon given by querying OSM.
+    The buffer values determine surrounding polygons
+    for which we acquire a coarser network.
+
+    Parameters
+    ----------
+    place : Polygon | MultiPolygon
+        (Multi)Polygon covering the region
+    buffer_dist_close : float
+        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
+        'primary'}
+    buffer_dist_extended: float
+        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
+        }
+
+
+    Notes
+    -----
+
+    The filters for the buffers can be adjusted in the settings file.
+
+    Returns
+    -------
+
+    networks.DiGraph
+    """
+    g = _road_network_from(polygon, buffer_dist_close, buffer_dist_extended)
+    return g
+
+
+def road_network_from_place(
+    place,
+    buffer_dist_close=default_buffer_dist,
+    buffer_dist_extended=None,
+):
+    """
+    retrieves road_network from OSM for driving.
+
+    Detailed network for the inner polygon given by querying OSM.
+    The buffer values determine surrounding polygons
+    for which we acquire a coarser network.
+
+    Parameters
+    ----------
+    place : str
+        name of the city or region
+    buffer_dist_close : float
+        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
+        'primary'}
+    buffer_dist_extended: float
+        meters to buffer around, retain all roads with 'highway' = {'trunk', 'motorway',
+        }
+
+
+    Notes
+    -----
+
+    The filters for the buffers can be adjusted in the settings file.
+
+    Returns
+    -------
+
+    networks.DiGraph
+    """
+
+    g = _road_network_from(place, buffer_dist_close, buffer_dist_extended)
+    return g
 
 
 def _convert_osm_to_gmns(g):
