@@ -83,6 +83,7 @@ def test_get_graph_from_polygon(polygon=_polygon, k=1, connector_type="turn"):
     g = road_network_from_polygon(
         _polygon, buffer_dist_close=5000, buffer_dist_extended=20000
     )
+    
     print("road network graph from polygon acquired")
 
 
